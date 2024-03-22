@@ -9,6 +9,8 @@
 typedef enum opcode_t {
     OP_RETURN,
     OP_CONSTANT,
+    OP_STOP,
+    OP_START,
 } opcode_t;
 
 typedef struct bytecode_store_t {

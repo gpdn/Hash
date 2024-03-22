@@ -30,4 +30,4 @@ ${OBJ}/%.o: ${SRC}/*/%.c
 	${CC} ${FLAGS} -c $< -o $@
 
 clear:
-	rm -r ${OBJ}/* ${BIN}/*
+	rm -r ${OBJ}/* 

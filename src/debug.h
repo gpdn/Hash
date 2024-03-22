@@ -15,10 +15,13 @@
 #define COLOR_CYAN    "\x1b[36m"
 #define COLOR_RESET   "\x1b[0m"
 
+#define DEBUG 1
+#define DEBUG_ALL 1
+
 #if DEBUG
     #define DEBUG_LOG(...) printf(__VA_ARGS__)
     #define DEBUG_COLOR(X, Y) printf("%s%s%s\n", X, Y, COLOR_RESET)
-    #define DEBUG_COLOR_SET(X) printf("%s\n", X)
+    #define DEBUG_COLOR_SET(X) printf("%s", X)
     #define DEBUG_COLOR_RESET(X) DEBUG_COLOR_SET(COLOR_RESET)
     #define DEBUG_PRINT(X) DEBUG_COLOR(COLOR_WHITE, X)
     #define DEBUG_ERROR(X) DEBUG_COLOR(COLOR_RED, X)
@@ -28,7 +31,7 @@
     #define DEBUG_CLEAR() clrscr();
     #define DEBUG_TITLE(X) printf("--- %s ---\n", X)
 #else
-    #define DEBUG_LOG(X)
+    #define DEBUG_LOG(...)
     #define DEBUG_COLOR(X, Y)
     #define DEBUG_PRINT(X)
     #define DEBUG_ERROR(X)
@@ -53,6 +56,10 @@
     #include "bytecode_store.h"
     void disassemble_bytecode_store(bytecode_store_t* store, const char* name);
     size_t disassemble_instruction(bytecode_store_t* store, size_t offset);
+#endif
+
+#if DEBUG_ALL
+    #define DEBUG_TRACE_VM 1
 #endif
 
 #endif
