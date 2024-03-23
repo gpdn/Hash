@@ -3,10 +3,13 @@
 
 #include "debug.h"
 #include "bytecode_store.h"
+#include "h_values.h"
 
 typedef struct virtual_machine_t {
     bytecode_store_t* store;
     uint8_t* instruction_pointer;
+    value_t* stack;
+    value_t* stack_top;
 } virtual_machine_t;
 
 typedef enum interpreter_result_t {

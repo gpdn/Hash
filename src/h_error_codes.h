@@ -1,0 +1,9 @@
+#ifndef HASH_ERROR_CODES_H
+#define HASH_ERROR_CODES_H
+
+#define HASH_SUCCESS 0
+#define HASH_FAILURE 1
+#define HASH_FILE_OPEN_FAILED 2
+#define HASH_FILE_READ_FAILED 3
+
+#endif

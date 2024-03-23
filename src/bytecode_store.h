@@ -11,6 +11,11 @@ typedef enum opcode_t {
     OP_CONSTANT,
     OP_STOP,
     OP_START,
+    OP_NEGATE,
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV,
 } opcode_t;
 
 typedef struct bytecode_store_t {
@@ -22,7 +27,7 @@ typedef struct bytecode_store_t {
 
 bytecode_store_t* bs_init(size_t capacity);
 void bs_write(bytecode_store_t* store, uint8_t instruction);
-void bs_write_constant(bytecode_store_t* store, number_t constant);
+void bs_write_constant(bytecode_store_t* store, value_t constant);
 void bs_free(bytecode_store_t* store);
 
 #endif

@@ -1,8 +1,22 @@
 #include "virtual_machine.h"
 
-virtual_machine_t *vm_init(bytecode_store_t *store)
+static void vm_stack_push(virtual_machine_t* vm, value_t value);
+static value_t vm_stack_pop(virtual_machine_t* vm);
+
+static void vm_stack_push(virtual_machine_t* vm, value_t value) {
+    *vm->stack_top = value;
+    ++vm->stack_top;
+}
+
+static value_t vm_stack_pop(virtual_machine_t* vm) {
+    return *(--vm->stack_top);
+}
+
+virtual_machine_t* vm_init(bytecode_store_t *store)
 {
     virtual_machine_t* vm = (virtual_machine_t*)malloc(sizeof(virtual_machine_t));
+    vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity);
+    vm->stack_top = vm->stack;
     vm->store = store;
     vm->instruction_pointer = store->code;
     return vm;
@@ -11,8 +25,9 @@ virtual_machine_t *vm_init(bytecode_store_t *store)
 interpreter_result_t vm_run(virtual_machine_t* vm) {
     #define ADVANCE_INSTRUCTION_POINTER() (*vm->instruction_pointer++) 
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
+    #define BINARY_OP(op) vm_stack_push(vm, vm_stack_pop(vm) op vm_stack_pop(vm))
 
-    #if DEBUG_TRACE_VM 
+    #if DEBUG_TRACE_VM_BYTECODE 
         DEBUG_COLOR_SET(COLOR_BLUE);
             disassemble_bytecode_store(vm->store, "VM STORE");
         DEBUG_COLOR_RESET(COLOR_BLUE);
@@ -21,8 +36,16 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     uint8_t instruction;
     while((instruction = ADVANCE_INSTRUCTION_POINTER()) != OP_STOP) {
         
-        #if DEBUG_TRACE_VM
+        #if DEBUG_TRACE_VM_BYTECODE
             disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1));
+        #endif
+
+        #if DEBUG_TRACE_VM_STACK
+            for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
+                DEBUG_COLOR_SET(COLOR_CYAN);
+                DEBUG_LOG("[%0.2f]\n", *temp);
+                DEBUG_COLOR_RESET();
+            }
         #endif
 
         switch(instruction) {
@@ -33,7 +56,28 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1));
                 break;
             case OP_CONSTANT:
-                DEBUG_LOG("Value: %0.2f", READ_CONSTANT());
+                value_t value = READ_CONSTANT();
+                vm_stack_push(vm, value);
+                break;
+            case OP_NEGATE:
+                vm_stack_push(vm, -vm_stack_pop(vm));
+                break;
+            case OP_ADD:
+                BINARY_OP(+);
+                break;
+            case OP_SUB:
+                BINARY_OP(-);
+                break;
+            case OP_MUL:
+                BINARY_OP(*);
+                break;
+            case OP_DIV:
+                BINARY_OP(/);
+                break;
+            case OP_RETURN:
+                value_t result = vm_stack_pop(vm);
+                DEBUG_LOG("OP_RETURN %0.2f", result);
+                return VM_SUCCESS;
                 break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
@@ -49,5 +93,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
 }
 
 void vm_free(virtual_machine_t* vm) {
+    free(vm->stack);
     free(vm);
 }

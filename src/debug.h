@@ -30,6 +30,7 @@
     #define DEBUG_SUCCESS(X) DEBUG_COLOR(COLOR_GREEN, X)
     #define DEBUG_CLEAR() clrscr();
     #define DEBUG_TITLE(X) printf("--- %s ---\n", X)
+    #define DEBUG_PRINT_LINE(X) printf("\n")
 #else
     #define DEBUG_LOG(...)
     #define DEBUG_COLOR(X, Y)
@@ -39,6 +40,10 @@
     #define DEBUG_INFO(X)
     #define DEBUG_SUCCESS(X)
     #define DEBUG_CLEAR()
+    #define DEBUG_TITLE(X)
+    #define DEBUG_PRINT_LINE(X)
+    #define DEBUG_COLOR_SET(X)
+    #define DEBUG_COLOR_RESET(X)
 #endif
 
 #if PROFILE
@@ -54,12 +59,17 @@
 
 #if DEBUG
     #include "bytecode_store.h"
+    #include "h_token.h"
+    #define ECHO(X) printf("%s\n", X); return X;
     void disassemble_bytecode_store(bytecode_store_t* store, const char* name);
     size_t disassemble_instruction(bytecode_store_t* store, size_t offset);
 #endif
 
 #if DEBUG_ALL
-    #define DEBUG_TRACE_VM 1
+    #define DEBUG_TRACE_VM_BYTECODE 1
+    #define DEBUG_TRACE_VM_STACK 1
+    #define DEBUG_TRACE_LEXER_TOKEN 1
+    #define DEBUG_TRACE_LEXER_CURRENT_CHAR 1
 #endif
 
 #endif

@@ -37,6 +37,21 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset) {
         case OP_STOP:
             return basic_instruction("OP_STOP", offset);
             break;
+        case OP_NEGATE:
+            return basic_instruction("OP_NEGATE", offset);
+            break;
+        case OP_ADD:
+            return basic_instruction("OP_ADD", offset);
+            break;
+        case OP_SUB:
+            return basic_instruction("OP_SUB", offset);
+            break;
+        case OP_MUL:
+            return basic_instruction("OP_MUL", offset);
+            break;
+        case OP_DIV:
+            return basic_instruction("OP_DIV", offset);
+            break;
         case OP_CONSTANT:
             return constant_instruction("OP_CONSTANT", store, offset);
             break;
