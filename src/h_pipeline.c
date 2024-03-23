@@ -1,6 +1,9 @@
 #include "h_pipeline.h"
 
 interpreter_result_t pipeline_start(const char* source_path) {
+    
+    clock_t pipeline_timer = timer_start_time("Pipeline");
+    
     const char* file_content = read_file("./test.hash");
 
     if(file_content == NULL) {
@@ -41,6 +44,8 @@ interpreter_result_t pipeline_start(const char* source_path) {
     lexer_free(lexer);
     bs_free(store);
     vm_free(vm);
+
+    timer_stop_log("Pipeline", pipeline_timer);
 
     return HASH_SUCCESS;
 }

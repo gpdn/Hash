@@ -57,7 +57,6 @@ void lexer_free(lexer_t* lexer) {
 }
 
 static token_t lexer_check_next(lexer_t* lexer, char c, token_type_t token_match, token_type_t token_mismatch) {
-    DEBUG_LOG("CURRENT: %c\n", *lexer->current);
     if(*lexer->current != '\0' && *lexer->current == c) {
         ++lexer->current;
         return token_create(lexer, token_match);

@@ -8,7 +8,32 @@
 
 #define PATH "./test.hash"
 
+#if DEBUG
+    #define PRINT_TITLE() \
+    DEBUG_PRINT_LINE();\
+    DEBUG_COLOR_SET(COLOR_CYAN);\
+    printf("#################################################################\n");\
+    printf("#                                                               #\n");\
+    printf("#          #           #                                        #\n");\
+    printf("#          #           #                                        #\n");\
+    printf("#          #           #                                        #\n");\
+    printf("#          #           #                                        #\n");\
+    printf("#          #           #                                        #\n");\
+    printf("#          #############                                        #\n");\
+    printf("#          #           #  ########  ########   #      #         #\n");\
+    printf("#          #           #  #      #  #          #      #         #\n");\
+    printf("#          #           #  ########  ########   ########         #\n");\
+    printf("#          #           #  #      #         #   #      #         #\n");\
+    printf("#          #           #  #      #  ########   #      #         #\n");\
+    printf("#                                                               #\n");\
+    printf("#################################################################\n\n");\
+    DEBUG_COLOR_RESET();\
+    DEBUG_PRINT_LINE()
+#endif
+
 int main() {
+
+    PRINT_TITLE();
 
     interpreter_result_t result = pipeline_start(PATH);
 

@@ -3,6 +3,7 @@
 
 #include "debug.h"
 #include "h_file.h"
+#include "h_timer.h"
 #include "lexer.h"
 #include "bytecode_store.h"
 #include "virtual_machine.h"
