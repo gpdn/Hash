@@ -31,7 +31,7 @@ clock_t timer_stop(clock_t timer_start) {
 
 clock_t timer_stop_log(const char* name, clock_t timer_start) {
     clock_t timer_end = timer_stop(timer_start);
-    DEBUG_COLOR_SET(COLOR_BLUE);
+    DEBUG_COLOR_SET(COLOR_GREEN);
     DEBUG_LOG("%s finished in %lds\n", name, timer_end);
     DEBUG_COLOR_RESET();
     return timer_end;

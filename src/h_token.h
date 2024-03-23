@@ -40,6 +40,7 @@ typedef enum token_type_t {
     H_TOKEN_COLON,
     H_TOKEN_POW,
     H_TOKEN_ERROR,
+    H_TOKEN_MODULO
 } token_type_t;
 
 typedef struct token_t {

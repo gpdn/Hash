@@ -11,16 +11,29 @@ interpreter_result_t pipeline_start(const char* source_path) {
         return HASH_FILE_OPEN_FAILED;
     }
     
-    DEBUG_COLOR_SET(COLOR_BLUE);
-    DEBUG_TITLE("FILE");
-    DEBUG_LOG("%s\n", file_content);
-    DEBUG_COLOR_RESET();
-    DEBUG_PRINT_LINE();
-    DEBUG_PRINT_LINE();
+    #if DEBUG_TRACE_LOG_FILE
+        DEBUG_PRINT_LINE();
+        DEBUG_TITLE("FILE");
+        DEBUG_COLOR_SET(COLOR_BLUE);
+        DEBUG_LOG("%s\n", file_content);
+        DEBUG_COLOR_RESET();
+        DEBUG_PRINT_LINE();
+    #endif
 
     lexer_t* lexer = lexer_init(file_content); 
 
     token_t* tokens_array = lexer_tokenise(lexer);
+
+    #if DEBUG_TRACE_LEXER_TOKEN
+        DEBUG_PRINT_LINE();
+        DEBUG_COLOR_SET(COLOR_CYAN);
+        DEBUG_TITLE("Tokens List");
+            for(token_t* temp = tokens_array; temp->type != H_TOKEN_EOF; ++temp) {
+                token_print(temp);
+            }
+        DEBUG_COLOR_RESET();
+        DEBUG_PRINT_LINE();
+    #endif
 
     bytecode_store_t* store = bs_init(50);
 
@@ -41,6 +54,7 @@ interpreter_result_t pipeline_start(const char* source_path) {
     //interpreter_result_t result = vm_run(vm);
 
     free((void*)file_content);
+    free(tokens_array);
     lexer_free(lexer);
     bs_free(store);
     vm_free(vm);

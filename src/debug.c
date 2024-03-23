@@ -63,4 +63,8 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset) {
     }
 }
 
+void token_print(token_t* token) {
+    printf("Line: %d - %u - '%.*s'\n", token->line, token->type, (int)token->length, token->start);
+}
+
 #endif

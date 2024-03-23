@@ -1,6 +1,7 @@
 
 #include "headers.h"
 #include "debug.h"
+#include "h_error_codes.h"
 #include "h_file.h"
 #include "bytecode_store.h"
 #include "virtual_machine.h"
@@ -11,7 +12,7 @@
 #if DEBUG
     #define PRINT_TITLE() \
     DEBUG_PRINT_LINE();\
-    DEBUG_COLOR_SET(COLOR_CYAN);\
+    DEBUG_COLOR_SET(COLOR_GREEN);\
     printf("#################################################################\n");\
     printf("#                                                               #\n");\
     printf("#          #           #                                        #\n");\
@@ -31,34 +32,29 @@
     DEBUG_PRINT_LINE()
 #endif
 
-int main() {
+int main(int argc, char** argv) {
 
     PRINT_TITLE();
 
-    interpreter_result_t result = pipeline_start(PATH);
+    #if DEBUG_TRACE_LOG_COMMAND_LINE_ARGS
+        DEBUG_PRINT_LINE();
+        DEBUG_TITLE("Command line args");
+        DEBUG_COLOR_SET(COLOR_CYAN);
+        for(int i = 0; i < argc; ++i) {
+            printf("%d - %s\n", i, argv[i]);
+        }
+        DEBUG_COLOR_RESET();
+        DEBUG_PRINT_LINE();
+    #endif
 
-    return 0;
+    if(argc < 2) {
+        fprintf(stderr, "No path specified. Using test.hash\n");
+        //return HASH_NOT_SOURCE_FILE_SPECIFIED;
+    }
 
-    bytecode_store_t* store = bs_init(50);
-    
-    bs_write(store, OP_START);
-    bs_write_constant(store, 10);
-    bs_write_constant(store, 5);
-    bs_write(store, OP_ADD);
-    bs_write_constant(store, 10);
-    bs_write(store, OP_SUB);
-    bs_write(store, OP_NEGATE);
-    bs_write(store, OP_RETURN);
-    bs_write(store, OP_STOP);
-    
-    disassemble_bytecode_store(store, "Bytecode Store");
+    const char* source_file_path = argv[1] ? argv[1] : PATH;
 
-    virtual_machine_t* vm = vm_init(store);
-
-    vm_run(vm);
-
-    bs_free(store);
-    vm_free(vm);
+    interpreter_result_t result = pipeline_start(source_file_path);
 
     return 0;
 }

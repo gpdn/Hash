@@ -63,6 +63,7 @@
     #define ECHO(X) printf("%s\n", X); return X;
     void disassemble_bytecode_store(bytecode_store_t* store, const char* name);
     size_t disassemble_instruction(bytecode_store_t* store, size_t offset);
+    void token_print(token_t* token);
 #endif
 
 #if DEBUG_ALL
@@ -70,6 +71,9 @@
     #define DEBUG_TRACE_VM_STACK 1
     #define DEBUG_TRACE_LEXER_TOKEN 1
     #define DEBUG_TRACE_LEXER_CURRENT_CHAR 1
+    #define DEBUG_TRACE_LOG_FILE 1
+    #define DEBUG_TRACE_LOG_COMMAND_LINE_ARGS 1
+    #define DEBUG_TRACE_LEXER_PRINT_SKIPPED 1
 #endif
 
 #endif
