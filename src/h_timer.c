@@ -25,14 +25,14 @@ clock_t timer_start_time(const char* name) {
     return clock();
 }
 
-clock_t timer_stop(clock_t timer_start) {
-    return (clock() - timer_start)/CLOCKS_PER_SEC;
+float timer_stop(clock_t timer_start) {
+    return (clock() - timer_start)/((float)CLOCKS_PER_SEC);
 }
 
-clock_t timer_stop_log(const char* name, clock_t timer_start) {
-    clock_t timer_end = timer_stop(timer_start);
+float timer_stop_log(const char* name, clock_t timer_start) {
+    float timer_end = timer_stop(timer_start);
     DEBUG_COLOR_SET(COLOR_GREEN);
-    DEBUG_LOG("%s finished in %lds\n", name, timer_end);
+    DEBUG_LOG("%s finished in %1.4fs\n", name, timer_end);
     DEBUG_COLOR_RESET();
     return timer_end;
 }

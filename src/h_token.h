@@ -1,6 +1,8 @@
 #ifndef HASH_TOKEN_H
 #define HASH_TOKEN_H
 
+#include <stdlib.h>
+
 typedef enum token_type_t {
     H_TOKEN_EOF,
     H_TOKEN_COMMA,
@@ -40,14 +42,19 @@ typedef enum token_type_t {
     H_TOKEN_COLON,
     H_TOKEN_POW,
     H_TOKEN_ERROR,
-    H_TOKEN_MODULO
+    H_TOKEN_MODULO,
+    H_TOKEN_STRING_LITERAL,
+    H_TOKEN_NUMBER_LITERAL,
+    H_TOKEN_CLASS,
+    H_TOKEN_SUPER,
+    H_TOKEN_FUNCTION
 } token_type_t;
 
 typedef struct token_t {
     token_type_t type;
     const char* start;
     size_t length;
-    int line;
+    size_t line;
 } token_t;
 
 #endif

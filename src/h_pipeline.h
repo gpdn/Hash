@@ -4,8 +4,9 @@
 #include "debug.h"
 #include "h_file.h"
 #include "h_timer.h"
-#include "lexer.h"
 #include "bytecode_store.h"
+#include "lexer.h"
+#include "h_icg.h"
 #include "virtual_machine.h"
 
 interpreter_result_t pipeline_start(const char* source_path);
