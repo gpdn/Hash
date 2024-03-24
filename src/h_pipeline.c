@@ -37,13 +37,15 @@ interpreter_result_t pipeline_start(const char* source_path) {
 
     size_t tokens_count = lexer_get_tokens_count(lexer);
     unsigned int lexer_errors_count = lexer_get_errors_count(lexer);
+    unsigned int lexer_warnings_count = lexer_get_warnings_count(lexer);
 
-    if(lexer_errors_count > 0) {
-        lexer_report_tokenisation_errors(lexer);
-        free((void*)file_content);
-        free(tokens_array);
-        lexer_free(lexer);
-        return HASH_FAILURE;
+    if(lexer_errors_count > 0 || lexer_warnings_count > 0) {
+        if(lexer_report_tokenisation_errors(lexer) == 0) {
+            free((void*)file_content);
+            free(tokens_array);
+            lexer_free(lexer);
+            return HASH_FAILURE;
+        }
     }
 
     icg_t* bytecode_generator = icg_init(tokens_array, tokens_count);

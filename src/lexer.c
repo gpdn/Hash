@@ -11,6 +11,7 @@ static token_t lexer_number(lexer_t* lexer);
 static token_t lexer_identifier(lexer_t* lexer);
 static token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type);
 static void lexer_report_error(lexer_t* lexer, token_t* token, token_t* prev_token);
+static void lexer_report_warning(lexer_t* lexer, token_t* token, token_t* prev_token);
 
 static token_t token_create(lexer_t* lexer, token_type_t type) {
     token_t token;
@@ -38,6 +39,16 @@ static token_t token_create_error(lexer_t* lexer, token_type_t type, const char*
     token.length = strlen(message);
     token.line = lexer->line;
     ++lexer->errors_count;
+    return token;
+}
+
+static token_t token_create_warning(lexer_t* lexer, token_type_t type, const char* message) {
+    token_t token;
+    token.type = type;
+    token.start = message;
+    token.length = strlen(message);
+    token.line = lexer->line;
+    ++lexer->warnings_count;
     return token;
 }
 
@@ -115,7 +126,7 @@ static token_t lexer_number(lexer_t* lexer) {
     while(isdigit(*lexer->current)) ++lexer->current;
     if(*lexer->current == '.') {
         ++lexer->current;
-        if(!isdigit(*lexer->current)) return token_create_error(lexer, H_TOKEN_ERROR, "No decimal part provided for number after '.'");
+        if(!isdigit(*lexer->current)) return token_create_warning(lexer, H_TOKEN_WARNING, "No decimal part provided for number after '.'.");
         while(isdigit(*lexer->current)) ++lexer->current;
     }
     return token_create(lexer, H_TOKEN_NUMBER_LITERAL);
@@ -160,34 +171,71 @@ static token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const 
 
 static void lexer_report_error(lexer_t* lexer, token_t* token, token_t* prev_token) {
     DEBUG_COLOR_SET(COLOR_RED);
-    fprintf(stderr, "[ERROR | Line: %lld] %.*s\n", token->line, (int)token->length, token->start);
+    fprintf(stderr, "\n\n[LEXER ERROR | Line: %lld] %.*s\n", token->line, (int)token->length, token->start);
     
     const char* token_start = (prev_token) ? prev_token->start + prev_token->length : lexer->start;
 
-    DEBUG_COLOR_SET(COLOR_GRAY);
     size_t lines_count_before = token->line - lexer->tokens_array[0].line;
     size_t lines_count_after = lexer->tokens_array[lexer->tokens_array_size - 1].line - token->line;
 
-    DEBUG_LOG("Lines Before: %lld\n", lines_count_before);
-    DEBUG_LOG("Lines After: %lld\n", lines_count_after);
+    token_t* temp = lexer->tokens_array;
+    token_t* temp_next = lexer->tokens_array;
+
+    while(temp->line != token->line - DEBUG_MIN(lines_count_before, 5)) ++temp;
+
+    temp_next = temp;
+    while(temp_next->line != token->line) ++temp_next;
+
+    DEBUG_COLOR_SET(COLOR_GRAY);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - temp->start), temp->start);
+    
+    temp = temp_next;
+    DEBUG_COLOR_SET(COLOR_YELLOW);
+    fprintf(stderr, "%.*s", (int)(token_start - temp->start), temp->start);
+
+    while(temp_next != token + 1)++temp_next;
+    DEBUG_COLOR_SET(COLOR_RED);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - token_start), token_start);
+
+    temp = temp_next;
+    while(temp_next->line == token->line) ++temp_next;
+    DEBUG_COLOR_SET(COLOR_YELLOW);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - temp->start), temp->start);
+
+    temp = temp_next;
+    while(temp_next->line != token->line + DEBUG_MIN(lines_count_after, 5)) ++temp_next;
+    DEBUG_COLOR_SET(COLOR_GRAY);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - temp->start), temp->start);
+
+    DEBUG_COLOR_RESET();
+    
+}
+
+static void lexer_report_warning(lexer_t* lexer, token_t* token, token_t* prev_token) {
+    DEBUG_COLOR_SET(COLOR_YELLOW);
+    fprintf(stderr, "\n\n[LEXER WARNING | Line: %lld] %.*s\n", token->line, (int)token->length, token->start);
+
+    const char* token_start = (prev_token) ? prev_token->start + prev_token->length : lexer->start;
+
+    size_t lines_count_before = token->line - lexer->tokens_array[0].line;
+    size_t lines_count_after = lexer->tokens_array[lexer->tokens_array_size - 1].line - token->line;
 
     token_t* temp = lexer->tokens_array;
 
-    while(temp->line != token->line - DEBUG_MIN(lines_count_before, 5)) {
-        ++temp;
-    }
-
+    while(temp->line != token->line - DEBUG_MIN(lines_count_before, 3)) ++temp;
+    DEBUG_COLOR_SET(COLOR_GRAY);
     fprintf(stderr, "%.*s", (int)(token_start - temp->start), temp->start);
-    while(temp != (token + 1)) {
-        ++temp;
-    }
-    DEBUG_COLOR_SET(COLOR_RED);
+
+    while(temp != token + 1) ++temp;
+    DEBUG_COLOR_SET(COLOR_YELLOW);
     fprintf(stderr, "%.*s", (int)(temp->start - token_start), token_start);
+    
+    while(temp->line != token->line + DEBUG_MIN(lines_count_after, 3)) ++temp;
+    DEBUG_COLOR_SET(COLOR_GRAY);
+    fprintf(stderr, "%.*s", (int)(token_start - temp->start), temp->start);
+    
     DEBUG_COLOR_RESET();
 
-    
-    fprintf(stderr, "%.*s", (int)(temp->start - token_start), token_start);
-    
 }
 
 lexer_t* lexer_init(const char* source) {
@@ -268,15 +316,26 @@ unsigned int lexer_get_errors_count(lexer_t* lexer) {
     return lexer->errors_count;
 }
 
-void lexer_report_tokenisation_errors(lexer_t* lexer) {
+unsigned int lexer_get_warnings_count(lexer_t* lexer) {
+    return lexer->warnings_count;
+}
+
+int lexer_report_tokenisation_errors(lexer_t* lexer) {
     lexer->current = lexer->start;
     token_t* prev = NULL;
     for(token_t* temp = lexer->tokens_array; temp->type != H_TOKEN_EOF; ++temp) {
         if(temp->type == H_TOKEN_ERROR) {
             lexer_report_error(lexer, temp, prev);
+            return 0;
+        }
+        if(temp->type == H_TOKEN_WARNING) {
+            lexer_report_warning(lexer, temp, prev);
+            return 0;
         }
         prev = temp;
     }
+
+    return 1;
 }
 
 token_t* lexer_tokenise(lexer_t* lexer) {

@@ -42,6 +42,7 @@ typedef enum token_type_t {
     H_TOKEN_COLON,
     H_TOKEN_POW,
     H_TOKEN_ERROR,
+    H_TOKEN_WARNING,
     H_TOKEN_MODULO,
     H_TOKEN_STRING_LITERAL,
     H_TOKEN_NUMBER_LITERAL,

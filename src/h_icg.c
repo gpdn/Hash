@@ -12,7 +12,7 @@ void icg_free(icg_t* icg) {
 
 bytecode_store_t* generate_bytecode(icg_t* icg) {
     icg->current = icg->tokens_list;
-    /* while(icg->current->type != H_TOKEN_EOF) {
-        
-    } */
+    while(icg->current->type != H_TOKEN_EOF) {
+        ++icg->current;   
+    }
 }
