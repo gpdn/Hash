@@ -29,7 +29,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
 
     #if DEBUG_TRACE_VM_BYTECODE 
         DEBUG_COLOR_SET(COLOR_BLUE);
-            disassemble_bytecode_store(vm->store, "VM STORE");
+            disassemble_bytecode_store(vm->store, "VM STORE", NULL);
         DEBUG_COLOR_RESET(COLOR_BLUE);
     #endif
 
@@ -37,7 +37,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     while((instruction = ADVANCE_INSTRUCTION_POINTER()) != OP_STOP) {
         
         #if DEBUG_TRACE_VM_BYTECODE
-            disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1));
+            disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
         #endif
 
         #if DEBUG_TRACE_VM_STACK
@@ -53,7 +53,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 return VM_SUCCESS;
             case OP_START:
                 DEBUG_ERROR("Already Started: ");
-                disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1));
+                disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
                 break;
             case OP_CONSTANT:
                 value_t value = READ_CONSTANT();
@@ -81,7 +81,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
-                disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1));
+                disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
                 return VM_ERROR;
 
         }

@@ -16,6 +16,7 @@ typedef enum opcode_t {
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_ERROR,
 } opcode_t;
 
 typedef struct bytecode_store_t {

@@ -14,7 +14,7 @@ void bs_write(bytecode_store_t* store, uint8_t byte) {
         store->capacity *= 2; 
         store->code = (uint8_t*)realloc(store->code, sizeof(uint8_t) * store->capacity);
     }
-    store->code[store->size++] = byte; 
+    store->code[store->size++] = byte;
 }
 
 void bs_write_constant(bytecode_store_t* store, value_t constant) {
@@ -28,4 +28,5 @@ void bs_free(bytecode_store_t* store) {
     cp_free(store->constants);
     free(store);
 }
+
 

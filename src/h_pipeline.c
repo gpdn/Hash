@@ -35,6 +35,14 @@ interpreter_result_t pipeline_start(const char* source_path) {
         DEBUG_PRINT_LINE();
     #endif
 
+    #if DEBUG_FILE_LEXER_TOKEN && defined(DEBUG_FILE_LEXER_TOKEN_PATH)
+        FILE* debug_file_lexer_token = fopen(DEBUG_FILE_LEXER_TOKEN_PATH, "wb");
+        for(token_t* temp = tokens_array; temp->type != H_TOKEN_EOF; ++temp) {
+            token_write_print_string(debug_file_lexer_token, temp);
+        }
+        fclose(debug_file_lexer_token);
+    #endif
+
     size_t tokens_count = lexer_get_tokens_count(lexer);
     unsigned int lexer_errors_count = lexer_get_errors_count(lexer);
     unsigned int lexer_warnings_count = lexer_get_warnings_count(lexer);
@@ -50,7 +58,13 @@ interpreter_result_t pipeline_start(const char* source_path) {
 
     icg_t* bytecode_generator = icg_init(tokens_array, tokens_count);
 
-    bytecode_store_t* store = bs_init(50);
+    bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
+
+    #if DEBUG_FILE_BYTECODE && defined(DEBUG_FILE_BYTECODE_PATH)
+        FILE* debug_file_bytecode = fopen(DEBUG_FILE_BYTECODE_PATH, "wb");
+        disassemble_bytecode_store(store, "Bytecode Store", debug_file_bytecode);
+        fclose(debug_file_bytecode);
+    #endif
 
     /* disassemble_bytecode_store(store, "Bytecode Store");
     

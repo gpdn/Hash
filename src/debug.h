@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <conio.h>
 
 #define COLOR_WHITE   "\e[0;37m"
@@ -64,9 +65,10 @@
     #include "bytecode_store.h"
     #include "h_token.h"
     #define ECHO(X) printf("%s\n", X); return X;
-    void disassemble_bytecode_store(bytecode_store_t* store, const char* name);
-    size_t disassemble_instruction(bytecode_store_t* store, size_t offset);
+    void disassemble_bytecode_store(bytecode_store_t* store, const char* name, FILE* file);
+    size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* file);
     void token_print(token_t* token);
+    size_t token_write_print_string(FILE* file, token_t* token);
 #endif
 
 #if DEBUG_ALL
@@ -77,6 +79,13 @@
     #define DEBUG_TRACE_LOG_FILE 1
     #define DEBUG_TRACE_LOG_COMMAND_LINE_ARGS 1
     #define DEBUG_TRACE_LEXER_PRINT_SKIPPED 1
+    
+    #define DEBUG_FILE_LEXER_TOKEN 1
+    #define DEBUG_FILE_BYTECODE 1
+
+    #define DEBUG_FOLDER_PATH "debug_files/"
+    #define DEBUG_FILE_LEXER_TOKEN_PATH DEBUG_FOLDER_PATH"tokens"
+    #define DEBUG_FILE_BYTECODE_PATH DEBUG_FOLDER_PATH"bytecode"
 #endif
 
 #endif
