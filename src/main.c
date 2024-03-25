@@ -1,6 +1,7 @@
 
 #include "headers.h"
 #include "debug.h"
+#include "h_args_parser.h"
 #include "h_error_codes.h"
 #include "h_file.h"
 #include "bytecode_store.h"
@@ -36,23 +37,12 @@ int main(int argc, char** argv) {
 
     PRINT_TITLE();
 
-    #if DEBUG_TRACE_LOG_COMMAND_LINE_ARGS
-        DEBUG_PRINT_LINE();
-        DEBUG_TITLE("Command line args");
-        DEBUG_COLOR_SET(COLOR_CYAN);
-        for(int i = 0; i < argc; ++i) {
-            printf("%d - %s\n", i, argv[i]);
-        }
-        DEBUG_COLOR_RESET();
-        DEBUG_PRINT_LINE();
-    #endif
+    execution_mode_t run_mode = MODE_FILE;
+    const char* source_file_path = PATH;
 
-    if(argc < 2) {
-        fprintf(stderr, "No path specified. Using test.hash\n");
-        //return HASH_NOT_SOURCE_FILE_SPECIFIED;
-    }
+    parse_args(argc, argv, &run_mode, &source_file_path);
 
-    const char* source_file_path = argv[1] ? argv[1] : PATH;
+    printf("%d", run_mode);
 
     interpreter_result_t result = pipeline_start(source_file_path);
 

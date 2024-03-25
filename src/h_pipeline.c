@@ -4,7 +4,7 @@ interpreter_result_t pipeline_start(const char* source_path) {
     
     clock_t pipeline_timer = timer_start_time("Pipeline");
     
-    const char* file_content = read_file("./test.hash");
+    const char* file_content = read_file(source_path);
 
     if(file_content == NULL) {
         fprintf(stderr, "Failed to open file. Path: %s", source_path);
