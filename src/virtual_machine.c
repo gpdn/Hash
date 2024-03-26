@@ -52,7 +52,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_STOP:
                 return VM_SUCCESS;
             case OP_START:
-                DEBUG_ERROR("Already Started: ");
+                DEBUG_ERROR("Already Started");
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
                 break;
             case OP_CONSTANT:

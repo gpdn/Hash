@@ -6,6 +6,7 @@
 #include "h_timer.h"
 #include "bytecode_store.h"
 #include "lexer.h"
+#include "h_parser.h"
 #include "h_icg.h"
 #include "virtual_machine.h"
 

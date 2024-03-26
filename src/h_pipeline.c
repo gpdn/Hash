@@ -56,6 +56,9 @@ interpreter_result_t pipeline_start(const char* source_path) {
         }
     }
 
+    parser_t* parser = parser_init(tokens_array);
+    ast_node_t* ast = parser_generate_ast(parser);
+
     icg_t* bytecode_generator = icg_init(tokens_array, tokens_count);
 
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
@@ -85,6 +88,7 @@ interpreter_result_t pipeline_start(const char* source_path) {
     free((void*)file_content);
     free(tokens_array);
     lexer_free(lexer);
+    parser_free(parser);
     bs_free(store);
     vm_free(vm);
 
