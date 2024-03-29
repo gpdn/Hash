@@ -31,11 +31,14 @@ static int constant_instruction(const char* name, bytecode_store_t* store, size_
 }
 
 void disassemble_bytecode_store(bytecode_store_t* store, const char* name, FILE* file) {
+    
+    DEBUG_COLOR_SET(COLOR_CYAN);
     DEBUG_TITLE(name);
 
     for(size_t offset = 0; offset < store->size;) {
         offset = disassemble_instruction(store, offset, file);
     }
+    DEBUG_COLOR_RESET();
 }
 
 size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* file) {

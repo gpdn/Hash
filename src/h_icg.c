@@ -1,22 +1,26 @@
 #include "h_icg.h"
 
 static void emit_error(icg_t* icg);
-static void expression(icg_t* icg);
-static void number(icg_t* icg);
-static void grouping(icg_t* icg);
+static void icg_generate_expression(icg_t* icg, ast_node_t* node);
+static void icg_generate_number(icg_t* icg, ast_node_t* node);
+static void icg_generate_binary(icg_t* icg, ast_node_t* node);
+static void icg_generate_number_negate(icg_t* icg, ast_node_t* node);
 
 static void emit_error(icg_t* icg) {
     ++icg->errors_count;
-    icg->current = &icg->tokens_list[icg->tokens_list_count - 1];
+    icg->current = icg->ast_nodes_list[icg->ast_nodes_list_count - 1];
 }
 
-static void expression(icg_t* icg) {
-    switch(icg->current->type) {
-        case H_TOKEN_NUMBER_LITERAL:
-            number(icg);
+static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
+    switch(node->type) {
+        case AST_NODE_LITERAL:
+            icg_generate_number(icg, node);
             break;
-        case H_TOKEN_LEFT_PAR:
-            grouping(icg);
+        case AST_NODE_BINARY:
+            icg_generate_binary(icg, node);
+            break;
+        case AST_NODE_NUMBER_NEGATE:
+            icg_generate_number_negate(icg, node);
             break;
         default:
             emit_error(icg);
@@ -24,24 +28,45 @@ static void expression(icg_t* icg) {
     }
 }
 
-static void number(icg_t* icg) {
-    double value = strtod(icg->current->start, NULL);
+static void icg_generate_number(icg_t* icg, ast_node_t* node) {
+    double value = strtod(node->operator->start, NULL);
     if(value > UINT8_MAX) {emit_error(icg); return;}
     bs_write_constant(icg->bytecode_store, value);
-    ++icg->current;
 }
 
-static void grouping(icg_t* icg) {
-    ++icg->current;
-    expression(icg);
-    assert_token_type(icg, H_TOKEN_RIGHT_PAR);
+static void icg_generate_number_negate(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->left);
+    bs_write(icg->bytecode_store, OP_NEGATE);
 }
 
-icg_t* icg_init(token_t* tokens_list, size_t tokens_list_count) {
+static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->left);
+    icg_generate_expression(icg, node->right);
+
+    switch(node->operator->type) {
+        case H_TOKEN_PLUS:
+            bs_write(icg->bytecode_store, OP_ADD);
+            break;
+        case H_TOKEN_MINUS:
+            bs_write(icg->bytecode_store, OP_SUB);
+            break;
+        case H_TOKEN_STAR:
+            bs_write(icg->bytecode_store, OP_MUL);
+            break;
+        case H_TOKEN_SLASH:
+            bs_write(icg->bytecode_store, OP_DIV);
+            break;
+        default:
+            return;
+    }
+}
+
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count) {
     icg_t* icg = (icg_t*)malloc(sizeof(icg_t));
-    bytecode_store_t* bytecode_store = bs_init(tokens_list_count);
+    bytecode_store_t* bytecode_store = bs_init(ast_nodes_list_count);
     icg->bytecode_store = bytecode_store;
-    icg->tokens_list = tokens_list;
+    icg->ast_nodes_list = ast_nodes_list;
+    icg->ast_nodes_list_it = ast_nodes_list;
     return icg;
 }
 
@@ -49,21 +74,24 @@ void icg_free(icg_t* icg) {
     free(icg);
 }
 
-void assert_token_type(icg_t* icg, token_type_t type) {
+void assert_node_type(icg_t* icg, ast_node_type_t type) {
     if(icg->current->type == type) {
         ++icg->current;
         return;
     }
     ++icg->errors_count;
     
-    icg->current = &icg->tokens_list[icg->tokens_list_count - 1];
+    icg->current = icg->ast_nodes_list[icg->ast_nodes_list_count - 1];
 }
 
 bytecode_store_t* icg_generate_bytecode(icg_t* icg) {
-    icg->current = icg->tokens_list;
-    while(icg->current->type != H_TOKEN_EOF) {
-        expression(icg);   
+    icg->current = *icg->ast_nodes_list_it++;
+    while(icg->current->type != AST_NODE_EOF) {
+        icg_generate_expression(icg, icg->current);
+        icg->current = *icg->ast_nodes_list_it++;
     }
+
+    bs_write(icg->bytecode_store, OP_RETURN);
 
     return icg->bytecode_store;
 }

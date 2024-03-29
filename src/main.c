@@ -38,13 +38,31 @@ int main(int argc, char** argv) {
     PRINT_TITLE();
 
     execution_mode_t run_mode = MODE_FILE;
-    const char* source_file_path = PATH;
+    const char* source_file_path = NULL;
+    int source_file_path_allocated = 1;
 
     parse_args(argc, argv, &run_mode, &source_file_path);
 
-    printf("%d", run_mode);
+    if(source_file_path == NULL) {source_file_path = PATH; source_file_path_allocated = 0;}
+
+    DEBUG_COLOR_SET(COLOR_BLUE);
+    switch(run_mode) {
+        case MODE_FILE:
+            DEBUG_LOG("\nFile Mode\n");
+            break;
+        case MODE_REPL:
+            DEBUG_LOG("\nRepl\n");
+            break;
+        default:
+            exit(HASH_INVALID_RUN_MODE);
+    }
+    DEBUG_COLOR_RESET();
 
     interpreter_result_t result = pipeline_start(source_file_path);
+
+    if(source_file_path_allocated == 1) {
+        free((void*)source_file_path);
+    }
 
     return 0;
 }

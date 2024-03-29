@@ -56,34 +56,40 @@ interpreter_result_t pipeline_start(const char* source_path) {
         }
     }
 
-    parser_t* parser = parser_init(tokens_array);
-    ast_node_t* ast = parser_generate_ast(parser);
+    parser_t* parser = parser_init(tokens_array, tokens_count);
+    ast_node_t** ast = parser_generate_ast(parser);
 
-    icg_t* bytecode_generator = icg_init(tokens_array, tokens_count);
+    #if DEBUG_TRACE_PARSER_AST
+        DEBUG_PRINT_LINE();
+        DEBUG_COLOR_SET(COLOR_CYAN);
+        DEBUG_TITLE("Ast Nodes List");
+        for(size_t i = 0; i < parser->ast_list_size; ++i) {
+            ast_print(ast[i], 0);
+        }
+        DEBUG_COLOR_RESET();
+        DEBUG_PRINT_LINE();
+    #endif
+    
+    /* #if DEBUG_FILE_PARSER_AST && defined(DEBUG_FILE_PARSER_AST_PATH)
+        FILE* debug_file_parser_ast = fopen(DEBUG_FILE_PARSER_AST_PATH, "wb");
+        for(size_t i = 0; i < parser->ast_list_size; ++i) {
+            ast_write_print_string(ast[i], 0);
+        }
+        fclose(debug_file_parser_ast);
+    #endif */
 
+    icg_t* bytecode_generator = icg_init(ast, tokens_count);
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
 
-    #if DEBUG_FILE_BYTECODE && defined(DEBUG_FILE_BYTECODE_PATH)
-        FILE* debug_file_bytecode = fopen(DEBUG_FILE_BYTECODE_PATH, "wb");
-        disassemble_bytecode_store(store, "Bytecode Store", debug_file_bytecode);
-        fclose(debug_file_bytecode);
+    #if DEBUG_TRACE_ICG_BYTECODE
+        DEBUG_PRINT_LINE();
+        disassemble_bytecode_store(store, "Bytecode Store", NULL);
+        DEBUG_PRINT_LINE();
     #endif
-
-    /* disassemble_bytecode_store(store, "Bytecode Store");
-    
-    bs_write(store, OP_START);
-    bs_write_constant(store, 10);
-    bs_write_constant(store, 5);
-    bs_write(store, OP_ADD);
-    bs_write_constant(store, 10);
-    bs_write(store, OP_SUB);
-    bs_write(store, OP_NEGATE);
-    bs_write(store, OP_RETURN);
-    bs_write(store, OP_STOP);
- */
+   
     virtual_machine_t* vm = vm_init(store);
 
-    //interpreter_result_t result = vm_run(vm);
+    interpreter_result_t result = vm_run(vm);
 
     free((void*)file_content);
     free(tokens_array);

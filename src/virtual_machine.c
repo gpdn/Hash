@@ -27,10 +27,10 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
     #define BINARY_OP(op) vm_stack_push(vm, vm_stack_pop(vm) op vm_stack_pop(vm))
 
-    #if DEBUG_TRACE_VM_BYTECODE 
-        DEBUG_COLOR_SET(COLOR_BLUE);
-            disassemble_bytecode_store(vm->store, "VM STORE", NULL);
-        DEBUG_COLOR_RESET(COLOR_BLUE);
+    #if DEBUG_TRACE_VM_BYTECODE
+        DEBUG_COLOR_SET(COLOR_CYAN);
+        DEBUG_TITLE("VM");
+        DEBUG_COLOR_RESET();
     #endif
 
     uint8_t instruction;
@@ -38,14 +38,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
         
         #if DEBUG_TRACE_VM_BYTECODE
             disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
-        #endif
-
-        #if DEBUG_TRACE_VM_STACK
-            for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
-                DEBUG_COLOR_SET(COLOR_CYAN);
-                DEBUG_LOG("[%0.2f]\n", *temp);
-                DEBUG_COLOR_RESET();
-            }
         #endif
 
         switch(instruction) {
@@ -76,7 +68,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 break;
             case OP_RETURN:
                 value_t result = vm_stack_pop(vm);
-                DEBUG_LOG("OP_RETURN %0.2f", result);
+                DEBUG_LOG("OP_RETURN %0.2f\n", result);
                 return VM_SUCCESS;
                 break;
             default:
@@ -85,6 +77,14 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 return VM_ERROR;
 
         }
+
+        #if DEBUG_TRACE_VM_STACK
+            for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
+                DEBUG_COLOR_SET(COLOR_CYAN);
+                DEBUG_LOG("[%0.2f]\n", *temp);
+                DEBUG_COLOR_RESET();
+            }
+        #endif
 
     }
     
