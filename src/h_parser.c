@@ -6,7 +6,7 @@ static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t prec
 static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
-static ast_node_t* parse_unary_negate(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
 static inline void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
@@ -15,13 +15,15 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
-    [H_TOKEN_MINUS]                     = {parse_unary_negate, parse_binary_expression, OP_PREC_UNARY},
+    [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
     [H_TOKEN_SLASH]                     = {NULL, parse_binary_expression, OP_PREC_FACTOR},
     [H_TOKEN_BITWISE_SHIFT_LEFT]        = {NULL, parse_binary_expression, OP_PREC_BITWISE_SHIFT},
     [H_TOKEN_BITWISE_SHIFT_RIGHT]       = {NULL, parse_binary_expression, OP_PREC_BITWISE_SHIFT},
     [H_TOKEN_BITWISE_AND]               = {NULL, parse_binary_expression, OP_PREC_BITWISE_AND},
     [H_TOKEN_BITWISE_OR]                = {NULL, parse_binary_expression, OP_PREC_BITWISE_OR},
+    [H_TOKEN_BITWISE_XOR]               = {NULL, parse_binary_expression, OP_PREC_BITWISE_XOR},
+    [H_TOKEN_BITWISE_NOT]               = {parse_unary_expression, NULL, OP_PREC_UNARY}
 };
 
 static const char* parser_debug_colors[] = {COLOR_BLUE, COLOR_YELLOW, COLOR_GREEN, COLOR_RED};
@@ -56,13 +58,13 @@ static ast_node_t* parse_number(parser_t* parser, operator_precedence_t preceden
     return node;
 } 
 
-static ast_node_t* parse_unary_negate(parser_t* parser, operator_precedence_t precedence) {
-    ast_node_t* node = ast_node_create(AST_NODE_NUMBER_NEGATE);
+static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_UNARY);
     node->operator = parser->current;
     ++parser->current;
     node->left = parse_expression(parser, precedence);
     return node;
-} 
+}
 
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence) {
     ++parser->current;
@@ -138,8 +140,8 @@ static void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_BINARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
-        case AST_NODE_NUMBER_NEGATE:
-            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_NUMBER_NEGATE %.*s\n", indent, (int)node->operator->length, node->operator->start);
+        case AST_NODE_UNARY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

@@ -20,7 +20,9 @@ typedef enum opcode_t {
     OP_SHIFT_LEFT,
     OP_SHIFT_RIGHT,
     OP_BITWISE_AND,
-    OP_BITWISE_OR
+    OP_BITWISE_OR,
+    OP_BITWISE_XOR,
+    OP_BITWISE_NOT
 } opcode_t;
 
 typedef struct bytecode_store_t {

@@ -10,7 +10,7 @@ typedef enum ast_node_type_t{
     AST_NODE_ERROR,
     AST_NODE_EOF,
     AST_NODE_GROUPING,
-    AST_NODE_NUMBER_NEGATE
+    AST_NODE_UNARY
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
@@ -19,6 +19,7 @@ typedef enum operator_precedence_t {
     OP_PREC_OR,
     OP_PREC_AND,
     OP_PREC_BITWISE_OR,
+    OP_PREC_BITWISE_XOR,
     OP_PREC_BITWISE_AND,
     OP_PREC_EQUALITY,
     OP_PREC_COMPARISON,

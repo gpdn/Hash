@@ -4,7 +4,7 @@ static void emit_error(icg_t* icg);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_number(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
-static void icg_generate_number_negate(icg_t* icg, ast_node_t* node);
+static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 
 static void emit_error(icg_t* icg) {
     ++icg->errors_count;
@@ -19,8 +19,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
             break;
-        case AST_NODE_NUMBER_NEGATE:
-            icg_generate_number_negate(icg, node);
+        case AST_NODE_UNARY:
+            DEBUG_LOG("UNARY CALLED");
+            icg_generate_unary(icg, node);
             break;
         default:
             emit_error(icg);
@@ -34,9 +35,19 @@ static void icg_generate_number(icg_t* icg, ast_node_t* node) {
     bs_write_constant(icg->bytecode_store, value);
 }
 
-static void icg_generate_number_negate(icg_t* icg, ast_node_t* node) {
+static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->left);
-    bs_write(icg->bytecode_store, OP_NEGATE);
+    
+    switch(node->operator->type) {
+        case H_TOKEN_MINUS:
+            bs_write(icg->bytecode_store, OP_NEGATE);
+            break;
+        case H_TOKEN_BITWISE_NOT:
+            bs_write(icg->bytecode_store, OP_BITWISE_NOT);
+            break;
+        default:
+            return;
+    }
 }
 
 static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
@@ -67,6 +78,12 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
             break;
         case H_TOKEN_BITWISE_OR:
             bs_write(icg->bytecode_store, OP_BITWISE_OR);
+            break;
+        case H_TOKEN_BITWISE_XOR:
+            bs_write(icg->bytecode_store, OP_BITWISE_XOR);
+            break;
+        case H_TOKEN_BITWISE_NOT:
+            bs_write(icg->bytecode_store, OP_BITWISE_NOT);
             break;
         default:
             return;

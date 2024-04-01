@@ -80,6 +80,12 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_BITWISE_OR:
                 BITWISE_OP_ASSOC(bitwise_or_val, |);
                 break;
+            case OP_BITWISE_XOR:
+                BITWISE_OP_ASSOC(bitwise_xor_val, ^);
+                break;
+            case OP_BITWISE_NOT:
+                vm_stack_push(vm, ~(unsigned int)vm_stack_pop(vm));
+                break;
             case OP_RETURN:
                 value_t result = vm_stack_pop(vm);
                 DEBUG_LOG("OP_RETURN %0.2f\n", result);

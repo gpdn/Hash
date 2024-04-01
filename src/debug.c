@@ -83,11 +83,17 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             return basic_instruction("OP_BITWISE_AND", offset, file);
             break;
         case OP_BITWISE_OR:
-            return basic_instruction("OP_BITWISE_AND", offset, file);
+            return basic_instruction("OP_BITWISE_OR", offset, file);
+            break;
+        case OP_BITWISE_XOR:
+            return basic_instruction("OP_BITWISE_XOR", offset, file);
+            break;
+        case OP_BITWISE_NOT:
+            return basic_instruction("OP_BITWISE_NOT", offset, file);
             break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
-            printf("Unknown Instruction: %d", instruction);
+            printf("Unknown Instruction: %d\n", instruction);
             DEBUG_COLOR_RESET();
             return offset + 1;
     }

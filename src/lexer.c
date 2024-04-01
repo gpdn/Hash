@@ -311,6 +311,8 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '/': return token_create(lexer, H_TOKEN_SLASH);
         case '&': return token_create(lexer, H_TOKEN_BITWISE_AND);
         case '|': return token_create(lexer, H_TOKEN_BITWISE_OR);
+        case '^': return token_create(lexer, H_TOKEN_BITWISE_XOR);
+        case '~': return token_create(lexer, H_TOKEN_BITWISE_NOT);
         case '>': LEXER_CHECK_MULTIPLE('=', H_TOKEN_GREATER_EQUAL, '>', H_TOKEN_BITWISE_SHIFT_RIGHT, H_TOKEN_GREATER);
         case '<': LEXER_CHECK_MULTIPLE('=', H_TOKEN_LESS_EQUAL, '<', H_TOKEN_BITWISE_SHIFT_LEFT, H_TOKEN_LESS);
         case '+': return lexer_check_next(lexer, '+', H_TOKEN_PLUS_PLUS, H_TOKEN_PLUS); 
