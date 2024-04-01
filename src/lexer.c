@@ -5,6 +5,7 @@ static token_t token_create_line(lexer_t* lexer, token_type_t type, size_t line)
 static token_t token_create_error(lexer_t* lexer, token_type_t type, const char* message);
 static void token_add(lexer_t* lexer, token_t type);
 static token_t lexer_check_next(lexer_t* lexer, char c, token_type_t token_match, token_type_t token_mismatch);
+static token_t lexer_check_next_multiple(lexer_t* lexer, char c1, token_type_t first_token_match, char c2, token_type_t second_token_match, token_type_t token_mismatch);
 static int lexer_skip(lexer_t* lexer);
 static token_t lexer_string(lexer_t* lexer);
 static token_t lexer_number(lexer_t* lexer);
@@ -153,7 +154,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
         case 'n': return check_keyword(lexer, 1, 3, "ull", H_TOKEN_NULL);
         case 'o': return check_keyword(lexer, 1, 1, "r", H_TOKEN_OR);
         case 'p': return check_keyword(lexer, 1, 4, "rint", H_TOKEN_PRINT);
-        case 'r': return check_keyword(lexer, 1, 5, "eturn", H_TOKEN_RETURN);
+        case 'r': return check_keyword(lexer, 1, 2, "et", H_TOKEN_RETURN);
         case 's': return check_keyword(lexer, 1, 4, "uper", H_TOKEN_SUPER);
         case 'v': return check_keyword(lexer, 1, 2, "ar", H_TOKEN_VAR);
         case 'w': return check_keyword(lexer, 1, 4, "hile", H_TOKEN_WHILE);
@@ -266,7 +267,31 @@ static token_t lexer_check_next(lexer_t* lexer, char c, token_type_t token_match
     return token_create(lexer, token_mismatch);
 }
 
+static token_t lexer_check_next_multiple(lexer_t* lexer, char c1, token_type_t first_token_match, char c2, token_type_t second_token_match, token_type_t token_mismatch) {
+    
+    if(*lexer->current == '\0') return token_create(lexer, token_mismatch);
+    
+    if(*lexer->current == c1) {++lexer->current; return token_create(lexer, first_token_match);}
+    if(*lexer->current == c2) {++lexer->current; return token_create(lexer, second_token_match);}
+
+    return token_create(lexer, token_mismatch);
+}
+
 token_t lexer_get_token(lexer_t* lexer) {
+
+    #define LEXER_CHECK_MULTIPLE(C1, FIRST_TYPE, C2, SECOND_TYPE, TYPE_MISMATCH)\
+        if(*lexer->current == '\0') return token_create(lexer, TYPE_MISMATCH);\
+        switch(*lexer->current) {\
+            case C1:\
+                ++lexer->current;\
+                return token_create(lexer, FIRST_TYPE);\
+            case C2:\
+                ++lexer->current;\
+                return token_create(lexer, SECOND_TYPE);\
+            default:\
+                return token_create(lexer, TYPE_MISMATCH);\
+        }\
+
     char c = *lexer->current++;
 
     #if DEBUG_TRACE_LEXER_CURRENT_CHAR
@@ -284,8 +309,10 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '.': return token_create(lexer, H_TOKEN_DOT);
         case '%': return token_create(lexer, H_TOKEN_MODULO);
         case '/': return token_create(lexer, H_TOKEN_SLASH);
-        case '>': return lexer_check_next(lexer, '=', H_TOKEN_GREATER_EQUAL, H_TOKEN_GREATER); 
-        case '<': return lexer_check_next(lexer, '=', H_TOKEN_LESS_EQUAL, H_TOKEN_LESS); 
+        case '&': return token_create(lexer, H_TOKEN_BITWISE_AND);
+        case '|': return token_create(lexer, H_TOKEN_BITWISE_OR);
+        case '>': LEXER_CHECK_MULTIPLE('=', H_TOKEN_GREATER_EQUAL, '>', H_TOKEN_BITWISE_SHIFT_RIGHT, H_TOKEN_GREATER);
+        case '<': LEXER_CHECK_MULTIPLE('=', H_TOKEN_LESS_EQUAL, '<', H_TOKEN_BITWISE_SHIFT_LEFT, H_TOKEN_LESS);
         case '+': return lexer_check_next(lexer, '+', H_TOKEN_PLUS_PLUS, H_TOKEN_PLUS); 
         case '-': return lexer_check_next(lexer, '-', H_TOKEN_MINUS_MINUS, H_TOKEN_MINUS);
         case '*': return lexer_check_next(lexer, '*', H_TOKEN_POW, H_TOKEN_STAR);
@@ -306,6 +333,7 @@ token_t lexer_get_token(lexer_t* lexer) {
     --lexer->current;
     return token_create(lexer, H_TOKEN_EOF);
 
+    #undef LEXER_CHECK_MULTIPLE
 }
 
 size_t lexer_get_tokens_count(lexer_t* lexer) {

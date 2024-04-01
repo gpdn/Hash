@@ -69,7 +69,7 @@ interpreter_result_t pipeline_start(const char* source_path) {
         DEBUG_COLOR_RESET();
         DEBUG_PRINT_LINE();
     #endif
-    
+
     /* #if DEBUG_FILE_PARSER_AST && defined(DEBUG_FILE_PARSER_AST_PATH)
         FILE* debug_file_parser_ast = fopen(DEBUG_FILE_PARSER_AST_PATH, "wb");
         for(size_t i = 0; i < parser->ast_list_size; ++i) {

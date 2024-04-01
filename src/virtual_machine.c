@@ -26,6 +26,8 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     #define ADVANCE_INSTRUCTION_POINTER() (*vm->instruction_pointer++) 
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
     #define BINARY_OP(op) vm_stack_push(vm, vm_stack_pop(vm) op vm_stack_pop(vm))
+    #define BINARY_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, vm_stack_pop(vm) op name);
+    #define BITWISE_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, (unsigned int)vm_stack_pop(vm) op (unsigned int)name);
 
     #if DEBUG_TRACE_VM_BYTECODE
         DEBUG_COLOR_SET(COLOR_CYAN);
@@ -64,7 +66,19 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 BINARY_OP(*);
                 break;
             case OP_DIV:
-                BINARY_OP(/);
+                BINARY_OP_ASSOC(div_val, /);
+                break;
+            case OP_SHIFT_LEFT:
+                BITWISE_OP_ASSOC(shift_left_val, <<);
+                break;
+            case OP_SHIFT_RIGHT:
+                BITWISE_OP_ASSOC(shift_right_val, >>);
+                break;
+            case OP_BITWISE_AND:
+                BITWISE_OP_ASSOC(bitwise_and_val, &);
+                break;
+            case OP_BITWISE_OR:
+                BITWISE_OP_ASSOC(bitwise_or_val, |);
                 break;
             case OP_RETURN:
                 value_t result = vm_stack_pop(vm);

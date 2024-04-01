@@ -1,8 +1,8 @@
-#define DEBUG 1
 
-#if DEBUG
 
 #include "debug.h"
+
+#if DEBUG
 
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
@@ -72,6 +72,18 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             break;
         case OP_CONSTANT:
             return constant_instruction("OP_CONSTANT", store, offset, file);
+            break;
+        case OP_SHIFT_LEFT:
+            return basic_instruction("OP_SHIFT_LEFT", offset, file);
+            break;
+        case OP_SHIFT_RIGHT:
+            return basic_instruction("OP_SHIFT_RIGHT", offset, file);
+            break;
+        case OP_BITWISE_AND:
+            return basic_instruction("OP_BITWISE_AND", offset, file);
+            break;
+        case OP_BITWISE_OR:
+            return basic_instruction("OP_BITWISE_AND", offset, file);
             break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);

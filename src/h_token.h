@@ -48,7 +48,11 @@ typedef enum token_type_t {
     H_TOKEN_NUMBER_LITERAL,
     H_TOKEN_CLASS,
     H_TOKEN_SUPER,
-    H_TOKEN_FUNCTION
+    H_TOKEN_FUNCTION,
+    H_TOKEN_BITWISE_SHIFT_LEFT,
+    H_TOKEN_BITWISE_SHIFT_RIGHT,
+    H_TOKEN_BITWISE_AND,
+    H_TOKEN_BITWISE_OR
 } token_type_t;
 
 typedef struct token_t {

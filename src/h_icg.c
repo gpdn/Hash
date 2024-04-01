@@ -56,6 +56,18 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
         case H_TOKEN_SLASH:
             bs_write(icg->bytecode_store, OP_DIV);
             break;
+        case H_TOKEN_BITWISE_SHIFT_LEFT:
+            bs_write(icg->bytecode_store, OP_SHIFT_LEFT);
+            break;
+        case H_TOKEN_BITWISE_SHIFT_RIGHT:
+            bs_write(icg->bytecode_store, OP_SHIFT_RIGHT);
+            break;
+        case H_TOKEN_BITWISE_AND:
+            bs_write(icg->bytecode_store, OP_BITWISE_AND);
+            break;
+        case H_TOKEN_BITWISE_OR:
+            bs_write(icg->bytecode_store, OP_BITWISE_OR);
+            break;
         default:
             return;
     }

@@ -1,6 +1,6 @@
 #include "h_args_parser.h"
 
-static int match_arg(size_t start, size_t count, const char* arg, const char* string_to_math);
+static int match_arg(size_t start, size_t count, const char* arg, const char* string_to_match);
 static void consume_arg(const char* arg, size_t index, size_t argc, char** argv, const char** value_to_set);
 
 static int match_arg(size_t start, size_t count, const char* arg, const char* string_to_match) {
@@ -16,7 +16,13 @@ static void consume_arg(const char* arg, size_t index, size_t argc, char** argv,
     *value_to_set = argv[index];
 }
 
-void parse_args(int argc, char** argv, execution_mode_t* run_mode, const char** source_file_path) {
+static inline void set_args_flag(uint8_t* args_flags, uint8_t bit_to_set) {
+    DEBUG_LOG("Setting flag\n");
+    *args_flags |= (1 << bit_to_set);
+    DEBUG_LOG("%.8d\n", *args_flags);
+}
+
+void parse_args(int argc, char** argv, execution_mode_t* run_mode, const char** source_file_path, uint8_t* args_flags) {
     #if DEBUG_TRACE_LOG_COMMAND_LINE_ARGS
         DEBUG_PRINT_LINE();
         DEBUG_TITLE("Command line args");
@@ -41,6 +47,7 @@ void parse_args(int argc, char** argv, execution_mode_t* run_mode, const char** 
             switch(argv[i][2]) {
                 case 'r': if(match_arg(3, 3, argv[i], "epl")) {*run_mode = MODE_REPL;} break;
                 case 'f': if(match_arg(3, 3, argv[i], "ile")) consume_arg("file", i+1, argc, argv, source_file_path); break;
+                case 'c': if(match_arg(3, 6, argv[i], "ompile")) set_args_flag(args_flags, H_ARGS_FLAG_COMPILE); break;
             }
         }
     }

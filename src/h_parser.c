@@ -12,12 +12,16 @@ static void assert_token_type(parser_t* parser, token_type_t type, const char* e
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
 
 static parse_rule_t parse_table[] = {
-    [H_TOKEN_NUMBER_LITERAL]    = {parse_number, NULL, OP_PREC_HIGHEST},
-    [H_TOKEN_LEFT_PAR]          = {parse_grouping, NULL, OP_PREC_HIGHEST},
-    [H_TOKEN_PLUS]              = {NULL, parse_binary_expression, OP_PREC_TERM},
-    [H_TOKEN_MINUS]             = {parse_unary_negate, parse_binary_expression, OP_PREC_UNARY},
-    [H_TOKEN_STAR]              = {NULL, parse_binary_expression, OP_PREC_FACTOR},
-    [H_TOKEN_SLASH]             = {NULL, parse_binary_expression, OP_PREC_FACTOR}
+    [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
+    [H_TOKEN_MINUS]                     = {parse_unary_negate, parse_binary_expression, OP_PREC_UNARY},
+    [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
+    [H_TOKEN_SLASH]                     = {NULL, parse_binary_expression, OP_PREC_FACTOR},
+    [H_TOKEN_BITWISE_SHIFT_LEFT]        = {NULL, parse_binary_expression, OP_PREC_BITWISE_SHIFT},
+    [H_TOKEN_BITWISE_SHIFT_RIGHT]       = {NULL, parse_binary_expression, OP_PREC_BITWISE_SHIFT},
+    [H_TOKEN_BITWISE_AND]               = {NULL, parse_binary_expression, OP_PREC_BITWISE_AND},
+    [H_TOKEN_BITWISE_OR]                = {NULL, parse_binary_expression, OP_PREC_BITWISE_OR},
 };
 
 static const char* parser_debug_colors[] = {COLOR_BLUE, COLOR_YELLOW, COLOR_GREEN, COLOR_RED};
@@ -90,6 +94,7 @@ static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t prec
 static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
     ast_node_t* node = ast_node_create(AST_NODE_BINARY);
     node->operator = parser->current;
+    token_print(parser->current);
     ++parser->current;
     node->left = left;
 
@@ -123,17 +128,18 @@ static void ast_node_free(ast_node_t* node) {
 
 static void disassemble_ast_node(ast_node_t* node, int indent) {
 
-    #define DEBUG_NODE_COLOR(COLOR, ...) DEBUG_COLOR_SET(COLOR); DEBUG_LOG(__VA_ARGS__); DEBUG_COLOR_RESET()
+    #define DEBUG_GET_NODE_COLOR() parser_debug_colors[indent % ((int)sizeof(parser_debug_colors) / sizeof(parser_debug_colors[0]))]
+    #define DEBUG_NODE_COLOR(COLOR, ...) DEBUG_COLOR_SET(DEBUG_GET_NODE_COLOR()); DEBUG_LOG(__VA_ARGS__); DEBUG_COLOR_RESET()
 
     switch(node->type) {
         case AST_NODE_LITERAL:
-            DEBUG_NODE_COLOR(parser_debug_colors[indent % sizeof(parser_debug_colors)], "%d AST_NODE_LITERAL %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_LITERAL %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_BINARY:
-            DEBUG_NODE_COLOR(parser_debug_colors[indent % sizeof(parser_debug_colors)], "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_NUMBER_NEGATE:
-            DEBUG_NODE_COLOR(parser_debug_colors[indent % sizeof(parser_debug_colors)], "%d AST_NODE_NUMBER_NEGATE %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_NUMBER_NEGATE %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

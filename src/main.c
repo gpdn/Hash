@@ -40,8 +40,9 @@ int main(int argc, char** argv) {
     execution_mode_t run_mode = MODE_FILE;
     const char* source_file_path = NULL;
     int source_file_path_allocated = 1;
+    uint8_t args_flags = 0;
 
-    parse_args(argc, argv, &run_mode, &source_file_path);
+    parse_args(argc, argv, &run_mode, &source_file_path, &args_flags);
 
     if(source_file_path == NULL) {source_file_path = PATH; source_file_path_allocated = 0;}
 
@@ -57,6 +58,10 @@ int main(int argc, char** argv) {
             exit(HASH_INVALID_RUN_MODE);
     }
     DEBUG_COLOR_RESET();
+
+    if(args_flags & (1 << H_ARGS_FLAG_COMPILE)) {
+        DEBUG_LOG("Running in Compile Mode\n");
+    }
 
     interpreter_result_t result = pipeline_start(source_file_path);
 
