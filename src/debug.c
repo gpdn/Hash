@@ -91,6 +91,24 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_BITWISE_NOT:
             return basic_instruction("OP_BITWISE_NOT", offset, file);
             break;
+        case OP_EQUALITY:
+            return basic_instruction("OP_EQUALITY", offset, file);
+            break;
+        case OP_NOT_EQUAL:
+            return basic_instruction("OP_NOT_EQUAL", offset, file);
+            break;
+        case OP_GREATER:
+            return basic_instruction("OP_GREATER", offset, file);
+            break;
+        case OP_GREATER_EQUAL:
+            return basic_instruction("OP_GREATER_EQUAL", offset, file);
+            break;
+        case OP_LESS:
+            return basic_instruction("OP_LESS", offset, file);
+            break;
+        case OP_LESS_EQUAL:
+            return basic_instruction("OP_LESS_EQUAL", offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);

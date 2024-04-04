@@ -319,6 +319,7 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '-': return lexer_check_next(lexer, '-', H_TOKEN_MINUS_MINUS, H_TOKEN_MINUS);
         case '*': return lexer_check_next(lexer, '*', H_TOKEN_POW, H_TOKEN_STAR);
         case '=': return lexer_check_next(lexer, '=', H_TOKEN_DOUBLE_EQUAL, H_TOKEN_EQUAL);
+        case '!': return lexer_check_next(lexer, '=', H_TOKEN_BANG_EQUAL, H_TOKEN_BANG);
         case '"': return lexer_string(lexer);
     }
 

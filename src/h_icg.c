@@ -85,6 +85,24 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
         case H_TOKEN_BITWISE_NOT:
             bs_write(icg->bytecode_store, OP_BITWISE_NOT);
             break;
+        case H_TOKEN_DOUBLE_EQUAL:
+            bs_write(icg->bytecode_store, OP_EQUALITY);
+            break;
+        case H_TOKEN_BANG_EQUAL:
+            bs_write(icg->bytecode_store, OP_NOT_EQUAL);
+            break;
+        case H_TOKEN_GREATER:
+            bs_write(icg->bytecode_store, OP_GREATER);
+            break;
+        case H_TOKEN_GREATER_EQUAL:
+            bs_write(icg->bytecode_store, OP_GREATER_EQUAL);
+            break;
+        case H_TOKEN_LESS:
+            bs_write(icg->bytecode_store, OP_LESS);
+            break;
+        case H_TOKEN_LESS_EQUAL:
+            bs_write(icg->bytecode_store, OP_LESS_EQUAL);
+            break;
         default:
             return;
     }

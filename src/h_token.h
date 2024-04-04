@@ -54,7 +54,8 @@ typedef enum token_type_t {
     H_TOKEN_BITWISE_AND,
     H_TOKEN_BITWISE_OR,
     H_TOKEN_BITWISE_XOR,
-    H_TOKEN_BITWISE_NOT
+    H_TOKEN_BITWISE_NOT,
+    H_TOKEN_BANG_EQUAL
 } token_type_t;
 
 typedef struct token_t {

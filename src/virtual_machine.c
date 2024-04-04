@@ -86,6 +86,24 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_BITWISE_NOT:
                 vm_stack_push(vm, ~(unsigned int)vm_stack_pop(vm));
                 break;
+            case OP_EQUALITY:
+                BINARY_OP(==);
+                break;
+            case OP_NOT_EQUAL:
+                BINARY_OP(!=);
+                break;
+            case OP_GREATER:
+                BITWISE_OP_ASSOC(greater_val, >);
+                break;
+            case OP_GREATER_EQUAL:
+                BINARY_OP_ASSOC(greater_equal_val, >=);
+                break;
+            case OP_LESS:
+                BINARY_OP_ASSOC(less_val, <);
+                break;
+            case OP_LESS_EQUAL:
+                BINARY_OP_ASSOC(less_equal_val,<=);
+                break;
             case OP_RETURN:
                 value_t result = vm_stack_pop(vm);
                 DEBUG_LOG("OP_RETURN %0.2f\n", result);

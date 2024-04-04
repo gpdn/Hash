@@ -22,7 +22,13 @@ typedef enum opcode_t {
     OP_BITWISE_AND,
     OP_BITWISE_OR,
     OP_BITWISE_XOR,
-    OP_BITWISE_NOT
+    OP_BITWISE_NOT,
+    OP_EQUALITY,
+    OP_NOT_EQUAL,
+    OP_GREATER,
+    OP_LESS,
+    OP_GREATER_EQUAL,
+    OP_LESS_EQUAL
 } opcode_t;
 
 typedef struct bytecode_store_t {
