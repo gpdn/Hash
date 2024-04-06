@@ -36,7 +36,9 @@ size_t write_file(const char* path, const char* content, size_t element_size, si
 
     size_t count = fwrite(content, element_size, elements_count, file);
 
-    if(count != 1) {
+    DEBUG_LOG("COUNT: %lld\n", count);
+
+    if(count != elements_count) {
         DEBUG_LOG("Failed to write to file(Path: %s). Content and number of elements not matching\n", path);
         return 0;
     }

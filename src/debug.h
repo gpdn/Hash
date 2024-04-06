@@ -35,6 +35,16 @@
 #define DEBUG_CLEAR() clrscr();
 #define DEBUG_TITLE(X) printf("--- %s ---\n", X)
 #define DEBUG_PRINT_LINE(X) printf("\n")
+#define DEBUG_BINARY_8(X)\
+    ((X) & (1 << 7) ? '1' : '0'),\
+    ((X) & (1 << 6) ? '1' : '0'),\
+    ((X) & (1 << 5) ? '1' : '0'),\
+    ((X) & (1 << 4) ? '1' : '0'),\
+    ((X) & (1 << 3) ? '1' : '0'),\
+    ((X) & (1 << 2) ? '1' : '0'),\
+    ((X) & (1 << 1) ? '1' : '0'),\
+    ((X) & (1 << 0) ? '1' : '0')
+#define DEBUG_LOG_BINARY_8(X) DEBUG_LOG("%c%c%c%c%c%c%c%c\n", DEBUG_BINARY_8(X));
 #else
 #define DEBUG_LOG(...)
 #define DEBUG_COLOR(X, Y)

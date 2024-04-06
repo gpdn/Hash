@@ -1,6 +1,7 @@
 #ifndef HASH_PARSER_H
 #define HASH_PARSER_H
 
+#include <stdarg.h>
 #include "debug.h"
 #include "h_token.h"
 

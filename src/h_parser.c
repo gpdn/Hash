@@ -7,7 +7,7 @@ static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
-static inline void emit_error(parser_t* parser, const char* error_message);
+static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
 
@@ -43,10 +43,52 @@ static void assert_token_type(parser_t* parser, token_type_t type, const char* e
     emit_error(parser, error_message);
 }
 
-static inline void emit_error(parser_t* parser, const char* error_message) {
+static void emit_error(parser_t* parser, const char* error_message) {
+    DEBUG_COLOR_SET(COLOR_RED);
     ++parser->errors_count;
-    parser->current = parser->tokens_list + (parser->tokens_list_count - 1);
+    fprintf(stderr, "\n\n[PARSER ERROR | Line: %lld] %.*s\n", parser->current->line, (int)parser->current->length, parser->current->start);
+    
+    va_list args;
+
+    token_t* temp = parser->current;
+    token_t* temp_next = parser->current;
+
+    size_t lines_count_before = temp->line - parser->tokens_list[0].line;
+    size_t lines_count_after = parser->tokens_list[parser->tokens_list_count - 1].line - temp->line;
+
+    while(temp != parser->tokens_list && temp->line != temp->line - DEBUG_MIN(lines_count_before, 5)) --temp;
+    while(temp_next != parser->tokens_list && temp_next->line == parser->current->line) --temp_next;
+    ++temp_next;
+    DEBUG_COLOR_SET(COLOR_GRAY);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - temp->start), temp->start);
+
+    DEBUG_COLOR_SET(COLOR_YELLOW);
+    fprintf(stderr, "%.*s", (int)(parser->current->start - temp_next->start), temp_next->start);
+
+    DEBUG_COLOR_SET(COLOR_RED);
+    fprintf(stderr, "%.*s", (int)parser->current->length, parser->current->start);
+
+    temp = parser->current;
+
+    while(temp_next != (parser->tokens_list + parser->tokens_list_count) && temp_next->line == temp->line) ++temp_next;
+    
+    DEBUG_COLOR_SET(COLOR_YELLOW);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - (temp->start + temp->length)), temp->start + temp->length);
+    
+    temp = temp_next;
+    while(temp_next != parser->tokens_list + parser->tokens_list_count && temp_next->line != temp->line + DEBUG_MIN(lines_count_after, 5)) {++temp_next;}
+    DEBUG_COLOR_SET(COLOR_GRAY);
+    fprintf(stderr, "%.*s", (int)(temp_next->start - temp->start), temp->start);
+
+    fprintf(stderr, "\n");
+
+    DEBUG_COLOR_SET(COLOR_RED);
+    /* va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args); */
     DEBUG_LOG(error_message);
+    DEBUG_COLOR_RESET();
+    parser->current = parser->tokens_list + (parser->tokens_list_count - 1);
 }
 
 static inline ast_node_t* ast_node_create(ast_node_type_t type) {
@@ -85,6 +127,7 @@ static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t prec
 
     if(nud->null_denotation == NULL) {
         emit_error(parser, "Expected expression.");
+        return ast_node_create(AST_NODE_ERROR);
     }
 
     ast_node_t* left = nud->null_denotation(parser, nud->precedence); 
@@ -92,6 +135,9 @@ static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t prec
     parse_rule_t* led = &parse_table[parser->current->type];
 
     while(led->precedence > precedence) {
+        if(led->left_denotation == NULL) { 
+            emit_error(parser, "Expected left denotation\n");
+        }
         left = led->left_denotation(parser, led->precedence, left);
         led = &parse_table[parser->current->type];
     }
@@ -164,6 +210,7 @@ parser_t* parser_init(token_t* tokens_array, size_t tokens_list_size) {
     parser->ast_list_capacity = tokens_list_size;
     parser->ast_list_size = 0;
     parser->tokens_list = tokens_array;
+    parser->tokens_list_count = tokens_list_size;
     return parser;
 }
 

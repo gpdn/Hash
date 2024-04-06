@@ -1,15 +1,8 @@
 #include "h_pipeline.h"
 
-interpreter_result_t pipeline_start(const char* source_path) {
+interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     
     clock_t pipeline_timer = timer_start_time("Pipeline");
-    
-    const char* file_content = read_file(source_path);
-
-    if(file_content == NULL) {
-        fprintf(stderr, "Failed to open file. Path: %s", source_path);
-        return HASH_FILE_OPEN_FAILED;
-    }
     
     #if DEBUG_TRACE_LOG_FILE
         DEBUG_PRINT_LINE();
@@ -91,7 +84,6 @@ interpreter_result_t pipeline_start(const char* source_path) {
 
     interpreter_result_t result = vm_run(vm);
 
-    free((void*)file_content);
     free(tokens_array);
     lexer_free(lexer);
     parser_free(parser);
