@@ -2,6 +2,19 @@
 
 static void vm_stack_push(virtual_machine_t* vm, value_t value);
 static value_t vm_stack_pop(virtual_machine_t* vm);
+static const char* resolve_type(value_t* value);
+static inline void resolve_value(value_t* value);
+
+static const char* resolve_type(value_t* value) {
+    switch(value->type) {
+        case H_VALUE_NUMBER:
+            return "Num";
+        case H_VALUE_STRING:
+            return "Str";
+        default:
+            return "Unk";
+    }
+}
 
 static void vm_stack_push(virtual_machine_t* vm, value_t value) {
     *vm->stack_top = value;
@@ -25,9 +38,9 @@ virtual_machine_t* vm_init(bytecode_store_t *store)
 interpreter_result_t vm_run(virtual_machine_t* vm) {
     #define ADVANCE_INSTRUCTION_POINTER() (*vm->instruction_pointer++) 
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
-    #define BINARY_OP(op) vm_stack_push(vm, vm_stack_pop(vm) op vm_stack_pop(vm))
-    #define BINARY_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, vm_stack_pop(vm) op name);
-    #define BITWISE_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, (unsigned int)vm_stack_pop(vm) op (unsigned int)name);
+    #define BINARY_OP(type, op) vm_stack_push(vm, type(vm_stack_pop(vm).number op vm_stack_pop(vm).number))
+    #define BINARY_OP_ASSOC(name, type, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, type(vm_stack_pop(vm).number op name.number));
+    #define BITWISE_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, NUM_VALUE(((unsigned int)(vm_stack_pop(vm).number)) op ((unsigned int)(name.number))));
 
     #if DEBUG_TRACE_VM_BYTECODE
         DEBUG_COLOR_SET(COLOR_CYAN);
@@ -54,19 +67,30 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_push(vm, value);
                 break;
             case OP_NEGATE:
-                vm_stack_push(vm, -vm_stack_pop(vm));
+                vm_stack_push(vm, NUM_VALUE(-vm_stack_pop(vm).number));
                 break;
             case OP_ADD:
-                BINARY_OP(+);
+                value_t add_val = vm_stack_pop(vm);
+                switch(add_val.type) {
+                    case H_VALUE_NUMBER:
+                        vm_stack_push(vm, NUM_VALUE(vm_stack_pop(vm).number + add_val.number));
+                        break;
+                    case H_VALUE_STRING:
+                        vm_stack_push(vm, STR_VALUE(h_string_concatenate(vm_stack_pop(vm).string, add_val.string)));
+                        break;
+                    default:
+                        return VM_ERROR;
+                }
+                //BINARY_OP_ASSOC(add_val, NUM_VALUE, +);
                 break;
             case OP_SUB:
-                BINARY_OP(-);
+                BINARY_OP(NUM_VALUE, -);
                 break;
             case OP_MUL:
-                BINARY_OP(*);
+                BINARY_OP(NUM_VALUE, *);
                 break;
             case OP_DIV:
-                BINARY_OP_ASSOC(div_val, /);
+                BINARY_OP_ASSOC(div_val, NUM_VALUE, /);
                 break;
             case OP_SHIFT_LEFT:
                 BITWISE_OP_ASSOC(shift_left_val, <<);
@@ -84,29 +108,29 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 BITWISE_OP_ASSOC(bitwise_xor_val, ^);
                 break;
             case OP_BITWISE_NOT:
-                vm_stack_push(vm, ~(unsigned int)vm_stack_pop(vm));
+                vm_stack_push(vm, NUM_VALUE(~(unsigned int)vm_stack_pop(vm).number));
                 break;
             case OP_EQUALITY:
-                BINARY_OP(==);
+                BINARY_OP(NUM_VALUE, ==);
                 break;
             case OP_NOT_EQUAL:
-                BINARY_OP(!=);
+                BINARY_OP(NUM_VALUE, !=);
                 break;
             case OP_GREATER:
-                BITWISE_OP_ASSOC(greater_val, >);
+                BINARY_OP_ASSOC(greater_val, NUM_VALUE, >);
                 break;
             case OP_GREATER_EQUAL:
-                BINARY_OP_ASSOC(greater_equal_val, >=);
+                BINARY_OP_ASSOC(greater_equal_val, NUM_VALUE, >=);
                 break;
             case OP_LESS:
-                BINARY_OP_ASSOC(less_val, <);
+                BINARY_OP_ASSOC(less_val, NUM_VALUE, <);
                 break;
             case OP_LESS_EQUAL:
-                BINARY_OP_ASSOC(less_equal_val,<=);
+                BINARY_OP_ASSOC(less_equal_val, NUM_VALUE, <=);
                 break;
             case OP_RETURN:
                 value_t result = vm_stack_pop(vm);
-                DEBUG_LOG("OP_RETURN %0.2f\n", result);
+                resolve_value(&result);
                 return VM_SUCCESS;
                 break;
             default:
@@ -119,7 +143,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
         #if DEBUG_TRACE_VM_STACK
             for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
                 DEBUG_COLOR_SET(COLOR_CYAN);
-                DEBUG_LOG("[%0.2f]\n", *temp);
+                resolve_value(temp);
                 DEBUG_COLOR_RESET();
             }
         #endif
@@ -128,6 +152,17 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     
     return VM_ERROR;
 
+}
+
+static inline void resolve_value(value_t* value) {
+    switch(value->type) {
+        case H_VALUE_NUMBER:
+            DEBUG_LOG("[%s, %0.2f]\n", "Num", value->number);
+            break;
+        case H_VALUE_STRING:
+            DEBUG_LOG("[%s, %s]\n", "Str", value->string->string);
+            break;
+    }
 }
 
 void vm_free(virtual_machine_t* vm) {

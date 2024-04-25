@@ -42,7 +42,6 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
 
     if(lexer_errors_count > 0 || lexer_warnings_count > 0) {
         if(lexer_report_tokenisation_errors(lexer) == 0) {
-            free((void*)file_content);
             free(tokens_array);
             lexer_free(lexer);
             return HASH_FAILURE;
@@ -62,6 +61,13 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         DEBUG_COLOR_RESET();
         DEBUG_PRINT_LINE();
     #endif
+
+    if(parser->errors_count > 0) {
+        free(tokens_array);
+        lexer_free(lexer);
+        parser_free(parser);
+        return HASH_FAILURE;
+    }
 
     /* #if DEBUG_FILE_PARSER_AST && defined(DEBUG_FILE_PARSER_AST_PATH)
         FILE* debug_file_parser_ast = fopen(DEBUG_FILE_PARSER_AST_PATH, "wb");

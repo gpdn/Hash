@@ -8,7 +8,7 @@
 
 typedef enum args_flags_t {
     H_ARGS_FLAG_COMPILE,
-    H_ARGS_FLAG_SAVE_FILE
+    H_ARGS_FLAG_SAVE_FILE,
 } args_flags_t;
 
 typedef enum execution_mode_t {

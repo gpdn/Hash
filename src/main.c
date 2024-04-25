@@ -7,6 +7,7 @@
 #include "bytecode_store.h"
 #include "virtual_machine.h"
 #include "h_pipeline.h"
+#include "h_hash_table_t.h"
 
 #define PATH "./test.hash"
 
@@ -88,6 +89,26 @@ static const char* execute_repl(char* source) {
 
 int main(int argc, char** argv) {
 
+    /* h_hash_table_t* table = h_hash_table_init(200, 0.75);
+
+    h_ht_set(table, "example", 1);
+    h_ht_set(table, "example2", 1);
+    h_ht_set(table, "example3", 3);
+    h_ht_set(table, "example4", 3);
+    h_ht_set(table, "example5", 3);
+    h_ht_set(table, "example6", 3);
+    h_ht_set(table, "example7", 3);
+    h_ht_set(table, "example8", 3);
+
+    double value = h_ht_get(table, "example");
+
+    DEBUG_LOG("VALUE: %f\n", value); 
+
+    h_ht_print(table);
+
+    h_hash_table_free(table); */
+    //return 0;
+
     PRINT_TITLE();
 
     execution_mode_t run_mode = MODE_FILE;
@@ -99,6 +120,10 @@ int main(int argc, char** argv) {
     parse_args(argc, argv, &run_mode, &source_file_path, &repl_save_file_path, &args_flags);
 
     if(source_file_path == NULL) source_file_path = PATH;
+
+    if(args_flags & (1 << H_ARGS_FLAG_COMPILE)) {
+        DEBUG_LOG("Running in Compile Mode\n");
+    }
 
     DEBUG_COLOR_SET(COLOR_BLUE);
     switch(run_mode) {

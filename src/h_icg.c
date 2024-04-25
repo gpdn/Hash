@@ -3,6 +3,7 @@
 static void emit_error(icg_t* icg);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_number(icg_t* icg, ast_node_t* node);
+static void icg_generate_string(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 
@@ -14,7 +15,17 @@ static void emit_error(icg_t* icg) {
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_LITERAL:
-            icg_generate_number(icg, node);
+            switch(node->operator->type) {
+                case H_TOKEN_NUMBER_LITERAL:
+                    icg_generate_number(icg, node);
+                    break;
+                case H_TOKEN_STRING_LITERAL:
+                    icg_generate_string(icg, node);
+                    break;
+                default:
+                    emit_error(icg);
+                    break;
+            }
             break;
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
@@ -31,8 +42,14 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
 
 static void icg_generate_number(icg_t* icg, ast_node_t* node) {
     double value = strtod(node->operator->start, NULL);
-    if(value > UINT8_MAX) {emit_error(icg); return;}
-    bs_write_constant(icg->bytecode_store, value);
+    //if(value > UINT8_MAX) {emit_error(icg); return;}
+    bs_write_constant(icg->bytecode_store, NUM_VALUE(value));
+}
+
+static void icg_generate_string(icg_t* icg, ast_node_t* node) {
+    h_string_t* string = h_string_init(node->operator->start, node->operator->length);
+    //if(value > UINT8_MAX) {emit_error(icg); return;}
+    bs_write_constant(icg->bytecode_store, STR_VALUE(string));
 }
 
 static void icg_generate_unary(icg_t* icg, ast_node_t* node) {

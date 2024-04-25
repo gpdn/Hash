@@ -5,6 +5,7 @@
 #include "h_parser.h"
 #include "debug.h"
 #include "bytecode_store.h"
+#include "h_string_t.h"
 
 typedef struct icg_t {
     ast_node_t** ast_nodes_list;

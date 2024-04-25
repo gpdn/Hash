@@ -6,6 +6,7 @@
 
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
+static inline void print_value(bytecode_store_t* store, size_t offset, value_t value);
 
 static int basic_instruction(const char* name, size_t offset, FILE* file) {
     DEBUG_LOG("%s\n", name);
@@ -18,12 +19,26 @@ static int basic_instruction(const char* name, size_t offset, FILE* file) {
     return offset + 1;
 }
 
+static inline void print_value(bytecode_store_t* store, size_t offset, value_t value) {
+    switch(value.type) {
+        case H_VALUE_NUMBER:
+            DEBUG_LOG("%0.2f\n", store->constants->constants[store->code[offset + 1]].number);
+            break;
+        case H_VALUE_STRING:
+            DEBUG_LOG("%s\n", store->constants->constants[store->code[offset + 1]].string->string);
+            break;
+        default: 
+            break;
+    }
+} 
+
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
     DEBUG_LOG("%s ", name);
-    DEBUG_LOG("%0.2f\n", store->constants->constants[store->code[offset + 1]]);
+    value_t value = store->constants->constants[store->code[offset + 1]];
+    print_value(store, offset, value);
     if(file) {
         char* string = (char*)malloc((sizeof(char) * (strlen(name) + 50)));
-        sprintf(string, "%s %0.2f\n", name, store->constants->constants[store->code[offset + 1]]);
+        sprintf(string, "%s %0.2f\n", name, store->constants->constants[store->code[offset + 1]].number);
         fwrite(string, 1, strlen(string), file);
         free((void*)string);
     }

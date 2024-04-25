@@ -4,6 +4,16 @@ static int match_arg(size_t start, size_t count, const char* arg, const char* st
 static void consume_arg(const char* arg, size_t index, size_t argc, char** argv, const char** value_to_set);
 static void consume_set_arg_flag(const char* arg, size_t index, size_t argc, char** argv, const char** value_to_set, uint8_t* flags, args_flags_t flag_to_set);
 static inline void set_args_flag(uint8_t* args_flags, uint8_t bit_to_set);
+static void show_help();
+
+static void show_help() {
+    DEBUG_COLOR_SET(COLOR_CYAN);
+    DEBUG_LOG("%s -> %s", "--compile", "Compiles the source instead of intepreting it\n");
+    DEBUG_LOG("%s -> %s", "--file \"path\"", "Uses the file at the specified path as source\n");
+    DEBUG_LOG("%s -> %s", "--repl", "Launches the REPL\n");
+    DEBUG_LOG("%s -> %s", "--save \"path\"", "Only used in REPL mode. Saves the input of the REPL in a file at the specified path\n");
+    DEBUG_COLOR_RESET();
+}
 
 static int match_arg(size_t start, size_t count, const char* arg, const char* string_to_match) {
     return (strlen(arg) - start == count && memcmp(arg + start, string_to_match, count) == 0);
@@ -66,6 +76,7 @@ void parse_args(int argc, char** argv, execution_mode_t* run_mode, const char** 
                 case 'f': if(match_arg(3, 3, argv[i], "ile")) consume_arg("file", i+1, argc, argv, source_file_path); break;
                 case 'c': if(match_arg(3, 6, argv[i], "ompile")) set_args_flag(args_flags, H_ARGS_FLAG_COMPILE); break;
                 case 's': if(match_arg(3, 3, argv[i], "ave")) consume_set_arg_flag("save", i+1, argc, argv, repl_save_file_path, args_flags, H_ARGS_FLAG_SAVE_FILE); break;
+                case 'l': if(match_arg(3, 3, argv[i], "ist")) show_help(); exit(0);
             }
         }
     }

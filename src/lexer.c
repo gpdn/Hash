@@ -134,7 +134,7 @@ static token_t lexer_number(lexer_t* lexer) {
 }
 
 static token_t lexer_identifier(lexer_t* lexer) {
-    while(isalnum(*lexer->current)) ++lexer->current;
+    while(isalnum(*lexer->current) || *lexer->current == '_') ++lexer->current;
 
     switch(lexer->start[0]) {
         case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
@@ -320,12 +320,13 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '*': return lexer_check_next(lexer, '*', H_TOKEN_POW, H_TOKEN_STAR);
         case '=': return lexer_check_next(lexer, '=', H_TOKEN_DOUBLE_EQUAL, H_TOKEN_EQUAL);
         case '!': return lexer_check_next(lexer, '=', H_TOKEN_BANG_EQUAL, H_TOKEN_BANG);
+        case '?': return lexer_check_next(lexer, '?', H_TOKEN_DOUBLE_QUESTION_MARK, H_TOKEN_QUESTION_MARK);
         case '"': return lexer_string(lexer);
     }
 
     if(isdigit(c)) return lexer_number(lexer);
 
-    if(isalpha(c)) return lexer_identifier(lexer);
+    if(isalpha(c) || c == '_') return lexer_identifier(lexer);
 
     if(c != '\0') {
         DEBUG_ERROR("Unrecognised Token. Last recognised token: ");

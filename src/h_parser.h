@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include "debug.h"
 #include "h_token.h"
+#include "h_values.h"
 
 typedef enum ast_node_type_t{
     AST_NODE_BINARY,
@@ -11,7 +12,7 @@ typedef enum ast_node_type_t{
     AST_NODE_ERROR,
     AST_NODE_EOF,
     AST_NODE_GROUPING,
-    AST_NODE_UNARY
+    AST_NODE_UNARY,
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
