@@ -5,9 +5,10 @@
 #include <stdint.h>
 #include "debug.h"
 #include "h_values.h"
+#include "string.h"
 
 typedef struct ht_entry_t {
-    const char* name;
+    h_string_t* name;
     value_t value;
     struct ht_entry_t* next;
 } ht_entry_t;
@@ -22,7 +23,7 @@ typedef struct h_hash_table_t {
 h_hash_table_t* h_hash_table_init(size_t capacity, float load_factor);
 void h_hash_table_free(h_hash_table_t* hash_table);
 void h_ht_print(h_hash_table_t* table);
-value_t h_ht_get(h_hash_table_t* table, const char* key);
-int h_ht_set(h_hash_table_t* table, const char* key, value_t value);
+value_t h_ht_get(h_hash_table_t* table, h_string_t* key);
+int h_ht_set(h_hash_table_t* table, h_string_t* key, value_t value);
 
 #endif

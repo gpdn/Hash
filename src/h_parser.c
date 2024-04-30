@@ -4,17 +4,22 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type);
 static void ast_node_free(ast_node_t* node);
 static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
-static ast_node_t* parse_literal(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
-static ast_node_t* parse_expression_statement(parser_t* parser);
+static inline ast_node_t* parse_expression_statement(parser_t* parser);
+static inline ast_node_t* expression_statement(parser_t* parser);
+static ast_node_t* parse_statement(parser_t* parser);
+static ast_node_t* parse_declaration(parser_t* parser);
+static ast_node_t* parse_print_statement(parser_t* parser);
 static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
 
 static parse_rule_t parse_table[] = {
-    [H_TOKEN_NUMBER_LITERAL]            = {parse_literal, NULL, OP_PREC_HIGHEST},
-    [H_TOKEN_STRING_LITERAL]            = {parse_literal, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
@@ -31,7 +36,8 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_GREATER]                   = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_GREATER_EQUAL]             = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
-    [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON}
+    [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
+    [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
 static const char* parser_debug_colors[] = {COLOR_BLUE, COLOR_YELLOW, COLOR_GREEN, COLOR_RED};
@@ -98,15 +104,57 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type) {
     return node;
 }
 
-static ast_node_t* parse_expression_statement(parser_t* parser) {
+static ast_node_t* parse_declaration(parser_t* parser) {
+    switch(parser->current->type) {
+        default: 
+            return parse_statement(parser);
+    }
+}
+
+static ast_node_t* parse_statement(parser_t* parser) {
+    switch(parser->current->type) {
+        case H_TOKEN_PRINT:
+            return parse_print_statement(parser);
+        default:
+            return parse_expression_statement(parser);
+    }
+}
+
+static ast_node_t* parse_print_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_PRINT);
+    node->operator = parser->current;
+    ++parser->current;
+    node->left = expression_statement(parser);
+    return node;
+}
+
+static inline ast_node_t* parse_expression_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_EXPRESSION); 
+    node->left = parse_expression(parser, OP_PREC_LOWEST);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon.");
+    return node;
+}
+
+static inline ast_node_t* expression_statement(parser_t* parser) {
     ast_node_t* node = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon.");
     return node;
 }
 
-static ast_node_t* parse_literal(parser_t* parser, operator_precedence_t precedence) {
+static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_LITERAL);
     node->operator = parser->current;
+    double value = strtod(node->operator->start, NULL);
+    node->value = NUM_VALUE(value);
+    ++parser->current;
+    return node;
+} 
+
+static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_LITERAL);
+    node->operator = parser->current;
+    h_string_t* value = h_string_init(node->operator->start, node->operator->length);
+    node->value = STR_VALUE(value);
     ++parser->current;
     return node;
 } 
@@ -184,7 +232,7 @@ static void ast_node_free(ast_node_t* node) {
     free(node);
 }
 
-static void disassemble_ast_node(ast_node_t* node, int indent) {
+void disassemble_ast_node(ast_node_t* node, int indent) {
 
     #define DEBUG_GET_NODE_COLOR() parser_debug_colors[indent % ((int)sizeof(parser_debug_colors) / sizeof(parser_debug_colors[0]))]
     #define DEBUG_NODE_COLOR(COLOR, ...) DEBUG_COLOR_SET(DEBUG_GET_NODE_COLOR()); DEBUG_LOG(__VA_ARGS__); DEBUG_COLOR_RESET()
@@ -198,6 +246,9 @@ static void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_UNARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_PRINT:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_PRINT %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);
@@ -241,7 +292,7 @@ void ast_print(ast_node_t* node, int indent) {
 ast_node_t** parser_generate_ast(parser_t* parser) {
     parser->current = parser->tokens_list;
     while(parser->current->type != H_TOKEN_EOF) {
-        ast_node_t* node = parse_expression_statement(parser);
+        ast_node_t* node = parse_declaration(parser);
         ast_nodes_array_push(parser, node);
         if(node->type == AST_NODE_ERROR) {
             ++parser->errors_count; 

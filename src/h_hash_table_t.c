@@ -1,16 +1,5 @@
 #include "h_hash_table_t.h"
 
-static size_t h_ht_hash(const char* string);
-
-static size_t h_ht_hash(const char* string) {
-    uint32_t hash = 2166136261u;
-    for(const char* temp = string; *temp != '\0'; ++temp) {
-        hash ^= (uint8_t)*temp;
-        hash *= 16777619;
-    }
-    return hash;
-}
-
 h_hash_table_t* h_hash_table_init(size_t capacity, float load_factor) {
     h_hash_table_t* hash_table = (h_hash_table_t*)malloc(sizeof(h_hash_table_t));
     hash_table->capacity = capacity;
@@ -20,8 +9,8 @@ h_hash_table_t* h_hash_table_init(size_t capacity, float load_factor) {
     return hash_table;
 }
 
-int h_ht_set(h_hash_table_t* table, const char* key, value_t value) {
-    size_t index = (size_t)h_ht_hash(key) % table->capacity;
+int h_ht_set(h_hash_table_t* table, h_string_t* key, value_t value) {
+    size_t index = (size_t)key->hash % table->capacity;
     ht_entry_t* entry = table->array + index;
     if(entry->name == NULL) {
         ++table->elements_count;
@@ -31,8 +20,8 @@ int h_ht_set(h_hash_table_t* table, const char* key, value_t value) {
     return 1;
 }
 
-value_t h_ht_get(h_hash_table_t* table, const char* key) {
-    return table->array[h_ht_hash(key) % table->capacity].value;
+value_t h_ht_get(h_hash_table_t* table, h_string_t* key) {
+    return table->array[key->hash % table->capacity].value;
 };
 
 void h_ht_print(h_hash_table_t* table) {

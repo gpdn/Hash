@@ -301,6 +301,8 @@ token_t lexer_get_token(lexer_t* lexer) {
     switch(c) {
         case '(': return token_create(lexer, H_TOKEN_LEFT_PAR);
         case ')': return token_create(lexer, H_TOKEN_RIGHT_PAR);
+        case '[': return token_create(lexer, H_TOKEN_LEFT_SQUARE);
+        case ']': return token_create(lexer, H_TOKEN_RIGHT_SQUARE);
         case '{': return token_create(lexer, H_TOKEN_LEFT_CURLY);
         case '}': return token_create(lexer, H_TOKEN_RIGHT_CURLY);
         case ';': return token_create(lexer, H_TOKEN_SEMICOLON);

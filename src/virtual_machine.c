@@ -4,6 +4,7 @@ static void vm_stack_push(virtual_machine_t* vm, value_t value);
 static value_t vm_stack_pop(virtual_machine_t* vm);
 static const char* resolve_type(value_t* value);
 static inline void resolve_value(value_t* value);
+static inline void print_value(value_t* value);
 
 static const char* resolve_type(value_t* value) {
     switch(value->type) {
@@ -129,9 +130,15 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 BINARY_OP_ASSOC(less_equal_val, NUM_VALUE, <=);
                 break;
             case OP_RETURN:
-                value_t result = vm_stack_pop(vm);
-                resolve_value(&result);
+                /* value_t result = vm_stack_pop(vm);
+                resolve_value(&result); */
                 return VM_SUCCESS;
+            case OP_PRINT:
+                value_t print_val = vm_stack_pop(vm);
+                print_value(&print_val);
+                break;
+            case OP_POP:
+                vm_stack_pop(vm);
                 break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
@@ -161,6 +168,17 @@ static inline void resolve_value(value_t* value) {
             break;
         case H_VALUE_STRING:
             DEBUG_LOG("[%s, %s]\n", "Str", value->string->string);
+            break;
+    }
+}
+
+static inline void print_value(value_t* value) {
+    switch(value->type) {
+        case H_VALUE_NUMBER:
+            DEBUG_LOG("%f\n", value->number);
+            break;
+        case H_VALUE_STRING:
+            DEBUG_LOG("%s\n", value->string->string);
             break;
     }
 }

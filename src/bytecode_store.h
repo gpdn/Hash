@@ -28,7 +28,9 @@ typedef enum opcode_t {
     OP_GREATER,
     OP_LESS,
     OP_GREATER_EQUAL,
-    OP_LESS_EQUAL
+    OP_LESS_EQUAL,
+    OP_PRINT,
+    OP_POP
 } opcode_t;
 
 typedef struct bytecode_store_t {

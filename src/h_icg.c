@@ -1,9 +1,12 @@
 #include "h_icg.h"
 
 static void emit_error(icg_t* icg);
+static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
-static void icg_generate_number(icg_t* icg, ast_node_t* node);
-static void icg_generate_string(icg_t* icg, ast_node_t* node);
+/* static inline void icg_generate_number(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_string(icg_t* icg, ast_node_t* node); */
+static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 
@@ -14,8 +17,14 @@ static void emit_error(icg_t* icg) {
 
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     switch(node->type) {
+        case AST_NODE_STATEMENT_PRINT:
+            icg_generate_statement_print(icg, node);
+            break;
+        case AST_NODE_STATEMENT_EXPRESSION:
+            icg_generate_statement_expression(icg, node);
+            break;
         case AST_NODE_LITERAL:
-            switch(node->operator->type) {
+            /* switch(node->operator->type) {
                 case H_TOKEN_NUMBER_LITERAL:
                     icg_generate_number(icg, node);
                     break;
@@ -25,7 +34,8 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
                 default:
                     emit_error(icg);
                     break;
-            }
+            } */
+            icg_generate_literal(icg, node);
             break;
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
@@ -40,17 +50,27 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     }
 }
 
-static void icg_generate_number(icg_t* icg, ast_node_t* node) {
-    double value = strtod(node->operator->start, NULL);
-    //if(value > UINT8_MAX) {emit_error(icg); return;}
-    bs_write_constant(icg->bytecode_store, NUM_VALUE(value));
+static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->left);
+    bs_write(icg->bytecode_store, OP_PRINT);
 }
 
-static void icg_generate_string(icg_t* icg, ast_node_t* node) {
-    h_string_t* string = h_string_init(node->operator->start, node->operator->length);
-    //if(value > UINT8_MAX) {emit_error(icg); return;}
-    bs_write_constant(icg->bytecode_store, STR_VALUE(string));
+static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->left);
+    bs_write(icg->bytecode_store, OP_POP);
 }
+
+static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+}
+
+/* static inline void icg_generate_number(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+}
+
+static inline void icg_generate_string(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+} */
 
 static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->left);

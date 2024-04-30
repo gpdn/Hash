@@ -125,6 +125,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_LESS_EQUAL:
             return basic_instruction("OP_LESS_EQUAL", offset, file);
             break;
+        case OP_PRINT:
+            return basic_instruction("OP_PRINT", offset, file);
+            break;
+        case OP_POP:
+            return basic_instruction("OP_POP", offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
@@ -167,6 +173,8 @@ static const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_DO: return "H_TOKEN_DO";
         case H_TOKEN_LEFT_PAR: return "H_TOKEN_LEFT_PAR";
         case H_TOKEN_RIGHT_PAR: return "H_TOKEN_RIGHT_PAR";
+        case H_TOKEN_LEFT_SQUARE: return "H_TOKEN_LEFT_SQUARE";
+        case H_TOKEN_RIGHT_SQUARE: return "H_TOKEN_RIGHT_SQUARE";
         case H_TOKEN_LEFT_CURLY: return "H_TOKEN_LEFT_CURLY"; 
         case H_TOKEN_RIGHT_CURLY: return "H_TOKEN_RIGHT_CURLY";
         case H_TOKEN_SEMICOLON: return "H_TOKEN_SEMICOLON";
@@ -189,6 +197,7 @@ static const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_BANG_EQUAL: return "H_TOKEN_BANG_EQUAL";
         case H_TOKEN_QUESTION_MARK: return "H_TOKEN_QUESTION_MARK";
         case H_TOKEN_DOUBLE_QUESTION_MARK: return "H_TOKEN_DOUBLE_QUESTION_MARK";
+        case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";
     }

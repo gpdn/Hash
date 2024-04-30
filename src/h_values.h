@@ -5,10 +5,10 @@
 #include "h_string_t.h"
 
 typedef enum value_type_t {
+    H_VALUE_NULL,
     H_VALUE_NUMBER,
     H_VALUE_CHAR,
-    H_VALUE_STRING,
-    H_VALUE_NULL
+    H_VALUE_STRING
 } value_type_t;
 
 //typedef double value_t;

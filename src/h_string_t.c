@@ -1,5 +1,16 @@
 #include "h_string_t.h"
 
+static size_t h_ht_hash(const char* string);
+
+static size_t h_ht_hash(const char* string) {
+    uint32_t hash = 2166136261u;
+    for(const char* temp = string; *temp != '\0'; ++temp) {
+        hash ^= (uint8_t)*temp;
+        hash *= 16777619;
+    }
+    return hash;
+}
+
 h_string_t* h_string_init(const char* string, size_t length) {
     h_string_t* h_string = (h_string_t*)malloc(sizeof(h_string_t));
     h_string->string = (char*)malloc(sizeof(char) * (length + 1));
@@ -7,6 +18,18 @@ h_string_t* h_string_init(const char* string, size_t length) {
     h_string->string[length] = '\0';
     h_string->length = length;
     h_string->capacity = length;
+    h_string->hash = NULL;
+    return h_string;
+}
+
+h_string_t* h_string_init_hash(const char* string, size_t length) {
+    h_string_t* h_string = (h_string_t*)malloc(sizeof(h_string_t));
+    h_string->string = (char*)malloc(sizeof(char) * (length + 1));
+    memcpy(h_string->string, string, length);
+    h_string->string[length] = '\0';
+    h_string->length = length;
+    h_string->capacity = length;
+    h_string->hash = h_ht_hash(string);
     return h_string;
 }
 

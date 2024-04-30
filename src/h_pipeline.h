@@ -7,6 +7,7 @@
 #include "bytecode_store.h"
 #include "lexer.h"
 #include "h_parser.h"
+#include "semantic_analyser.h"
 #include "h_icg.h"
 #include "virtual_machine.h"
 

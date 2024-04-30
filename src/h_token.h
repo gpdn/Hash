@@ -36,6 +36,8 @@ typedef enum token_type_t {
     H_TOKEN_DO,
     H_TOKEN_LEFT_PAR,
     H_TOKEN_RIGHT_PAR,
+    H_TOKEN_LEFT_SQUARE, 
+    H_TOKEN_RIGHT_SQUARE,
     H_TOKEN_LEFT_CURLY, 
     H_TOKEN_RIGHT_CURLY,
     H_TOKEN_SEMICOLON,
@@ -57,7 +59,8 @@ typedef enum token_type_t {
     H_TOKEN_BITWISE_NOT,
     H_TOKEN_BANG_EQUAL,
     H_TOKEN_QUESTION_MARK,
-    H_TOKEN_DOUBLE_QUESTION_MARK
+    H_TOKEN_DOUBLE_QUESTION_MARK,
+    H_TOKEN_LAST
 } token_type_t;
 
 typedef struct token_t {

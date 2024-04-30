@@ -13,6 +13,8 @@ typedef enum ast_node_type_t{
     AST_NODE_EOF,
     AST_NODE_GROUPING,
     AST_NODE_UNARY,
+    AST_NODE_STATEMENT_PRINT,
+    AST_NODE_STATEMENT_EXPRESSION
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
@@ -38,6 +40,7 @@ typedef struct ast_node_t {
     struct ast_node_t* left;
     struct ast_node_t* right;
     token_t* operator;
+    value_t value;
 } ast_node_t;
 
 typedef struct parser_t {
@@ -63,6 +66,7 @@ typedef struct parse_rule_t {
 parser_t* parser_init(token_t* tokens_list, size_t tokens_list_size);
 ast_node_t** parser_generate_ast(parser_t* parser);
 void ast_print(ast_node_t* node, int indent);
+void disassemble_ast_node(ast_node_t* node, int indent);
 void parser_free(parser_t* parser);
 
 #endif
