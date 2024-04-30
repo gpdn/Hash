@@ -89,25 +89,24 @@ static const char* execute_repl(char* source) {
 
 int main(int argc, char** argv) {
 
-    /* h_hash_table_t* table = h_hash_table_init(200, 0.75);
+    /* 
+    h_hash_table_t* table = h_hash_table_init(200, 0.75);
 
-    h_ht_set(table, "example", 1);
-    h_ht_set(table, "example2", 1);
-    h_ht_set(table, "example3", 3);
-    h_ht_set(table, "example4", 3);
-    h_ht_set(table, "example5", 3);
-    h_ht_set(table, "example6", 3);
-    h_ht_set(table, "example7", 3);
-    h_ht_set(table, "example8", 3);
+    h_string_t* string = h_string_init_hash("test", strlen("test"));
+    h_string_t* string2 = h_string_init_hash("test2", strlen("test2"));
 
-    double value = h_ht_get(table, "example");
+    h_ht_set(table, string, NUM_VALUE(1));
+    h_ht_set(table, string2, NUM_VALUE(2));
 
-    DEBUG_LOG("VALUE: %f\n", value); 
+    value_t value = h_ht_get(table, string);
+
+    DEBUG_LOG("VALUE: %f\n", value.number); 
 
     h_ht_print(table);
 
-    h_hash_table_free(table); */
-    //return 0;
+    h_hash_table_free(table);
+    return 0;
+    */
 
     PRINT_TITLE();
 

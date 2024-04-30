@@ -10,6 +10,7 @@ static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t preced
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
 static inline ast_node_t* expression_statement(parser_t* parser);
+static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type);
 static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
@@ -106,6 +107,12 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type) {
 
 static ast_node_t* parse_declaration(parser_t* parser) {
     switch(parser->current->type) {
+        case H_TOKEN_NUM:
+            return parse_variable_declaration(parser, H_VALUE_NUMBER);
+            break;
+        case H_TOKEN_STR:
+            return parse_variable_declaration(parser, H_VALUE_STRING);
+            break;
         default: 
             return parse_statement(parser);
     }
@@ -118,6 +125,18 @@ static ast_node_t* parse_statement(parser_t* parser) {
         default:
             return parse_expression_statement(parser);
     }
+}
+
+static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type) {
+    ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE);
+    node->operator = parser->current;
+    node->value.type = type;
+    ++parser->current;
+    node->left = parse_string(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
+    node->right = parse_expression(parser, OP_PREC_OR);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
+    return node;
 }
 
 static ast_node_t* parse_print_statement(parser_t* parser) {
@@ -249,6 +268,12 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_STATEMENT_PRINT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_PRINT %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_EXPRESSION:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_EXPRESSION %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_DECLARATION_VARIABLE:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE %.*s\n", indent, 0, "");
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

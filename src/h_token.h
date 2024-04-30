@@ -60,6 +60,8 @@ typedef enum token_type_t {
     H_TOKEN_BANG_EQUAL,
     H_TOKEN_QUESTION_MARK,
     H_TOKEN_DOUBLE_QUESTION_MARK,
+    H_TOKEN_NUM,
+    H_TOKEN_STR,
     H_TOKEN_LAST
 } token_type_t;
 

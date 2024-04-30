@@ -28,7 +28,7 @@ void h_ht_print(h_hash_table_t* table) {
     for(size_t i = 0; i < table->capacity; ++i) {
         DEBUG_LOG("[%lld] - ", i);
         if(table->array[i].name == NULL) {DEBUG_LOG("Empty\n"); continue;}
-        DEBUG_LOG("%s, %f\n", table->array[i].name, table->array[i].value); 
+        DEBUG_LOG("%s, %f\n", table->array[i].name->string, table->array[i].value.number); 
     }
 }
 

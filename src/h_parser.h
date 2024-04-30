@@ -14,7 +14,8 @@ typedef enum ast_node_type_t{
     AST_NODE_GROUPING,
     AST_NODE_UNARY,
     AST_NODE_STATEMENT_PRINT,
-    AST_NODE_STATEMENT_EXPRESSION
+    AST_NODE_STATEMENT_EXPRESSION,
+    AST_NODE_DECLARATION_VARIABLE
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

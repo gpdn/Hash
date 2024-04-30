@@ -151,11 +151,25 @@ static token_t lexer_identifier(lexer_t* lexer) {
             }
             break;
         case 'i': return check_keyword(lexer, 1, 1, "f", H_TOKEN_IF);
-        case 'n': return check_keyword(lexer, 1, 3, "ull", H_TOKEN_NULL);
+        case 'n': 
+            if(lexer->current - lexer->start > 2 && lexer->start[1] == 'u') {
+                switch(lexer->start[2]) {
+                    case 'm': return token_create(lexer, H_TOKEN_NUM);
+                    case 'l': return check_keyword(lexer, 3, 1, "l", H_TOKEN_NULL);
+                }
+            }
+            break;
         case 'o': return check_keyword(lexer, 1, 1, "r", H_TOKEN_OR);
         case 'p': return check_keyword(lexer, 1, 4, "rint", H_TOKEN_PRINT);
         case 'r': return check_keyword(lexer, 1, 2, "et", H_TOKEN_RETURN);
-        case 's': return check_keyword(lexer, 1, 4, "uper", H_TOKEN_SUPER);
+        case 's': 
+            if(lexer->current - lexer->start > 1) {
+                switch(lexer->start[1]) {
+                    case 't': return check_keyword(lexer, 2, 1, "r", H_TOKEN_STR);
+                    case 'u': return check_keyword(lexer, 2, 4, "uper", H_TOKEN_SUPER);
+                }
+            }
+            break;
         case 'v': return check_keyword(lexer, 1, 2, "ar", H_TOKEN_VAR);
         case 'w': return check_keyword(lexer, 1, 4, "hile", H_TOKEN_WHILE);
     }

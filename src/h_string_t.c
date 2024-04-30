@@ -18,7 +18,7 @@ h_string_t* h_string_init(const char* string, size_t length) {
     h_string->string[length] = '\0';
     h_string->length = length;
     h_string->capacity = length;
-    h_string->hash = NULL;
+    h_string->hash = 0;
     return h_string;
 }
 
