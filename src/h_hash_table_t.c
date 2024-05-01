@@ -21,14 +21,18 @@ int h_ht_set(h_hash_table_t* table, h_string_t* key, value_t value) {
 }
 
 value_t h_ht_get(h_hash_table_t* table, h_string_t* key) {
-    return table->array[key->hash % table->capacity].value;
+    ht_entry_t* entry = &table->array[(size_t)(key->hash % table->capacity)];
+    return entry->value;
 };
 
 void h_ht_print(h_hash_table_t* table) {
     for(size_t i = 0; i < table->capacity; ++i) {
         DEBUG_LOG("[%lld] - ", i);
         if(table->array[i].name == NULL) {DEBUG_LOG("Empty\n"); continue;}
-        DEBUG_LOG("%s, %f\n", table->array[i].name->string, table->array[i].value.number); 
+        DEBUG_LOG("%s, ", table->array[i].name->string);
+        #if DEBUG_ALL
+            print_value(&table->array[i].value);
+        #endif
     }
 }
 

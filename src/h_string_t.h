@@ -1,6 +1,7 @@
 #ifndef H_STRING_H
 #define H_STRING_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>

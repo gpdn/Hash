@@ -6,8 +6,8 @@
 
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
-static inline void print_value(bytecode_store_t* store, size_t offset, value_t value);
-static const char* resolve_token_type(token_type_t type);
+static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_t value);
+const char* resolve_token_type(token_type_t type);
 
 static int basic_instruction(const char* name, size_t offset, FILE* file) {
     DEBUG_LOG("%s\n", name);
@@ -20,7 +20,7 @@ static int basic_instruction(const char* name, size_t offset, FILE* file) {
     return offset + 1;
 }
 
-static inline void print_value(bytecode_store_t* store, size_t offset, value_t value) {
+static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_t value) {
     switch(value.type) {
         case H_VALUE_NUMBER:
             DEBUG_LOG("%0.2f\n", store->constants->constants[store->code[offset + 1]].number);
@@ -36,7 +36,9 @@ static inline void print_value(bytecode_store_t* store, size_t offset, value_t v
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
     DEBUG_LOG("%s ", name);
     value_t value = store->constants->constants[store->code[offset + 1]];
-    print_value(store, offset, value);
+    #if DEBUG_ALL
+        bs_print_value(store, offset, value);
+    #endif
     if(file) {
         char* string = (char*)malloc((sizeof(char) * (strlen(name) + 50)));
         sprintf(string, "%s %0.2f\n", name, store->constants->constants[store->code[offset + 1]].number);
@@ -131,6 +133,15 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_POP:
             return basic_instruction("OP_POP", offset, file);
             break;
+        case OP_DEFINE_GLOBAL:
+            return basic_instruction("OP_DEFINE_GLOBAL", offset, file);
+            break;
+        case OP_GET_GLOBAL:
+            return basic_instruction("OP_GET_GLOBAL", offset, file);
+            break;
+        case OP_ASSIGN:
+            return basic_instruction("OP_ASSIGN", offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
@@ -139,7 +150,7 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
     }
 }
 
-static const char* resolve_token_type(token_type_t type) {
+const char* resolve_token_type(token_type_t type) {
     switch(type) {
         case H_TOKEN_EOF: return "H_TOKEN_EOF";
         case H_TOKEN_COMMA: return "H_TOKEN_COMMA";

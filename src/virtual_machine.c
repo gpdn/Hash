@@ -1,10 +1,10 @@
 #include "virtual_machine.h"
 
 static void vm_stack_push(virtual_machine_t* vm, value_t value);
-static value_t vm_stack_pop(virtual_machine_t* vm);
+static inline value_t vm_stack_pop(virtual_machine_t* vm);
+static inline value_t vm_stack_peek(virtual_machine_t* vm);
 static const char* resolve_type(value_t* value);
 static inline void resolve_value(value_t* value);
-static inline void print_value(value_t* value);
 
 static const char* resolve_type(value_t* value) {
     switch(value->type) {
@@ -22,8 +22,12 @@ static void vm_stack_push(virtual_machine_t* vm, value_t value) {
     ++vm->stack_top;
 }
 
-static value_t vm_stack_pop(virtual_machine_t* vm) {
+static inline value_t vm_stack_pop(virtual_machine_t* vm) {
     return *(--vm->stack_top);
+}
+
+static inline value_t vm_stack_peek(virtual_machine_t* vm) {
+    return *(vm->stack_top - 1);
 }
 
 virtual_machine_t* vm_init(bytecode_store_t *store)
@@ -33,6 +37,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store)
     vm->stack_top = vm->stack;
     vm->store = store;
     vm->instruction_pointer = store->code;
+    vm->globals_table = h_hash_table_init(200, 0.75);
     return vm;
 }
 
@@ -140,6 +145,26 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_POP:
                 vm_stack_pop(vm);
                 break;
+            case OP_DEFINE_GLOBAL:
+                value_t name = vm_stack_pop(vm);
+                //value_t ht_value = vm_stack_pop(vm);
+                h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
+                //h_ht_print(vm->globals_table);
+                break;
+            case OP_GET_GLOBAL:
+                value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
+                print_value(&ht_value);
+                vm_stack_push(vm, ht_value);
+                //h_ht_print(vm->globals_table);
+                break;
+            case OP_ASSIGN:
+                value_t ht_assign = vm_stack_pop(vm);
+                h_ht_set(vm->globals_table, ht_assign.string, vm_stack_peek(vm));
+                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
+                //print_value(&ht_value);
+                //vm_stack_push(vm, ht_value);
+                //h_ht_print(vm->globals_table);
+                break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
@@ -168,17 +193,6 @@ static inline void resolve_value(value_t* value) {
             break;
         case H_VALUE_STRING:
             DEBUG_LOG("[%s, %s]\n", "Str", value->string->string);
-            break;
-    }
-}
-
-static inline void print_value(value_t* value) {
-    switch(value->type) {
-        case H_VALUE_NUMBER:
-            DEBUG_LOG("%f\n", value->number);
-            break;
-        case H_VALUE_STRING:
-            DEBUG_LOG("%s\n", value->string->string);
             break;
     }
 }

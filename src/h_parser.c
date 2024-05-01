@@ -4,9 +4,11 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type);
 static void ast_node_free(ast_node_t* node);
 static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
+static ast_node_t* parse_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
 static inline ast_node_t* expression_statement(parser_t* parser);
@@ -19,9 +21,11 @@ static void assert_token_type(parser_t* parser, token_type_t type, const char* e
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
 
 static parse_rule_t parse_table[] = {
+    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_HIGHEST},
     [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
@@ -132,7 +136,7 @@ static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t typ
     node->operator = parser->current;
     node->value.type = type;
     ++parser->current;
-    node->left = parse_string(parser, OP_PREC_HIGHEST);
+    node->left = parse_identifier(parser, OP_PREC_HIGHEST);
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
     node->right = parse_expression(parser, OP_PREC_OR);
     assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
@@ -178,6 +182,15 @@ static ast_node_t* parse_string(parser_t* parser, operator_precedence_t preceden
     return node;
 } 
 
+static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_IDENTIFIER);
+    node->operator = parser->current;
+    h_string_t* value = h_string_init_hash(node->operator->start, node->operator->length);
+    node->value = STR_VALUE(value);
+    ++parser->current;
+    return node;
+}
+
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_UNARY);
     node->operator = parser->current;
@@ -222,11 +235,16 @@ static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence
     node->operator = parser->current;
     ++parser->current;
     node->left = left;
-
-    //operator_precedence_t left_precedence = (parse_table + node->operator->type)->precedence;
-
     node->right = parse_expression(parser, precedence);
+    return node;
+}
 
+static ast_node_t* parse_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+    ast_node_t* node = ast_node_create(AST_NODE_ASSIGNMENT);
+    node->operator = parser->current;
+    ++parser->current;
+    node->left = left;
+    node->right = parse_expression(parser, precedence);
     return node;
 }
 
@@ -260,8 +278,14 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_LITERAL:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_LITERAL %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
+        case AST_NODE_IDENTIFIER:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
         case AST_NODE_BINARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_ASSIGNMENT:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_ASSIGNMENT %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_UNARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);

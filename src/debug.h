@@ -81,6 +81,7 @@ void disassemble_bytecode_store(bytecode_store_t *store, const char *name, FILE 
 size_t disassemble_instruction(bytecode_store_t *store, size_t offset, FILE *file);
 void token_print(token_t *token);
 size_t token_write_print_string(FILE *file, token_t *token);
+const char* resolve_token_type(token_type_t type);
 #endif
 
 #if DEBUG_ALL

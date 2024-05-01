@@ -10,7 +10,6 @@
 typedef struct ht_entry_t {
     h_string_t* name;
     value_t value;
-    struct ht_entry_t* next;
 } ht_entry_t;
 
 typedef struct h_hash_table_t {

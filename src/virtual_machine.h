@@ -4,12 +4,14 @@
 #include "debug.h"
 #include "bytecode_store.h"
 #include "h_values.h"
+#include "h_hash_table_t.h"
 
 typedef struct virtual_machine_t {
     bytecode_store_t* store;
     uint8_t* instruction_pointer;
     value_t* stack;
     value_t* stack_top;
+    h_hash_table_t* globals_table;
 } virtual_machine_t;
 
 typedef enum interpreter_result_t {

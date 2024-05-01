@@ -1,13 +1,16 @@
 #include "h_icg.h"
 
 static void emit_error(icg_t* icg);
+static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
 /* static inline void icg_generate_number(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_string(icg_t* icg, ast_node_t* node); */
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
+static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 
 static void emit_error(icg_t* icg) {
@@ -17,6 +20,9 @@ static void emit_error(icg_t* icg) {
 
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     switch(node->type) {
+        case AST_NODE_DECLARATION_VARIABLE:
+            icg_generate_declaration_variable(icg, node);
+            break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
             break;
@@ -37,8 +43,14 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             } */
             icg_generate_literal(icg, node);
             break;
+        case AST_NODE_IDENTIFIER:
+            icg_generate_identifier(icg, node);
+            break;
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
+            break;
+        case AST_NODE_ASSIGNMENT:
+            icg_generate_assignment(icg, node);
             break;
         case AST_NODE_UNARY:
             DEBUG_LOG("UNARY CALLED");
@@ -48,6 +60,12 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             emit_error(icg);
             break;
     }
+}
+
+static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->right);
+    bs_write_constant(icg->bytecode_store, node->left->value);
+    bs_write(icg->bytecode_store, OP_DEFINE_GLOBAL);
 }
 
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node) {
@@ -61,6 +79,17 @@ static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* nod
 }
 
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+}
+
+static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
+    DEBUG_LOG("IDENTIFIER\n");
+    bs_write_constant(icg->bytecode_store, node->value);
+    bs_write(icg->bytecode_store, OP_GET_GLOBAL);
+}
+
+static inline void icg_generate_identifier_assignment(icg_t* icg, ast_node_t* node) {
+    DEBUG_LOG("IDENTIFIER ASSIGNMENT\n");
     bs_write_constant(icg->bytecode_store, node->value);
 }
 
@@ -88,6 +117,7 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
+    
     icg_generate_expression(icg, node->left);
     icg_generate_expression(icg, node->right);
 
@@ -143,6 +173,12 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
         default:
             return;
     }
+}
+
+static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->right);
+    icg_generate_identifier_assignment(icg, node->left);
+    bs_write(icg->bytecode_store, OP_ASSIGN);
 }
 
 icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count) {

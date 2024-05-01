@@ -1,6 +1,7 @@
 #ifndef H_VALUES_H
 #define H_VALUES_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include "h_string_t.h"
 
@@ -31,5 +32,7 @@ typedef struct value_t {
 #define IS_STR(value) ((value).type == H_VALUE_STRING);
 #define IS_CHAR(value) ((value).type == H_VALUE_CHAR);
 #define IS_NULL(value) ((value).type == H_VALUE_NULL);
+
+void print_value(value_t* value);
 
 #endif
