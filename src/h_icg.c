@@ -102,14 +102,22 @@ static inline void icg_generate_string(icg_t* icg, ast_node_t* node) {
 } */
 
 static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->left);
-    
     switch(node->operator->type) {
         case H_TOKEN_MINUS:
+            icg_generate_expression(icg, node->left);
             bs_write(icg->bytecode_store, OP_NEGATE);
             break;
         case H_TOKEN_BITWISE_NOT:
+            icg_generate_expression(icg, node->left);
             bs_write(icg->bytecode_store, OP_BITWISE_NOT);
+            break;
+        case H_TOKEN_PLUS_PLUS:
+            icg_generate_identifier_assignment(icg, node->left);
+            bs_write(icg->bytecode_store, OP_PRE_INCREMENT);
+            break;
+        case H_TOKEN_MINUS_MINUS:
+            icg_generate_identifier_assignment(icg, node->left);
+            bs_write(icg->bytecode_store, OP_PRE_DECREMENT);
             break;
         default:
             return;

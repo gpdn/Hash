@@ -20,6 +20,20 @@ int h_ht_set(h_hash_table_t* table, h_string_t* key, value_t value) {
     return 1;
 }
 
+value_t h_ht_increase(h_hash_table_t* table, h_string_t* key) {
+    size_t index = (size_t)key->hash % table->capacity;
+    ht_entry_t* entry = table->array + index;
+    ++entry->value.number;
+    return entry->value;
+}
+
+value_t h_ht_decrease(h_hash_table_t* table, h_string_t* key) {
+    size_t index = (size_t)key->hash % table->capacity;
+    ht_entry_t* entry = table->array + index;
+    --entry->value.number;
+    return entry->value;
+}
+
 value_t h_ht_get(h_hash_table_t* table, h_string_t* key) {
     ht_entry_t* entry = &table->array[(size_t)(key->hash % table->capacity)];
     return entry->value;

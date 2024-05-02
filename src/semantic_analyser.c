@@ -61,7 +61,30 @@ static value_type_t resolve_expression_binary(semantic_analyser_t* analyser, ast
     value_type_t value_left = resolve_expression(analyser, node->left);
     value_type_t value_right = resolve_expression(analyser, node->right);
 
-    //if(value_left != value_right) emit_error(analyser);
+    switch(node->operator->type) {
+        case H_TOKEN_BITWISE_AND:
+        case H_TOKEN_BITWISE_OR:
+        case H_TOKEN_BITWISE_XOR:
+        case H_TOKEN_BITWISE_SHIFT_LEFT:
+        case H_TOKEN_BITWISE_SHIFT_RIGHT:
+        case H_TOKEN_MINUS:
+        case H_TOKEN_STAR:
+        case H_TOKEN_SLASH:
+            assert_value_type(analyser, value_left, H_VALUE_NUMBER);
+            assert_value_type(analyser, value_right, H_VALUE_NUMBER);
+            break;
+        case H_TOKEN_PLUS:
+            assert_value_type(analyser, value_left, value_right);
+            break;
+        case H_TOKEN_DOUBLE_EQUAL:
+            assert_value_type(analyser, value_left, value_right);
+            node->value.type = H_VALUE_NUMBER;
+            return H_VALUE_NUMBER;
+            break;
+        default:
+            //if(value_left != value_right) emit_error(analyser);
+            break;
+    }
     
     node->value.type = value_left;
     return node->value.type;
@@ -73,6 +96,8 @@ static value_type_t resolve_expression_unary(semantic_analyser_t* analyser, ast_
     switch(node->operator->type) {
         case H_TOKEN_BITWISE_NOT:
         case H_TOKEN_MINUS:
+        //case H_TOKEN_PLUS_PLUS:
+        //case H_TOKEN_MINUS_MINUS:
             assert_value_type(analyser, value, H_VALUE_NUMBER);
             break;
         default:

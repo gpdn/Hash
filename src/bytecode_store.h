@@ -33,7 +33,9 @@ typedef enum opcode_t {
     OP_POP,
     OP_DEFINE_GLOBAL,
     OP_GET_GLOBAL,
-    OP_ASSIGN
+    OP_ASSIGN,
+    OP_PRE_INCREMENT,
+    OP_PRE_DECREMENT
 } opcode_t;
 
 typedef struct bytecode_store_t {

@@ -160,10 +160,14 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_ASSIGN:
                 value_t ht_assign = vm_stack_pop(vm);
                 h_ht_set(vm->globals_table, ht_assign.string, vm_stack_peek(vm));
-                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
-                //print_value(&ht_value);
-                //vm_stack_push(vm, ht_value);
-                //h_ht_print(vm->globals_table);
+                break;
+            case OP_PRE_INCREMENT:
+                value_t ht_pre_increase = vm_stack_pop(vm);
+                vm_stack_push(vm, h_ht_increase(vm->globals_table, ht_pre_increase.string));
+                break;
+            case OP_PRE_DECREMENT:
+                value_t ht_pre_decrease = vm_stack_pop(vm);
+                vm_stack_push(vm, h_ht_decrease(vm->globals_table, ht_pre_decrease.string));
                 break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 

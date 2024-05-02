@@ -142,6 +142,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_ASSIGN:
             return basic_instruction("OP_ASSIGN", offset, file);
             break;
+        case OP_PRE_INCREMENT:
+            return basic_instruction("OP_PRE_INCREMENT", offset, file);
+            break;
+        case OP_PRE_DECREMENT:
+            return basic_instruction("OP_PRE_DECREMENT", offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
