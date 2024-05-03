@@ -44,6 +44,8 @@ void h_sa_run(semantic_analyser_t* analyser) {
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_DECLARATION_VARIABLE:
+        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
+        case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             if(node->value.type != resolve_expression(analyser, node->right)) emit_error(analyser);
             return;
         case AST_NODE_STATEMENT_PRINT:

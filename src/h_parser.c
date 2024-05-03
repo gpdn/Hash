@@ -13,6 +13,8 @@ static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
 static inline ast_node_t* expression_statement(parser_t* parser);
 static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type);
+static ast_node_t* parse_variable_declaration_global(parser_t* parser);
+static ast_node_t* parse_variable_declaration_constant(parser_t* parser);
 static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
@@ -108,11 +110,16 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type) {
     node->left = NULL;
     node->right = NULL;
     node->type = type;
+    node->declarations = NULL;
     return node;
 }
 
 static ast_node_t* parse_declaration(parser_t* parser) {
     switch(parser->current->type) {
+        case H_TOKEN_GLOB:
+            return parse_variable_declaration_global(parser);
+        case H_TOKEN_CONST:
+            return parse_variable_declaration_constant(parser);
         case H_TOKEN_NUM:
             return parse_variable_declaration(parser, H_VALUE_NUMBER);
             break;
@@ -121,6 +128,21 @@ static ast_node_t* parse_declaration(parser_t* parser) {
             break;
         default: 
             return parse_statement(parser);
+    }
+}
+
+static value_type_t parser_get_value_type(parser_t* parser) {
+    token_print(parser->current);
+    switch(parser->current->type) {
+        case H_TOKEN_NUM:
+            return H_VALUE_NUMBER;
+            break;
+        case H_TOKEN_STR:
+            return H_VALUE_STRING;
+            break;
+        default: 
+            emit_error(parser, "Undefined type.");
+            return H_VALUE_NULL;
     }
 }
 
@@ -137,6 +159,33 @@ static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t typ
     ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE);
     node->operator = parser->current;
     node->value.type = type;
+    ++parser->current;
+    node->left = parse_identifier(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
+    node->right = parse_expression(parser, OP_PREC_OR);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
+    return node;
+}
+
+static ast_node_t* parse_variable_declaration_global(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE_GLOBAL);
+    node->operator = parser->current;
+    ++parser->current;
+    node->value.type = parser_get_value_type(parser);
+    ++parser->current;
+    node->left = parse_identifier(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
+    node->right = parse_expression(parser, OP_PREC_OR);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
+    return node;
+}
+
+static ast_node_t* parse_variable_declaration_constant(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE_CONSTANT);
+    node->operator = parser->current;
+    ++parser->current;
+    token_print(parser->current);
+    node->value.type = parser_get_value_type(parser);
     ++parser->current;
     node->left = parse_identifier(parser, OP_PREC_HIGHEST);
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
@@ -300,6 +349,12 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_DECLARATION_VARIABLE:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE_GLOBAL %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE_CONSTANT %.*s\n", indent, 0, "");
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

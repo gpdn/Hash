@@ -21,6 +21,8 @@ static void emit_error(icg_t* icg) {
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_DECLARATION_VARIABLE:
+        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
+        case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             icg_generate_declaration_variable(icg, node);
             break;
         case AST_NODE_STATEMENT_PRINT:

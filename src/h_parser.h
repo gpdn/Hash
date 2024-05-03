@@ -17,7 +17,10 @@ typedef enum ast_node_type_t{
     AST_NODE_ASSIGNMENT,
     AST_NODE_STATEMENT_PRINT,
     AST_NODE_STATEMENT_EXPRESSION,
-    AST_NODE_DECLARATION_VARIABLE
+    AST_NODE_STATEMENT_BLOCK,
+    AST_NODE_DECLARATION_VARIABLE,
+    AST_NODE_DECLARATION_VARIABLE_GLOBAL,
+    AST_NODE_DECLARATION_VARIABLE_CONSTANT,
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
@@ -44,6 +47,7 @@ typedef struct ast_node_t {
     struct ast_node_t* right;
     token_t* operator;
     value_t value;
+    struct ast_node** declarations;
 } ast_node_t;
 
 typedef struct parser_t {

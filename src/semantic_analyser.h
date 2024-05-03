@@ -11,6 +11,7 @@ typedef struct semantic_analyser_t {
     h_hash_table_t* symbol_table;
     ast_node_t* current;
     unsigned int errors_count;
+    size_t scope;
 } semantic_analyser_t;
 
 semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* symbol_table);

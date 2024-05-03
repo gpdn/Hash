@@ -216,6 +216,8 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_DOUBLE_QUESTION_MARK: return "H_TOKEN_DOUBLE_QUESTION_MARK";
         case H_TOKEN_NUM: return "H_TOKEN_NUM";
         case H_TOKEN_STR: return "H_TOKEN_STR";
+        case H_TOKEN_CONST: return "H_TOKEN_CONST";
+        case H_TOKEN_GLOB: return "H_TOKEN_GLOB";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

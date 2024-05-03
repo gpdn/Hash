@@ -138,7 +138,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
 
     switch(lexer->start[0]) {
         case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
-        case 'c': return check_keyword(lexer, 1, 4, "lass", H_TOKEN_CLASS);
+        case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
         case 'd': return check_keyword(lexer, 1, 1, "o", H_TOKEN_DO);
         case 'e': return check_keyword(lexer, 1, 3, "lse", H_TOKEN_ELSE);
         case 'f': 
@@ -150,6 +150,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
                 }
             }
             break;
+        case 'g': return check_keyword(lexer, 1, 3, "lob", H_TOKEN_GLOB);
         case 'i': return check_keyword(lexer, 1, 1, "f", H_TOKEN_IF);
         case 'n': 
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'u') {
