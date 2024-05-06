@@ -47,27 +47,27 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_DECLARATION_VARIABLE:
         case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
-            if(node->value.type != resolve_expression(analyser, node->right)) emit_error(analyser);
-            h_locals_stack_push(analyser->locals, node->left->value.string, node->right->value);
+            if(node->value.type != resolve_expression(analyser, node->expression.right)) emit_error(analyser);
+            h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->expression.right->value);
             h_locals_stack_print(analyser->locals);
             return;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
-            if(node->value.type != resolve_expression(analyser, node->right)) emit_error(analyser);
-            h_ht_set(analyser->globals_table, node->left->value.string, node->right->value);
+            if(node->value.type != resolve_expression(analyser, node->expression.right)) emit_error(analyser);
+            h_ht_set(analyser->globals_table, node->expression.left->value.string, node->expression.right->value);
             //h_ht_print(analyser->globals_table);
             return;
         case AST_NODE_STATEMENT_PRINT:
-            resolve_expression(analyser, node->left);
+            resolve_expression(analyser, node->expression.left);
             return;
         case AST_NODE_STATEMENT_BLOCK:
             ++analyser->scope;
-            for(size_t i = 0; i < node->declarations_size; ++i) {
-                resolve_ast(analyser, node->declarations[i]);
+            for(size_t i = 0; i < node->block.declarations_size; ++i) {
+                resolve_ast(analyser, node->block.declarations[i]);
             }
             --analyser->scope;
             return;
         case AST_NODE_STATEMENT_EXPRESSION:
-            resolve_expression(analyser, node->left);
+            resolve_expression(analyser, node->expression.left);
             return;
         default:
             resolve_expression(analyser, node);
@@ -75,8 +75,8 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
 }
 
 static value_type_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node) {
-    value_type_t value_left = resolve_expression(analyser, node->left);
-    value_type_t value_right = resolve_expression(analyser, node->right);
+    value_type_t value_left = resolve_expression(analyser, node->expression.left);
+    value_type_t value_right = resolve_expression(analyser, node->expression.right);
 
     switch(node->operator->type) {
         case H_TOKEN_BITWISE_AND:
@@ -108,7 +108,7 @@ static value_type_t resolve_expression_binary(semantic_analyser_t* analyser, ast
 }
 
 static value_type_t resolve_expression_unary(semantic_analyser_t* analyser, ast_node_t* node) {
-    value_type_t value = resolve_expression(analyser, node->left);
+    value_type_t value = resolve_expression(analyser, node->expression.left);
 
     switch(node->operator->type) {
         case H_TOKEN_BITWISE_NOT:

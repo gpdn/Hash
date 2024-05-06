@@ -42,15 +42,25 @@ typedef enum operator_precedence_t {
     OP_PREC_HIGHEST
 } operator_precedence_t;
 
-typedef struct ast_node_t {
-    ast_node_type_t type;
+typedef struct ast_node_expression_t {
     struct ast_node_t* left;
     struct ast_node_t* right;
-    token_t* operator;
-    value_t value;
+} ast_node_expression_t;
+
+typedef struct ast_node_statement_block_t {
     struct ast_node_t** declarations;
     size_t declarations_size;
     size_t declarations_capacity;
+} ast_node_statement_block_t;
+
+typedef struct ast_node_t {
+    ast_node_type_t type;
+    token_t* operator;
+    value_t value;
+    union {
+        ast_node_expression_t expression;
+        ast_node_statement_block_t block;
+    };
 } ast_node_t;
 
 typedef struct parser_t {

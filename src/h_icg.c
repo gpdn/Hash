@@ -77,33 +77,33 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->right);
+    icg_generate_expression(icg, node->expression.right);
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->left->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
     printf("%s", "Here");
 }
 
 static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->right);
+    icg_generate_expression(icg, node->expression.right);
     //bs_write_constant(icg->bytecode_store, node->left->value);
     //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->left->value.string)));
     bs_write(icg->bytecode_store, OP_DEFINE_GLOBAL);
-    bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->left->value.string));
+    bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->expression.left->value.string));
 }
 
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->left);
+    icg_generate_expression(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_PRINT);
 }
 
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
-    for(size_t i = 0; i < node->declarations_size; ++i) {
-        icg_generate_expression(icg, node->declarations[i]);
+    for(size_t i = 0; i < node->block.declarations_size; ++i) {
+        icg_generate_expression(icg, node->block.declarations[i]);
     }
 }
 
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->left);
+    icg_generate_expression(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_POP);
 }
 
@@ -152,19 +152,19 @@ static inline void icg_generate_string(icg_t* icg, ast_node_t* node) {
 static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
     switch(node->operator->type) {
         case H_TOKEN_MINUS:
-            icg_generate_expression(icg, node->left);
+            icg_generate_expression(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_NEGATE);
             break;
         case H_TOKEN_BITWISE_NOT:
-            icg_generate_expression(icg, node->left);
+            icg_generate_expression(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_BITWISE_NOT);
             break;
         case H_TOKEN_PLUS_PLUS:
-            icg_generate_identifier_assignment(icg, node->left);
+            icg_generate_identifier_assignment(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_PRE_INCREMENT);
             break;
         case H_TOKEN_MINUS_MINUS:
-            icg_generate_identifier_assignment(icg, node->left);
+            icg_generate_identifier_assignment(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_PRE_DECREMENT);
             break;
         default:
@@ -174,8 +174,8 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
 
 static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
     
-    icg_generate_expression(icg, node->left);
-    icg_generate_expression(icg, node->right);
+    icg_generate_expression(icg, node->expression.left);
+    icg_generate_expression(icg, node->expression.right);
 
     switch(node->operator->type) {
         case H_TOKEN_PLUS:
@@ -232,8 +232,8 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
-    icg_generate_expression(icg, node->right);
-    icg_generate_identifier_assignment(icg, node->left);
+    icg_generate_expression(icg, node->expression.right);
+    icg_generate_identifier_assignment(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_ASSIGN);
 }
 
