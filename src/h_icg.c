@@ -2,13 +2,16 @@
 
 static void emit_error(icg_t* icg);
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
+static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
 /* static inline void icg_generate_number(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_string(icg_t* icg, ast_node_t* node); */
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
@@ -21,12 +24,18 @@ static void emit_error(icg_t* icg) {
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_DECLARATION_VARIABLE:
-        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
         case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             icg_generate_declaration_variable(icg, node);
             break;
+        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
+            icg_generate_declaration_variable_global(icg, node);
+            break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
+            break;
+        case AST_NODE_STATEMENT_BLOCK:
+            icg_generate_statement_block(icg, node);
+            DEBUG_LOG("BLOCK CALLED\n");
             break;
         case AST_NODE_STATEMENT_EXPRESSION:
             icg_generate_statement_expression(icg, node);
@@ -48,6 +57,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_IDENTIFIER:
             icg_generate_identifier(icg, node);
             break;
+        case AST_NODE_IDENTIFIER_GLOBAL:
+            icg_generate_identifier_global(icg, node);
+            break;
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
             break;
@@ -66,13 +78,28 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
 
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->right);
-    bs_write_constant(icg->bytecode_store, node->left->value);
+    bs_write(icg->bytecode_store, OP_SET_LOCAL);
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->left->value.string));
+    printf("%s", "Here");
+}
+
+static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->right);
+    //bs_write_constant(icg->bytecode_store, node->left->value);
+    //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->left->value.string)));
     bs_write(icg->bytecode_store, OP_DEFINE_GLOBAL);
+    bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->left->value.string));
 }
 
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->left);
     bs_write(icg->bytecode_store, OP_PRINT);
+}
+
+static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
+    for(size_t i = 0; i < node->declarations_size; ++i) {
+        icg_generate_expression(icg, node->declarations[i]);
+    }
 }
 
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node) {
@@ -86,9 +113,28 @@ static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
 
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
     DEBUG_LOG("IDENTIFIER\n");
+    //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->value.string)));
+    //bs_write_constant(icg->bytecode_store, node->value);
+    //bs_write(icg->bytecode_store, OP_GET_GLOBAL);
+    bs_write(icg->bytecode_store, OP_GET_LOCAL);
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->value.string));
+}
+
+static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node) {
+    DEBUG_LOG("IDENTIFIER GLOBAL\n");
+    //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->value.string)));
+    //bs_write_constant(icg->bytecode_store, node->value);
+    //bs_write(icg->bytecode_store, OP_GET_GLOBAL);
+    ast_print(node, 0);
+    bs_write(icg->bytecode_store, OP_GET_GLOBAL);
+    bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->value.string));
+}
+
+/* static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
+    DEBUG_LOG("IDENTIFIER\n");
     bs_write_constant(icg->bytecode_store, node->value);
     bs_write(icg->bytecode_store, OP_GET_GLOBAL);
-}
+} */
 
 static inline void icg_generate_identifier_assignment(icg_t* icg, ast_node_t* node) {
     DEBUG_LOG("IDENTIFIER ASSIGNMENT\n");
@@ -191,12 +237,14 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_ASSIGN);
 }
 
-icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count) {
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack) {
     icg_t* icg = (icg_t*)malloc(sizeof(icg_t));
     bytecode_store_t* bytecode_store = bs_init(ast_nodes_list_count);
     icg->bytecode_store = bytecode_store;
     icg->ast_nodes_list = ast_nodes_list;
     icg->ast_nodes_list_it = ast_nodes_list;
+    icg->globals_table = globals_table;
+    icg->locals_stack = locals_stack;
     return icg;
 }
 

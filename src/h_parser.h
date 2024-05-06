@@ -10,6 +10,7 @@ typedef enum ast_node_type_t{
     AST_NODE_BINARY,
     AST_NODE_LITERAL,
     AST_NODE_IDENTIFIER,
+    AST_NODE_IDENTIFIER_GLOBAL,
     AST_NODE_ERROR,
     AST_NODE_EOF,
     AST_NODE_GROUPING,
@@ -47,7 +48,9 @@ typedef struct ast_node_t {
     struct ast_node_t* right;
     token_t* operator;
     value_t value;
-    struct ast_node** declarations;
+    struct ast_node_t** declarations;
+    size_t declarations_size;
+    size_t declarations_capacity;
 } ast_node_t;
 
 typedef struct parser_t {

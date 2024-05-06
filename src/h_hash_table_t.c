@@ -39,6 +39,18 @@ value_t h_ht_get(h_hash_table_t* table, h_string_t* key) {
     return entry->value;
 };
 
+size_t h_ht_get_index(h_hash_table_t* table, h_string_t* key) {
+    return (size_t)(key->hash % table->capacity);
+};
+
+value_t h_ht_array_get(h_hash_table_t* table, size_t index) {
+    return table->array[index].value;
+};
+
+void h_ht_array_set(h_hash_table_t* table, size_t index, value_t value) {
+    table->array[index].value = value;
+}
+
 void h_ht_print(h_hash_table_t* table) {
     for(size_t i = 0; i < table->capacity; ++i) {
         DEBUG_LOG("[%lld] - ", i);

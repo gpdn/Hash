@@ -1,5 +1,7 @@
 #include "h_parser.h"
 
+#define H_BLOCK_DECLARATIONS_CAPACITY 10
+
 static inline ast_node_t* ast_node_create(ast_node_type_t type);
 static void ast_node_free(ast_node_t* node);
 static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t precedence);
@@ -9,6 +11,7 @@ static ast_node_t* parse_number(parser_t* parser, operator_precedence_t preceden
 static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_identifier_global(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
 static inline ast_node_t* expression_statement(parser_t* parser);
@@ -18,6 +21,7 @@ static ast_node_t* parse_variable_declaration_constant(parser_t* parser);
 static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
+static ast_node_t* parse_block_statement(parser_t* parser);
 static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
@@ -28,6 +32,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_expression, NULL, OP_PREC_UNARY},
     [H_TOKEN_MINUS_MINUS]               = {parse_unary_expression, NULL, OP_PREC_UNARY},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
@@ -111,6 +116,8 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type) {
     node->right = NULL;
     node->type = type;
     node->declarations = NULL;
+    node->declarations_size = 0;
+    node->declarations_capacity = 0;
     return node;
 }
 
@@ -132,7 +139,6 @@ static ast_node_t* parse_declaration(parser_t* parser) {
 }
 
 static value_type_t parser_get_value_type(parser_t* parser) {
-    token_print(parser->current);
     switch(parser->current->type) {
         case H_TOKEN_NUM:
             return H_VALUE_NUMBER;
@@ -150,6 +156,8 @@ static ast_node_t* parse_statement(parser_t* parser) {
     switch(parser->current->type) {
         case H_TOKEN_PRINT:
             return parse_print_statement(parser);
+        case H_TOKEN_LEFT_CURLY:
+            return parse_block_statement(parser);
         default:
             return parse_expression_statement(parser);
     }
@@ -184,7 +192,6 @@ static ast_node_t* parse_variable_declaration_constant(parser_t* parser) {
     ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE_CONSTANT);
     node->operator = parser->current;
     ++parser->current;
-    token_print(parser->current);
     node->value.type = parser_get_value_type(parser);
     ++parser->current;
     node->left = parse_identifier(parser, OP_PREC_HIGHEST);
@@ -199,6 +206,24 @@ static ast_node_t* parse_print_statement(parser_t* parser) {
     node->operator = parser->current;
     ++parser->current;
     node->left = expression_statement(parser);
+    return node;
+}
+
+static ast_node_t* parse_block_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_BLOCK);
+    node->operator = parser->current;
+    ++parser->current;
+    node->declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
+    node->declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->declarations_capacity);
+    while(parser->current->type != H_TOKEN_RIGHT_CURLY) {
+        if(node->declarations_size >= node->declarations_capacity) {
+            node->declarations_capacity *= 2;
+            node->declarations = realloc(node->declarations, sizeof(ast_node_t*) * node->declarations_capacity);
+        }
+       
+        node->declarations[node->declarations_size++] = parse_declaration(parser);
+    }
+    assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected }.");
     return node;
 }
 
@@ -235,6 +260,16 @@ static ast_node_t* parse_string(parser_t* parser, operator_precedence_t preceden
 
 static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_IDENTIFIER);
+    node->operator = parser->current;
+    h_string_t* value = h_string_init_hash(node->operator->start, node->operator->length);
+    node->value = STR_VALUE(value);
+    ++parser->current;
+    return node;
+}
+
+static ast_node_t* parse_identifier_global(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_IDENTIFIER_GLOBAL);
+    ++parser->current;
     node->operator = parser->current;
     h_string_t* value = h_string_init_hash(node->operator->start, node->operator->length);
     node->value = STR_VALUE(value);
@@ -317,6 +352,11 @@ static void ast_node_free(ast_node_t* node) {
         ast_node_free(node->right);
     }
 
+    if(node->declarations) {
+        for(size_t i = 0; i < node->declarations_size; ++i) ast_node_free(node->declarations[i]);
+        free(node->declarations);
+    }
+
     free(node);
 }
 
@@ -332,6 +372,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_IDENTIFIER:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
+        case AST_NODE_IDENTIFIER_GLOBAL:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER_GLOBAL %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
         case AST_NODE_BINARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
@@ -343,6 +386,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_STATEMENT_PRINT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_PRINT %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_BLOCK:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_BLOCK %.*s\n", indent, 0, "");
             break;
         case AST_NODE_STATEMENT_EXPRESSION:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_EXPRESSION %.*s\n", indent, 0, "");
@@ -393,6 +439,9 @@ void ast_print(ast_node_t* node, int indent) {
     if(node->right) {
         ast_print(node->right, indent + 1);
     }
+    if(node->declarations) {
+        for(size_t i = 0; i < node->declarations_size; ++i) ast_print(node->declarations[i], indent + 1);
+    }
 }
 
 ast_node_t** parser_generate_ast(parser_t* parser) {
@@ -409,3 +458,5 @@ ast_node_t** parser_generate_ast(parser_t* parser) {
     ast_nodes_array_push(parser, node);
     return parser->ast_nodes_list;
 }
+
+#undef H_BLOCK_DECLARATIONS_CAPACITY

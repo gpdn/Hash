@@ -26,5 +26,8 @@ value_t h_ht_get(h_hash_table_t* table, h_string_t* key);
 int h_ht_set(h_hash_table_t* table, h_string_t* key, value_t value);
 value_t h_ht_increase(h_hash_table_t* table, h_string_t* key);
 value_t h_ht_decrease(h_hash_table_t* table, h_string_t* key);
+size_t h_ht_get_index(h_hash_table_t* table, h_string_t* key);
+value_t h_ht_array_get(h_hash_table_t* table, size_t index);
+void h_ht_array_set(h_hash_table_t* table, size_t index, value_t value);
 
 #endif

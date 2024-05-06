@@ -6,6 +6,7 @@
 
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
+static int index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
 static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_t value);
 const char* resolve_token_type(token_type_t type);
 
@@ -35,13 +36,25 @@ static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_
 
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
     DEBUG_LOG("%s ", name);
-    value_t value = store->constants->constants[store->code[offset + 1]];
     #if DEBUG_ALL
+        value_t value = store->constants->constants[store->code[offset + 1]];
         bs_print_value(store, offset, value);
     #endif
     if(file) {
         char* string = (char*)malloc((sizeof(char) * (strlen(name) + 50)));
         sprintf(string, "%s %0.2f\n", name, store->constants->constants[store->code[offset + 1]].number);
+        fwrite(string, 1, strlen(string), file);
+        free((void*)string);
+    }
+    return offset + 2;
+}
+
+static int index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
+    uint8_t value = store->code[offset + 1];
+    DEBUG_LOG("%s %d\n", name, value);
+    if(file) {
+        char* string = (char*)malloc((sizeof(char) * (strlen(name) + 50)));
+        sprintf(string, "%s %d\n", name, value);
         fwrite(string, 1, strlen(string), file);
         free((void*)string);
     }
@@ -134,10 +147,10 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             return basic_instruction("OP_POP", offset, file);
             break;
         case OP_DEFINE_GLOBAL:
-            return basic_instruction("OP_DEFINE_GLOBAL", offset, file);
+            return index_instruction("OP_DEFINE_GLOBAL", store, offset, file);
             break;
         case OP_GET_GLOBAL:
-            return basic_instruction("OP_GET_GLOBAL", offset, file);
+            return index_instruction("OP_GET_GLOBAL", store, offset, file);
             break;
         case OP_ASSIGN:
             return basic_instruction("OP_ASSIGN", offset, file);
@@ -147,6 +160,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             break;
         case OP_PRE_DECREMENT:
             return basic_instruction("OP_PRE_DECREMENT", offset, file);
+            break;
+        case OP_SET_LOCAL:
+            return index_instruction("OP_SET_LOCAL", store, offset, file);
+            break;
+        case OP_GET_LOCAL:
+            return index_instruction("OP_GET_LOCAL", store, offset, file);
             break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);

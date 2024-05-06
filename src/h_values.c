@@ -13,3 +13,17 @@ void print_value(value_t* value) {
             break;
     }
 }
+
+void print_value_no_newline(value_t* value) {
+    switch(value->type) {
+        case H_VALUE_NUMBER:
+            printf("%f", value->number);
+            break;
+        case H_VALUE_STRING:
+            printf("%s", value->string->string);
+            break;
+        case H_VALUE_NULL:
+            printf("%s", value->string->string);
+            break;
+    }
+}

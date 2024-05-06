@@ -22,12 +22,14 @@ static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t
     if(value_type != type) emit_error(analyser);
 }
 
-semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* symbol_table) {
+semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack) {
     semantic_analyser_t* analyser = (semantic_analyser_t*)malloc(sizeof(semantic_analyser_t));
     analyser->ast_nodes_list = ast_nodes_list;
     analyser->ast_nodes_list_count = ast_nodes_list_count;
-    analyser->symbol_table = symbol_table;
+    analyser->globals_table = globals_table;
     analyser->errors_count = 0;
+    analyser->scope = 0;
+    analyser->locals = locals_stack;
     return analyser;
 }
 
@@ -44,12 +46,25 @@ void h_sa_run(semantic_analyser_t* analyser) {
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
     switch(node->type) {
         case AST_NODE_DECLARATION_VARIABLE:
-        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
         case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             if(node->value.type != resolve_expression(analyser, node->right)) emit_error(analyser);
+            h_locals_stack_push(analyser->locals, node->left->value.string, node->right->value);
+            h_locals_stack_print(analyser->locals);
+            return;
+        case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
+            if(node->value.type != resolve_expression(analyser, node->right)) emit_error(analyser);
+            h_ht_set(analyser->globals_table, node->left->value.string, node->right->value);
+            //h_ht_print(analyser->globals_table);
             return;
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->left);
+            return;
+        case AST_NODE_STATEMENT_BLOCK:
+            ++analyser->scope;
+            for(size_t i = 0; i < node->declarations_size; ++i) {
+                resolve_ast(analyser, node->declarations[i]);
+            }
+            --analyser->scope;
             return;
         case AST_NODE_STATEMENT_EXPRESSION:
             resolve_expression(analyser, node->left);
@@ -117,6 +132,7 @@ static value_type_t resolve_expression(semantic_analyser_t* analyser, ast_node_t
             return resolve_expression_binary(analyser, node);
         case AST_NODE_LITERAL:
         case AST_NODE_IDENTIFIER:
+        case AST_NODE_IDENTIFIER_GLOBAL:
             return node->value.type;
         case AST_NODE_UNARY:
             return resolve_expression_unary(analyser, node);

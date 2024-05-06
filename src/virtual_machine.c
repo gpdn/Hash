@@ -30,14 +30,15 @@ static inline value_t vm_stack_peek(virtual_machine_t* vm) {
     return *(vm->stack_top - 1);
 }
 
-virtual_machine_t* vm_init(bytecode_store_t *store)
+virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack)
 {
     virtual_machine_t* vm = (virtual_machine_t*)malloc(sizeof(virtual_machine_t));
     vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity);
     vm->stack_top = vm->stack;
     vm->store = store;
     vm->instruction_pointer = store->code;
-    vm->globals_table = h_hash_table_init(200, 0.75);
+    vm->globals_table = globals_table;
+    vm->locals_stack = locals_stack;
     return vm;
 }
 
@@ -146,15 +147,28 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_pop(vm);
                 break;
             case OP_DEFINE_GLOBAL:
-                value_t name = vm_stack_pop(vm);
+                //value_t name = vm_stack_pop(vm);
                 //value_t ht_value = vm_stack_pop(vm);
-                h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
+                h_ht_array_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
+                //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
                 //h_ht_print(vm->globals_table);
                 break;
+            case OP_SET_LOCAL:
+                //value_t name = vm_stack_pop(vm);
+                //value_t ht_value = vm_stack_pop(vm);
+                //h_local_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
+                //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
+                //h_ht_print(vm->globals_table);
+                h_locals_stack_set(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
+                break;
             case OP_GET_GLOBAL:
-                value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
-                print_value(&ht_value);
-                vm_stack_push(vm, ht_value);
+                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
+                vm_stack_push(vm, h_ht_array_get(vm->globals_table, ADVANCE_INSTRUCTION_POINTER()));
+                break;
+            case OP_GET_LOCAL:
+                value_t local_value = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());
+                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
+                vm_stack_push(vm, local_value);
                 //h_ht_print(vm->globals_table);
                 break;
             case OP_ASSIGN:

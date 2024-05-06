@@ -77,7 +77,10 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         fclose(debug_file_parser_ast);
     #endif */
 
-    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, NULL);
+    h_hash_table_t* globals_table = h_hash_table_init(200, 0.75);
+    h_locals_stack_t* locals_stack = h_locals_stack_init(200);
+
+    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack);
     h_sa_run(analyser);
 
     if(analyser->errors_count > 0) {
@@ -89,7 +92,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         return HASH_FAILURE;
     }
 
-    icg_t* bytecode_generator = icg_init(ast, tokens_count);
+    icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack);
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
 
     #if DEBUG_TRACE_ICG_BYTECODE
@@ -98,7 +101,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         DEBUG_PRINT_LINE();
     #endif
    
-    virtual_machine_t* vm = vm_init(store);
+    virtual_machine_t* vm = vm_init(store, globals_table, locals_stack);
 
     interpreter_result_t result = vm_run(vm);
 

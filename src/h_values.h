@@ -34,5 +34,6 @@ typedef struct value_t {
 #define IS_NULL(value) ((value).type == H_VALUE_NULL);
 
 void print_value(value_t* value);
+void print_value_no_newline(value_t* value);
 
 #endif
