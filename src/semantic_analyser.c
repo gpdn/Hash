@@ -22,7 +22,7 @@ static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t
     if(value_type != type) emit_error(analyser);
 }
 
-semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack) {
+semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table) {
     semantic_analyser_t* analyser = (semantic_analyser_t*)malloc(sizeof(semantic_analyser_t));
     analyser->ast_nodes_list = ast_nodes_list;
     analyser->ast_nodes_list_count = ast_nodes_list_count;
@@ -30,6 +30,7 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->errors_count = 0;
     analyser->scope = 0;
     analyser->locals = locals_stack;
+    analyser->labels_table = labels_table;
     return analyser;
 }
 
@@ -55,6 +56,8 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             if(node->value.type != resolve_expression(analyser, node->expression.right)) emit_error(analyser);
             h_ht_set(analyser->globals_table, node->expression.left->value.string, node->expression.right->value);
             //h_ht_print(analyser->globals_table);
+            return;
+        case AST_NODE_DECLARATION_LABEL:
             return;
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->expression.left);

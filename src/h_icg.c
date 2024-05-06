@@ -3,6 +3,7 @@
 static void emit_error(icg_t* icg);
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
 static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node);
+//static void icg_generate_declaration_label(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
@@ -29,6 +30,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
             icg_generate_declaration_variable_global(icg, node);
+            break;
+        case AST_NODE_DECLARATION_LABEL:
+            //icg_generate_declaration_label(icg, node);
             break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
@@ -112,7 +116,7 @@ static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
 }
 
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
-    DEBUG_LOG("IDENTIFIER\n");
+    //DEBUG_LOG("IDENTIFIER\n");
     //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->value.string)));
     //bs_write_constant(icg->bytecode_store, node->value);
     //bs_write(icg->bytecode_store, OP_GET_GLOBAL);
@@ -121,11 +125,11 @@ static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
 }
 
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node) {
-    DEBUG_LOG("IDENTIFIER GLOBAL\n");
+    //DEBUG_LOG("IDENTIFIER GLOBAL\n");
     //bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_get_index(icg->globals_table, node->value.string)));
     //bs_write_constant(icg->bytecode_store, node->value);
     //bs_write(icg->bytecode_store, OP_GET_GLOBAL);
-    ast_print(node, 0);
+    //ast_print(node, 0);
     bs_write(icg->bytecode_store, OP_GET_GLOBAL);
     bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->value.string));
 }
@@ -237,7 +241,7 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_ASSIGN);
 }
 
-icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack) {
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table) {
     icg_t* icg = (icg_t*)malloc(sizeof(icg_t));
     bytecode_store_t* bytecode_store = bs_init(ast_nodes_list_count);
     icg->bytecode_store = bytecode_store;
@@ -245,6 +249,7 @@ icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash
     icg->ast_nodes_list_it = ast_nodes_list;
     icg->globals_table = globals_table;
     icg->locals_stack = locals_stack;
+    icg->labels_table = labels_table;
     return icg;
 }
 

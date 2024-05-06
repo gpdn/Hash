@@ -19,6 +19,7 @@ static inline ast_node_t* expression_statement(parser_t* parser);
 static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type);
 static ast_node_t* parse_variable_declaration_global(parser_t* parser);
 static ast_node_t* parse_variable_declaration_constant(parser_t* parser);
+static ast_node_t* parse_variable_declaration_label(parser_t* parser);
 static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
@@ -130,6 +131,8 @@ static inline ast_node_t* ast_node_create_statement_block(ast_node_type_t type) 
 
 static ast_node_t* parse_declaration(parser_t* parser) {
     switch(parser->current->type) {
+        case H_TOKEN_LABEL:
+            return parse_variable_declaration_label(parser);
         case H_TOKEN_GLOB:
             return parse_variable_declaration_global(parser);
         case H_TOKEN_CONST:
@@ -205,6 +208,15 @@ static ast_node_t* parse_variable_declaration_constant(parser_t* parser) {
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
     node->expression.right = parse_expression(parser, OP_PREC_OR);
     assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
+    return node;
+}
+
+static ast_node_t* parse_variable_declaration_label(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_LABEL);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_COLON, "Expected :");
     return node;
 }
 
@@ -414,6 +426,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE_CONSTANT %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_DECLARATION_LABEL:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_LABEL %.*s\n", indent, 0, "");
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

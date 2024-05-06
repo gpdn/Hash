@@ -79,8 +79,9 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
 
     h_hash_table_t* globals_table = h_hash_table_init(200, 0.75);
     h_locals_stack_t* locals_stack = h_locals_stack_init(200);
+    h_ht_labels_t* labels_table = h_ht_labels_init(50, 0.75);
 
-    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack);
+    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack, labels_table);
     h_sa_run(analyser);
 
     if(analyser->errors_count > 0) {
@@ -92,7 +93,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         return HASH_FAILURE;
     }
 
-    icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack);
+    icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack, labels_table);
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
 
     #if DEBUG_TRACE_ICG_BYTECODE
@@ -111,6 +112,9 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     h_sa_free(analyser);
     bs_free(store);
     vm_free(vm);
+    h_locals_stack_free(locals_stack);
+    h_hash_table_free(globals_table);
+    h_ht_labels_free(labels_table);
 
     timer_stop_log("Pipeline", pipeline_timer);
 

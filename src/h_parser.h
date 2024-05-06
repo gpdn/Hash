@@ -22,6 +22,7 @@ typedef enum ast_node_type_t{
     AST_NODE_DECLARATION_VARIABLE,
     AST_NODE_DECLARATION_VARIABLE_GLOBAL,
     AST_NODE_DECLARATION_VARIABLE_CONSTANT,
+    AST_NODE_DECLARATION_LABEL
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

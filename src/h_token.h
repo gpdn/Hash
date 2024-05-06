@@ -64,6 +64,7 @@ typedef enum token_type_t {
     H_TOKEN_STR,
     H_TOKEN_CONST,
     H_TOKEN_GLOB,
+    H_TOKEN_LABEL,
     H_TOKEN_LAST
 } token_type_t;
 

@@ -152,6 +152,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
             break;
         case 'g': return check_keyword(lexer, 1, 3, "lob", H_TOKEN_GLOB);
         case 'i': return check_keyword(lexer, 1, 1, "f", H_TOKEN_IF);
+        case 'l': return check_keyword(lexer, 1, 4, "abel", H_TOKEN_LABEL);
         case 'n': 
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'u') {
                 switch(lexer->start[2]) {
