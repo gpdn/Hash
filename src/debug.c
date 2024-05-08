@@ -156,16 +156,31 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             return basic_instruction("OP_ASSIGN", offset, file);
             break;
         case OP_PRE_INCREMENT:
-            return basic_instruction("OP_PRE_INCREMENT", offset, file);
+            return index_instruction("OP_PRE_INCREMENT", store, offset, file);
             break;
         case OP_PRE_DECREMENT:
-            return basic_instruction("OP_PRE_DECREMENT", offset, file);
+            return index_instruction("OP_PRE_DECREMENT", store, offset, file);
+            break;
+        case OP_POST_INCREMENT:
+            return index_instruction("OP_POST_INCREMENT", store, offset, file);
+            break;
+        case OP_POST_DECREMENT:
+            return index_instruction("OP_POST_DECREMENT", store, offset, file);
             break;
         case OP_SET_LOCAL:
             return index_instruction("OP_SET_LOCAL", store, offset, file);
             break;
         case OP_GET_LOCAL:
             return index_instruction("OP_GET_LOCAL", store, offset, file);
+            break;
+        case OP_JUMP_IF_FALSE:
+            return index_instruction("OP_JUMP_IF_FALSE", store, offset, file);
+            break;
+        case OP_JUMP_PLACEHOLDER:
+            return basic_instruction("OP_JUMP_PLACEHOLDER", offset, file);
+            break;
+        case OP_GOTO:
+            return index_instruction("OP_GOTO", store, offset, file);
             break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
@@ -238,6 +253,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_CONST: return "H_TOKEN_CONST";
         case H_TOKEN_GLOB: return "H_TOKEN_GLOB";
         case H_TOKEN_LABEL: return "H_TOKEN_LABEL";
+        case H_TOKEN_GOTO: return "H_TOKEN_GOTO";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

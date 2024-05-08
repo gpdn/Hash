@@ -9,6 +9,9 @@
 typedef struct semantic_analyser_t {
     ast_node_t** ast_nodes_list;
     ast_node_t** ast_nodes_list_it;
+    ast_node_t** ast_nodes_post_checks;
+    size_t ast_nodes_post_checks_size;
+    size_t ast_nodes_post_checks_capacity;
     size_t ast_nodes_list_count;
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals;

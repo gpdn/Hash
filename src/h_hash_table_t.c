@@ -51,6 +51,16 @@ void h_ht_array_set(h_hash_table_t* table, size_t index, value_t value) {
     table->array[index].value = value;
 }
 
+value_t h_ht_array_increase(h_hash_table_t* table, size_t index) {
+    ++table->array[index].value.number;
+    return table->array[index].value;
+}
+
+value_t h_ht_array_decrease(h_hash_table_t* table, size_t index) {
+    --table->array[index].value.number;
+    return table->array[index].value;
+}
+
 void h_ht_print(h_hash_table_t* table) {
     for(size_t i = 0; i < table->capacity; ++i) {
         DEBUG_LOG("[%lld] - ", i);

@@ -81,6 +81,10 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     h_locals_stack_t* locals_stack = h_locals_stack_init(200);
     h_ht_labels_t* labels_table = h_ht_labels_init(50, 0.75);
 
+    h_string_t* empty_string = h_string_init_hash("", 0);
+
+    h_locals_stack_push(locals_stack, empty_string, NULL_VALUE(0), 0);
+
     semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack, labels_table);
     h_sa_run(analyser);
 
@@ -101,6 +105,8 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         disassemble_bytecode_store(store, "Bytecode Store", NULL);
         DEBUG_PRINT_LINE();
     #endif
+
+    //h_locals_stack_print(locals_stack);
    
     virtual_machine_t* vm = vm_init(store, globals_table, locals_stack);
 

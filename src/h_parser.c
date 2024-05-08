@@ -14,6 +14,8 @@ static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t preced
 static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_identifier_global(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_unary_identifier_expression(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_post_unary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
 static inline ast_node_t* expression_statement(parser_t* parser);
 static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type);
@@ -22,10 +24,14 @@ static ast_node_t* parse_variable_declaration_constant(parser_t* parser);
 static ast_node_t* parse_variable_declaration_label(parser_t* parser);
 static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
+static ast_node_t* parse_if_statement(parser_t* parser);
+static ast_node_t* parse_while_statement(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
+static ast_node_t* parse_goto_statement(parser_t* parser);
 static ast_node_t* parse_block_statement(parser_t* parser);
 static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
+static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node); 
 
 static parse_rule_t parse_table[] = {
@@ -35,8 +41,8 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
-    [H_TOKEN_PLUS_PLUS]                 = {parse_unary_expression, NULL, OP_PREC_UNARY},
-    [H_TOKEN_MINUS_MINUS]               = {parse_unary_expression, NULL, OP_PREC_UNARY},
+    [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_MINUS_MINUS]               = {parse_unary_identifier_expression, NULL, OP_PREC_UNARY},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
@@ -61,6 +67,14 @@ static const char* parser_debug_colors[] = {COLOR_BLUE, COLOR_YELLOW, COLOR_GREE
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message) {
     if(parser->current->type == type) {
         ++parser->current;
+        return;
+    }
+
+    if(parser->errors_count == 0) emit_error(parser, error_message);
+}
+
+static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message) {
+    if(parser->current->type == type) {
         return;
     }
 
@@ -166,6 +180,12 @@ static ast_node_t* parse_statement(parser_t* parser) {
     switch(parser->current->type) {
         case H_TOKEN_PRINT:
             return parse_print_statement(parser);
+        case H_TOKEN_IF:
+            return parse_if_statement(parser);
+        case H_TOKEN_WHILE:
+            return parse_while_statement(parser);
+        case H_TOKEN_GOTO:
+            return parse_goto_statement(parser);
         case H_TOKEN_LEFT_CURLY:
             return parse_block_statement(parser);
         default:
@@ -225,6 +245,36 @@ static ast_node_t* parse_print_statement(parser_t* parser) {
     node->operator = parser->current;
     ++parser->current;
     node->expression.left = expression_statement(parser);
+    return node;
+}
+
+static ast_node_t* parse_if_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_IF);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
+    assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
+    node->expression.right = parse_block_statement(parser);
+    return node;
+}
+
+static ast_node_t* parse_while_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_WHILE);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
+    assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
+    node->expression.right = parse_block_statement(parser);
+    return node;
+}
+
+static ast_node_t* parse_goto_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_GOTO);
+    node->operator = parser->current;
+    ++parser->current;
+    assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected identifier after goto.");
+    node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected :");
     return node;
 }
 
@@ -301,6 +351,23 @@ static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_
     node->operator = parser->current;
     ++parser->current;
     node->expression.left = parse_expression(parser, precedence);
+    return node;
+}
+
+static ast_node_t* parse_unary_identifier_expression(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_UNARY);
+    node->operator = parser->current;
+    ++parser->current;
+    assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected identifier after unary operator");
+    node->expression.left = parse_identifier(parser, precedence);
+    return node;
+}
+
+static ast_node_t* parse_post_unary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+    ast_node_t* node = ast_node_create(AST_NODE_POST_UNARY);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = left;
     return node;
 }
 
@@ -409,8 +476,17 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_UNARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
+        case AST_NODE_POST_UNARY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_POST_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
         case AST_NODE_STATEMENT_PRINT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_PRINT %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_IF:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_IF %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_WHILE:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_WHILE %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_STATEMENT_BLOCK:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_BLOCK %.*s\n", indent, 0, "");
@@ -429,6 +505,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_DECLARATION_LABEL:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_LABEL %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_STATEMENT_GOTO:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_GOTO %.*s\n", indent, 0, "");
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

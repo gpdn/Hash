@@ -27,3 +27,14 @@ void print_value_no_newline(value_t* value) {
             break;
     }
 }
+
+const char* resolve_type(value_t* value) {
+    switch(value->type) {
+        case H_VALUE_NUMBER:
+            return "Num";
+        case H_VALUE_STRING:
+            return "Str";
+        default:
+            return "Unk";
+    }
+}

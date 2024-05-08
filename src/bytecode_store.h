@@ -36,8 +36,13 @@ typedef enum opcode_t {
     OP_ASSIGN,
     OP_PRE_INCREMENT,
     OP_PRE_DECREMENT,
+    OP_POST_INCREMENT,
+    OP_POST_DECREMENT,
     OP_SET_LOCAL,
     OP_GET_LOCAL,
+    OP_JUMP_IF_FALSE,
+    OP_JUMP_PLACEHOLDER,
+    OP_GOTO
 } opcode_t;
 
 typedef struct bytecode_store_t {
@@ -49,6 +54,7 @@ typedef struct bytecode_store_t {
 
 bytecode_store_t* bs_init(size_t capacity);
 void bs_write(bytecode_store_t* store, uint8_t instruction);
+size_t bs_write_get(bytecode_store_t* store, uint8_t byte);
 void bs_write_constant(bytecode_store_t* store, value_t constant);
 void bs_free(bytecode_store_t* store);
 

@@ -13,7 +13,7 @@ void h_ht_labels_print(h_ht_labels_t* table) {
     for(size_t i = 0; i < table->capacity; ++i) {
         DEBUG_LOG("[%lld] - ", i);
         if(table->array[i].name == NULL) {DEBUG_LOG("Empty\n"); continue;}
-        DEBUG_LOG("%s, %lld", table->array[i].name->string, table->array[i].index);
+        DEBUG_LOG("%s, %lld\n", table->array[i].name->string, table->array[i].index);
     }
 }
 
@@ -23,6 +23,7 @@ size_t h_ht_labels_get(h_ht_labels_t* table, h_string_t* key) {
 
 int h_ht_labels_set(h_ht_labels_t* table, h_string_t* key, size_t index) {
     table->array[key->hash % table->capacity] = (ht_label_t){key, index};
+    DEBUG_LOG("Label Index set to: %lld\n", index);
     return 1;
 }
 

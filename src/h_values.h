@@ -35,5 +35,6 @@ typedef struct value_t {
 
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);
+const char* resolve_type(value_t* value);
 
 #endif

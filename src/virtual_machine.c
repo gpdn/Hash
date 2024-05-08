@@ -3,19 +3,7 @@
 static void vm_stack_push(virtual_machine_t* vm, value_t value);
 static inline value_t vm_stack_pop(virtual_machine_t* vm);
 static inline value_t vm_stack_peek(virtual_machine_t* vm);
-static const char* resolve_type(value_t* value);
 static inline void resolve_value(value_t* value);
-
-static const char* resolve_type(value_t* value) {
-    switch(value->type) {
-        case H_VALUE_NUMBER:
-            return "Num";
-        case H_VALUE_STRING:
-            return "Str";
-        default:
-            return "Unk";
-    }
-}
 
 static void vm_stack_push(virtual_machine_t* vm, value_t value) {
     *vm->stack_top = value;
@@ -176,12 +164,26 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 h_ht_set(vm->globals_table, ht_assign.string, vm_stack_peek(vm));
                 break;
             case OP_PRE_INCREMENT:
-                value_t ht_pre_increase = vm_stack_pop(vm);
-                vm_stack_push(vm, h_ht_increase(vm->globals_table, ht_pre_increase.string));
+                vm_stack_push(vm, h_locals_array_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_PRE_DECREMENT:
-                value_t ht_pre_decrease = vm_stack_pop(vm);
-                vm_stack_push(vm, h_ht_decrease(vm->globals_table, ht_pre_decrease.string));
+                vm_stack_push(vm, h_locals_array_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
+                break;
+            case OP_POST_INCREMENT:
+                vm_stack_push(vm, h_locals_array_post_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
+                break;
+            case OP_POST_DECREMENT:
+                vm_stack_push(vm, h_locals_array_post_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
+                break;
+            case OP_JUMP_IF_FALSE:
+                value_t ht_jump_if_false = vm_stack_pop(vm);
+                size_t ht_jump_if_false_jump = ADVANCE_INSTRUCTION_POINTER();
+                if(ht_jump_if_false.number == 0) {vm->instruction_pointer = vm->store->code + ht_jump_if_false_jump;}
+                break;
+            case OP_GOTO:
+                //value_t ht_jump_if_false = vm_stack_pop(vm);
+                size_t ht_goto = ADVANCE_INSTRUCTION_POINTER();
+                vm->instruction_pointer = vm->store->code + ht_goto;
                 break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
