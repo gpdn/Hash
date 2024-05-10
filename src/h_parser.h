@@ -50,6 +50,7 @@ typedef enum operator_precedence_t {
 typedef struct ast_node_expression_t {
     struct ast_node_t* left;
     struct ast_node_t* right;
+    struct ast_node_t* other;
 } ast_node_expression_t;
 
 typedef struct ast_node_statement_block_t {

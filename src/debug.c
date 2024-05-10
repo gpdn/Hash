@@ -176,6 +176,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_JUMP_IF_FALSE:
             return index_instruction("OP_JUMP_IF_FALSE", store, offset, file);
             break;
+        case OP_JUMP:
+            return index_instruction("OP_JUMP", store, offset, file);
+            break;
         case OP_JUMP_PLACEHOLDER:
             return basic_instruction("OP_JUMP_PLACEHOLDER", offset, file);
             break;
@@ -203,6 +206,10 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_SLASH: return "H_TOKEN_SLASH";
         case H_TOKEN_EQUAL: return "H_TOKEN_EQUAL";
         case H_TOKEN_DOUBLE_EQUAL: return "H_TOKEN_DOUBLE_EQUAL";
+        case H_TOKEN_PLUS_EQUAL: return "H_TOKEN_PLUS_EQUAL";
+        case H_TOKEN_MINUS_EQUAL: return "H_TOKEN_MINUS_EQUAL";
+        case H_TOKEN_STAR_EQUAL: return "H_TOKEN_STAR_EQUAL";
+        case H_TOKEN_SLASH_EQUAL: return "H_TOKEN_SLASH_EQUAL";
         case H_TOKEN_BANG: return "H_TOKEN_BANG";
         case H_TOKEN_LESS: return "H_TOKEN_LESS";
         case H_TOKEN_LESS_EQUAL: return "H_TOKEN_LESS_EQUAL";

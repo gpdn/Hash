@@ -92,6 +92,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_IF:
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_NULL) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.right);
+            if(node->expression.other) resolve_block_statement(analyser, node->expression.other);
             return;
         case AST_NODE_STATEMENT_GOTO:
             //if(resolve_expression(analyser, node->expression.left).type == H_VALUE_NULL) emit_error(analyser);
@@ -125,13 +126,17 @@ static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node
         case H_TOKEN_BITWISE_SHIFT_RIGHT:
         case H_TOKEN_MINUS:
         case H_TOKEN_STAR:
-        case H_TOKEN_SLASH:
+        case H_TOKEN_MINUS_EQUAL:
+        case H_TOKEN_STAR_EQUAL:
+        case H_TOKEN_SLASH_EQUAL:
             assert_value_type(analyser, value_left.type, H_VALUE_NUMBER);
             assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
             break;
         case H_TOKEN_PLUS:
+        case H_TOKEN_PLUS_EQUAL:
             assert_value_type(analyser, value_left.type, value_right.type);
             break;
+        case H_TOKEN_EQUAL:
         case H_TOKEN_DOUBLE_EQUAL:
         case H_TOKEN_BANG_EQUAL:
         case H_TOKEN_GREATER:

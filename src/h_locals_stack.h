@@ -30,7 +30,7 @@ value_t h_locals_array_increase_get(h_locals_stack_t* locals_stack, size_t index
 value_t h_locals_array_decrease_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_post_increase_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_post_decrease_get(h_locals_stack_t* locals_stack, size_t index);
-void h_locals_stack_set(h_locals_stack_t* locals_stack, size_t index, value_t value);
+void h_locals_array_set(h_locals_stack_t* locals_stack, size_t index, value_t value);
 void h_locals_stack_print(h_locals_stack_t* locals_stack);
 void h_print_local(h_local_t* local);
 void h_locals_stack_free(h_locals_stack_t* locals_stack);

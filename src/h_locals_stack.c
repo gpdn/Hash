@@ -44,7 +44,7 @@ value_t h_locals_array_get(h_locals_stack_t* locals_stack, size_t index) {
     return locals_stack->locals_array[index].value;
 }
 
-void h_locals_stack_set(h_locals_stack_t* locals_stack, size_t index, value_t value) {
+void h_locals_array_set(h_locals_stack_t* locals_stack, size_t index, value_t value) {
     locals_stack->locals_array[index].value = value; 
 }
 
@@ -75,7 +75,6 @@ value_t h_locals_array_post_decrease_get(h_locals_stack_t* locals_stack, size_t 
     --locals_stack->locals_array[index].value.number;
     return value;
 }
-
 
 void h_locals_stack_print(h_locals_stack_t* locals_stack) {
     printf("Size: %lld\n", locals_stack->size);

@@ -55,6 +55,10 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_BITWISE_NOT]               = {parse_unary_expression, NULL, OP_PREC_UNARY},
     [H_TOKEN_DOUBLE_EQUAL]              = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
     [H_TOKEN_BANG_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_PLUS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_MINUS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_STAR_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_SLASH_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
     [H_TOKEN_GREATER]                   = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_GREATER_EQUAL]             = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
@@ -130,6 +134,7 @@ static inline ast_node_t* ast_node_create(ast_node_type_t type) {
     ast_node_t* node = (ast_node_t*)malloc(sizeof(ast_node_t));
     node->expression.left = NULL;
     node->expression.right = NULL;
+    node->expression.other = NULL;
     node->type = type;
     return node;
 }
@@ -255,6 +260,11 @@ static ast_node_t* parse_if_statement(parser_t* parser) {
     node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
     node->expression.right = parse_block_statement(parser);
+    if(parser->current->type == H_TOKEN_ELSE) {
+        ++parser->current;
+        assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
+        node->expression.other = parse_block_statement(parser);
+    }
     return node;
 }
 
@@ -552,6 +562,9 @@ void ast_print(ast_node_t* node, int indent) {
             }
             if(node->expression.right) {
                 ast_print(node->expression.right, indent + 1);
+            }
+            if(node->expression.other) {
+                ast_print(node->expression.other, indent + 1);
             }
     }
 }

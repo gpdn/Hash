@@ -147,7 +147,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 //h_local_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
                 //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
                 //h_ht_print(vm->globals_table);
-                h_locals_stack_set(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
+                h_locals_array_set(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
                 break;
             case OP_GET_GLOBAL:
                 //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
@@ -160,8 +160,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 //h_ht_print(vm->globals_table);
                 break;
             case OP_ASSIGN:
-                value_t ht_assign = vm_stack_pop(vm);
-                h_ht_set(vm->globals_table, ht_assign.string, vm_stack_peek(vm));
+                h_locals_array_set(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
                 break;
             case OP_PRE_INCREMENT:
                 vm_stack_push(vm, h_locals_array_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
@@ -179,6 +178,10 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 value_t ht_jump_if_false = vm_stack_pop(vm);
                 size_t ht_jump_if_false_jump = ADVANCE_INSTRUCTION_POINTER();
                 if(ht_jump_if_false.number == 0) {vm->instruction_pointer = vm->store->code + ht_jump_if_false_jump;}
+                break;
+            case OP_JUMP:
+                size_t ht_jump = ADVANCE_INSTRUCTION_POINTER();
+                vm->instruction_pointer = vm->store->code + ht_jump;
                 break;
             case OP_GOTO:
                 //value_t ht_jump_if_false = vm_stack_pop(vm);
