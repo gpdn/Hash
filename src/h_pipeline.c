@@ -97,6 +97,8 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
         return HASH_FAILURE;
     }
 
+    DEBUG_LOG("Semantic Analysis Completed\n");
+
     icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack, labels_table);
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
 

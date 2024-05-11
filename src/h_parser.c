@@ -26,6 +26,7 @@ static ast_node_t* parse_statement(parser_t* parser);
 static ast_node_t* parse_declaration(parser_t* parser);
 static ast_node_t* parse_if_statement(parser_t* parser);
 static ast_node_t* parse_while_statement(parser_t* parser);
+static ast_node_t* parse_do_while_statement(parser_t* parser);
 static ast_node_t* parse_print_statement(parser_t* parser);
 static ast_node_t* parse_goto_statement(parser_t* parser);
 static ast_node_t* parse_block_statement(parser_t* parser);
@@ -189,6 +190,8 @@ static ast_node_t* parse_statement(parser_t* parser) {
             return parse_if_statement(parser);
         case H_TOKEN_WHILE:
             return parse_while_statement(parser);
+        case H_TOKEN_DO:
+            return parse_do_while_statement(parser);
         case H_TOKEN_GOTO:
             return parse_goto_statement(parser);
         case H_TOKEN_LEFT_CURLY:
@@ -275,6 +278,19 @@ static ast_node_t* parse_while_statement(parser_t* parser) {
     node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
     node->expression.right = parse_block_statement(parser);
+    return node;
+}
+
+static ast_node_t* parse_do_while_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_DO_WHILE);
+    node->operator = parser->current;
+    ++parser->current;
+    assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
+    node->expression.left = parse_block_statement(parser);
+    assert_token_type(parser, H_TOKEN_WHILE, "Expected while after do statement.");
+    //assert_token_type(parser, H_TOKEN_LEFT_PAR, "Expected (.");
+    node->expression.right = parse_expression(parser, OP_PREC_LOWEST);
+    //assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected ).");
     return node;
 }
 
@@ -497,6 +513,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_STATEMENT_WHILE:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_WHILE %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_STATEMENT_DO_WHILE:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_DO_WHILE %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_STATEMENT_BLOCK:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_BLOCK %.*s\n", indent, 0, "");

@@ -179,6 +179,11 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 size_t ht_jump_if_false_jump = ADVANCE_INSTRUCTION_POINTER();
                 if(ht_jump_if_false.number == 0) {vm->instruction_pointer = vm->store->code + ht_jump_if_false_jump;}
                 break;
+            case OP_JUMP_IF_TRUE:
+                value_t ht_jump_if_true = vm_stack_pop(vm);
+                size_t ht_jump_if_true_jump = ADVANCE_INSTRUCTION_POINTER();
+                if(ht_jump_if_true.number != 0) {vm->instruction_pointer = vm->store->code + ht_jump_if_true_jump;}
+                break;
             case OP_JUMP:
                 size_t ht_jump = ADVANCE_INSTRUCTION_POINTER();
                 vm->instruction_pointer = vm->store->code + ht_jump;

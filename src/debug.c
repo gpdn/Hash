@@ -176,6 +176,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_JUMP_IF_FALSE:
             return index_instruction("OP_JUMP_IF_FALSE", store, offset, file);
             break;
+        case OP_JUMP_IF_TRUE:
+            return index_instruction("OP_JUMP_IF_TRUE", store, offset, file);
+            break;
         case OP_JUMP:
             return index_instruction("OP_JUMP", store, offset, file);
             break;

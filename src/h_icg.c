@@ -6,6 +6,8 @@ static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* nod
 static inline void icg_generate_declaration_label(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_if(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
@@ -50,6 +52,12 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_STATEMENT_IF:
             icg_generate_statement_if(icg, node);
+            break;
+        case AST_NODE_STATEMENT_WHILE:
+            icg_generate_statement_while(icg, node);
+            break;
+        case AST_NODE_STATEMENT_DO_WHILE:
+            icg_generate_statement_do_while(icg, node);
             break;
         case AST_NODE_STATEMENT_GOTO:
             icg_generate_statement_goto(icg, node);
@@ -129,6 +137,25 @@ static inline void icg_generate_statement_if(icg_t* icg, ast_node_t* node) {
     }
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
     //disassemble_bytecode_store(icg->bytecode_store, "Test", NULL);
+}
+
+static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node) {
+    size_t current_instruction_index = icg->bytecode_store->size;
+    icg_generate_expression(icg, node->expression.left);
+    bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
+    size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
+    icg_generate_statement_block(icg, node->expression.right);
+    bs_write(icg->bytecode_store, OP_JUMP);
+    bs_write(icg->bytecode_store, current_instruction_index);
+    icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+}
+
+static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node) {
+    size_t current_instruction_index = icg->bytecode_store->size;
+    icg_generate_statement_block(icg, node->expression.left);
+    icg_generate_expression(icg, node->expression.right);
+    bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
+    bs_write(icg->bytecode_store, current_instruction_index);
 }
 
 static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node) {

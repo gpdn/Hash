@@ -99,8 +99,12 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             ast_post_check_push(analyser, node);
             return;
         case AST_NODE_STATEMENT_WHILE:
-            resolve_expression(analyser, node->expression.left);
+            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_NULL) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.right);
+            return;
+        case AST_NODE_STATEMENT_DO_WHILE:
+            if(resolve_expression(analyser, node->expression.right).type == H_VALUE_NULL) emit_error(analyser);
+            resolve_block_statement(analyser, node->expression.left);
             return;
         case AST_NODE_STATEMENT_BLOCK:
             resolve_block_statement(analyser, node);
