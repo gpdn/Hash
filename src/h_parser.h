@@ -28,6 +28,7 @@ typedef enum ast_node_type_t{
     AST_NODE_STATEMENT_IF,
     AST_NODE_STATEMENT_WHILE,
     AST_NODE_STATEMENT_DO_WHILE,
+    AST_NODE_STATEMENT_ASSERTION
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

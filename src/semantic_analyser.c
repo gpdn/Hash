@@ -106,6 +106,10 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             if(resolve_expression(analyser, node->expression.right).type == H_VALUE_NULL) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.left);
             return;
+        case AST_NODE_STATEMENT_ASSERTION:
+            resolve_expression(analyser, node->expression.left);
+            resolve_ast(analyser, node->expression.right);
+            return;
         case AST_NODE_STATEMENT_BLOCK:
             resolve_block_statement(analyser, node);
             return;
@@ -199,8 +203,10 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
     switch(node->type) {
         case AST_NODE_BINARY:
         case AST_NODE_ASSIGNMENT:
+            ast_print(node, 0);
             return resolve_expression_binary(analyser, node);
         case AST_NODE_LITERAL:
+            ast_print(node, 0);
             return node->value;
         case AST_NODE_IDENTIFIER:
             return h_locals_stack_get(analyser->locals, node->value.string, analyser->scope);

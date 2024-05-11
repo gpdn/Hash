@@ -140,7 +140,14 @@ static token_t lexer_identifier(lexer_t* lexer) {
         case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
         case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
         case 'd': return check_keyword(lexer, 1, 1, "o", H_TOKEN_DO);
-        case 'e': return check_keyword(lexer, 1, 3, "lse", H_TOKEN_ELSE);
+        case 'e': 
+            if(lexer->current - lexer->start > 1) {
+                switch(lexer->start[1]) {
+                    case 'l': return check_keyword(lexer, 2, 2, "se", H_TOKEN_ELSE);
+                    case 'n': return check_keyword(lexer, 2, 2, "um", H_TOKEN_ENUM);
+                }
+            }
+            break;
         case 'f': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
@@ -329,7 +336,6 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '{': return token_create(lexer, H_TOKEN_LEFT_CURLY);
         case '}': return token_create(lexer, H_TOKEN_RIGHT_CURLY);
         case ';': return token_create(lexer, H_TOKEN_SEMICOLON);
-        case ':': return token_create(lexer, H_TOKEN_COLON);
         case ',': return token_create(lexer, H_TOKEN_COMMA);
         case '.': return token_create(lexer, H_TOKEN_DOT);
         case '%': return token_create(lexer, H_TOKEN_MODULO);
@@ -342,9 +348,10 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '+': LEXER_CHECK_MULTIPLE('+', H_TOKEN_PLUS_PLUS, '=', H_TOKEN_PLUS_EQUAL, H_TOKEN_PLUS);
         case '-': LEXER_CHECK_MULTIPLE('-', H_TOKEN_MINUS_MINUS, '=', H_TOKEN_MINUS_EQUAL, H_TOKEN_MINUS);
         case '*': LEXER_CHECK_MULTIPLE('*', H_TOKEN_POW, '=', H_TOKEN_STAR_EQUAL, H_TOKEN_STAR);
+        case '!': LEXER_CHECK_MULTIPLE('!', H_TOKEN_DOUBLE_BANG, '=', H_TOKEN_BANG_EQUAL, H_TOKEN_BANG);
+        case ':': return lexer_check_next(lexer, ':', H_TOKEN_DOUBLE_COLON, H_TOKEN_COLON);
         case '/': return lexer_check_next(lexer, '=', H_TOKEN_SLASH_EQUAL, H_TOKEN_SLASH);
         case '=': return lexer_check_next(lexer, '=', H_TOKEN_DOUBLE_EQUAL, H_TOKEN_EQUAL);
-        case '!': return lexer_check_next(lexer, '=', H_TOKEN_BANG_EQUAL, H_TOKEN_BANG);
         case '?': return lexer_check_next(lexer, '?', H_TOKEN_DOUBLE_QUESTION_MARK, H_TOKEN_QUESTION_MARK);
         case '"': return lexer_string(lexer);
     }

@@ -70,6 +70,9 @@ typedef enum token_type_t {
     H_TOKEN_GLOB,
     H_TOKEN_LABEL,
     H_TOKEN_GOTO,
+    H_TOKEN_DOUBLE_COLON,
+    H_TOKEN_ENUM,
+    H_TOKEN_DOUBLE_BANG,
     H_TOKEN_LAST
 } token_type_t;
 

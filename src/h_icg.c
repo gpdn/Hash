@@ -9,6 +9,7 @@ static inline void icg_generate_statement_if(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
@@ -61,6 +62,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_STATEMENT_GOTO:
             icg_generate_statement_goto(icg, node);
+            break;
+        case AST_NODE_STATEMENT_ASSERTION:
+            icg_generate_statement_assertion(icg, node);
             break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
@@ -162,6 +166,15 @@ static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_GOTO);
     bs_write(icg->bytecode_store, h_ht_labels_get_index(icg->labels_table, node->expression.left->value.string));
     gotos_instructions_list_push(&icg->gotos_list, icg->bytecode_store->code + icg->bytecode_store->size - 1);
+}
+
+static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->expression.left);
+    bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
+    size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
+    icg_generate_statement_print(icg, node->expression.right);
+    bs_write(icg->bytecode_store, OP_STOP);
+    icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
 }
 
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
