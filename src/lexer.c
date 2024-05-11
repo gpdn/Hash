@@ -137,17 +137,18 @@ static token_t lexer_identifier(lexer_t* lexer) {
     while(isalnum(*lexer->current) || *lexer->current == '_') ++lexer->current;
 
     switch(lexer->start[0]) {
-        case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
-        case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
-        case 'd': return check_keyword(lexer, 1, 1, "o", H_TOKEN_DO);
-        case 'e': 
+        //case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
+        case 'a': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
-                    case 'l': return check_keyword(lexer, 2, 2, "se", H_TOKEN_ELSE);
-                    case 'n': return check_keyword(lexer, 2, 2, "um", H_TOKEN_ENUM);
+                    case 'n': return check_keyword(lexer, 2, 1, "d", H_TOKEN_AND);
+                    case 'r': return check_keyword(lexer, 2, 1, "r", H_TOKEN_ARR);
                 }
             }
             break;
+        case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
+        case 'd': return check_keyword(lexer, 1, 1, "o", H_TOKEN_DO);
+        case 'e': 
         case 'f': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {

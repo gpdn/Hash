@@ -5,6 +5,7 @@
 #include "h_hash_table_t.h"
 #include "h_locals_stack.h"
 #include "h_ht_labels.h"
+#include "h_ht_enums.h"
 
 typedef struct semantic_analyser_t {
     ast_node_t** ast_nodes_list;
@@ -16,12 +17,13 @@ typedef struct semantic_analyser_t {
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals;
     h_ht_labels_t* labels_table;
+    h_ht_enums_t* enums_table;
     ast_node_t* current;
     unsigned int errors_count;
     size_t scope;
 } semantic_analyser_t;
 
-semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals, h_ht_labels_t* labels_table);
+semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table);
 void h_sa_free(semantic_analyser_t* analyser);
 void h_sa_run(semantic_analyser_t* analyser);
 

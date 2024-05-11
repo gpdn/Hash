@@ -267,6 +267,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_DOUBLE_COLON: return "H_TOKEN_DOUBLE_COLON";
         case H_TOKEN_ENUM: return "H_TOKEN_ENUM";
         case H_TOKEN_DOUBLE_BANG: return "H_TOKEN_DOUBLE_BANG";
+        case H_TOKEN_ARR: return "H_TOKEN_ARR";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

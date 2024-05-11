@@ -38,7 +38,7 @@ static inline void assert_ast_node_type(semantic_analyser_t* analyser, ast_node_
     if(node->type != type) emit_error(analyser);
 }
 
-semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table) {
+semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
     semantic_analyser_t* analyser = (semantic_analyser_t*)malloc(sizeof(semantic_analyser_t));
     analyser->ast_nodes_list = ast_nodes_list;
     analyser->ast_nodes_list_count = ast_nodes_list_count;
@@ -47,6 +47,7 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->scope = 0;
     analyser->locals = locals_stack;
     analyser->labels_table = labels_table;
+    analyser->enums_table = enums_table;
     analyser->ast_nodes_post_checks_size = 0;
     analyser->ast_nodes_post_checks_capacity = 5;
     analyser->ast_nodes_post_checks = (ast_node_t**)malloc(sizeof(ast_node_t*) * analyser->ast_nodes_post_checks_capacity);
@@ -86,6 +87,13 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_DECLARATION_LABEL:
             h_ht_labels_set(analyser->labels_table, node->expression.left->value.string, 0);
             return;
+        case AST_NODE_DECLARATION_ENUM:
+            ht_enum_values_t* values = h_ht_enums_set(analyser->enums_table, node->expression.left->value.string);
+            for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
+                h_ht_enum_value_set(values, node->expression.right->block.declarations[i]->value.string);
+            } 
+            //h_ht_enums_print(analyser->enums_table);
+            return;
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->expression.left);
             return;
@@ -109,6 +117,15 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_ASSERTION:
             resolve_expression(analyser, node->expression.left);
             resolve_ast(analyser, node->expression.right);
+            return;
+        case AST_NODE_STATEMENT_FOR_CONDITION:
+            //if(node->expression.left) resolve_expression(analyser, node->expression.left);
+            resolve_expression(analyser, node->expression.other);
+            resolve_expression(analyser, node->expression.right);
+            return;
+        case AST_NODE_STATEMENT_FOR:
+            resolve_ast(analyser, node->expression.left);
+            resolve_block_statement(analyser, node->expression.right);
             return;
         case AST_NODE_STATEMENT_BLOCK:
             resolve_block_statement(analyser, node);
@@ -216,6 +233,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return resolve_expression_unary(analyser, node);
         case AST_NODE_POST_UNARY:
             return resolve_expression_post_unary(analyser, node);
+        case AST_NODE_ENUM_RESOLUTION:
+            return NUM_VALUE(1);
         default:
             emit_error(analyser);
             return NULL_VALUE(0);

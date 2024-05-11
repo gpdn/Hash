@@ -10,12 +10,14 @@ static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
 /* static inline void icg_generate_number(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_string(icg_t* icg, ast_node_t* node); */
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
@@ -51,6 +53,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_DECLARATION_LABEL:
             icg_generate_declaration_label(icg, node);
             break;
+        case AST_NODE_DECLARATION_ENUM:
+            //icg_generate_declaration_label(icg, node);
+            break;
         case AST_NODE_STATEMENT_IF:
             icg_generate_statement_if(icg, node);
             break;
@@ -66,6 +71,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_STATEMENT_ASSERTION:
             icg_generate_statement_assertion(icg, node);
             break;
+        case AST_NODE_STATEMENT_FOR:
+            icg_generate_statement_for(icg, node);
+            break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
             break;
@@ -77,6 +85,10 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_LITERAL:
             icg_generate_literal(icg, node);
+            break;
+        case AST_NODE_ENUM_RESOLUTION:
+            DEBUG_LOG("ENUM RESOLUTION");
+            icg_generate_enum_resolution(icg, node);
             break;
         case AST_NODE_IDENTIFIER:
             icg_generate_identifier(icg, node);
@@ -177,6 +189,20 @@ static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
 }
 
+static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
+    ast_node_t* condition = node->expression.left;
+    size_t current_instruction = icg->bytecode_store->size;
+    icg_generate_expression(icg, condition->expression.other);
+    bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
+    size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
+    icg_generate_statement_block(icg, node->expression.right);
+    icg_generate_expression(icg, condition->expression.right);
+    bs_write(icg->bytecode_store, OP_POP);
+    bs_write(icg->bytecode_store, OP_JUMP);
+    bs_write(icg->bytecode_store, current_instruction);
+    icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+}
+
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
@@ -190,6 +216,11 @@ static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* nod
 
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
     bs_write_constant(icg->bytecode_store, node->value);
+}
+
+static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node) {
+    ht_enum_values_t* values = h_ht_enums_get(icg->enums_table, node->expression.left->value.string);
+    bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_enum_value_get(values, node->expression.right->value.string)));
 }
 
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
@@ -335,7 +366,7 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
 }
 
-icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table) {
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
     icg_t* icg = (icg_t*)malloc(sizeof(icg_t));
     bytecode_store_t* bytecode_store = bs_init(ast_nodes_list_count);
     icg->bytecode_store = bytecode_store;
@@ -344,6 +375,7 @@ icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash
     icg->globals_table = globals_table;
     icg->locals_stack = locals_stack;
     icg->labels_table = labels_table;
+    icg->enums_table = enums_table;
     icg->gotos_list.capacity = 50;
     icg->gotos_list.size = 0;
     icg->gotos_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->gotos_list.capacity);
