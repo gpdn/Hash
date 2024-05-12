@@ -87,7 +87,6 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             icg_generate_literal(icg, node);
             break;
         case AST_NODE_ENUM_RESOLUTION:
-            DEBUG_LOG("ENUM RESOLUTION");
             icg_generate_enum_resolution(icg, node);
             break;
         case AST_NODE_IDENTIFIER:
@@ -219,7 +218,7 @@ static inline void icg_generate_literal(icg_t* icg, ast_node_t* node) {
 }
 
 static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node) {
-    ht_enum_values_t* values = h_ht_enums_get(icg->enums_table, node->expression.left->value.string);
+    ht_enum_t* values = h_ht_enums_get(icg->enums_table, node->expression.left->value.string);
     bs_write_constant(icg->bytecode_store, NUM_VALUE(h_ht_enum_value_get(values, node->expression.right->value.string)));
 }
 

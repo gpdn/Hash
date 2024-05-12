@@ -88,11 +88,11 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             h_ht_labels_set(analyser->labels_table, node->expression.left->value.string, 0);
             return;
         case AST_NODE_DECLARATION_ENUM:
-            ht_enum_values_t* values = h_ht_enums_set(analyser->enums_table, node->expression.left->value.string);
+            ht_enum_t* values = h_ht_enums_set(analyser->enums_table, node->expression.left->value.string);
             for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
                 h_ht_enum_value_set(values, node->expression.right->block.declarations[i]->value.string);
             } 
-            //h_ht_enums_print(analyser->enums_table);
+            h_ht_enums_print(analyser->enums_table);
             return;
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->expression.left);
