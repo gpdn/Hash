@@ -9,7 +9,10 @@ void print_value(value_t* value) {
             printf("%s\n", value->string->string);
             break;
         case H_VALUE_NULL:
-            printf("%s\n", value->string->string);
+            printf("Null\n");
+            break;
+        case H_VALUE_ARRAY:
+            printf("Array\n");
             break;
     }
 }
@@ -23,8 +26,12 @@ void print_value_no_newline(value_t* value) {
             printf("%s", value->string->string);
             break;
         case H_VALUE_NULL:
-            printf("%s", value->string->string);
+            printf("Null");
             break;
+        case H_VALUE_ARRAY:
+            printf("Array");
+            break;
+
     }
 }
 

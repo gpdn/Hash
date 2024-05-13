@@ -7,13 +7,23 @@
 
 static void emit_error(semantic_analyser_t* analyser);
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
+static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node);
+static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_unary(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_post_unary(semantic_analyser_t* analyser, ast_node_t* node);
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node);
 static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node);
+
+static value_type_t iterables[] = {
+    [H_VALUE_NULL] = 0,
+    [H_VALUE_CHAR] = 0,
+    [H_VALUE_NUMBER] = 0,
+    [H_VALUE_STRING] = 1,
+    [H_VALUE_ARRAY] = 1
+};
 
 static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node) {
     if(analyser->ast_nodes_post_checks_size >= analyser->ast_nodes_post_checks_capacity) {
@@ -28,6 +38,11 @@ static void emit_error(semantic_analyser_t* analyser) {
     DEBUG_LOG("Error\n");
     ++analyser->errors_count;
     analyser->current = analyser->ast_nodes_list[analyser->ast_nodes_list_count - 1];
+}
+
+static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type) {
+    DEBUG_LOG("%d\n", iterables[value_type]);
+    if(iterables[value_type] == 0) emit_error(analyser);
 }
 
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type) {
@@ -139,6 +154,14 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
     }
 }
 
+static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node) {
+    value_t value_left = resolve_expression(analyser, node->expression.left);
+    value_t value_right = resolve_expression(analyser, node->expression.right);
+    assert_iterable(analyser, value_left.type);
+    assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
+    return value_left;
+}
+
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node) {
     value_t value_left = resolve_expression(analyser, node->expression.left);
     value_t value_right = resolve_expression(analyser, node->expression.right);
@@ -220,10 +243,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
     switch(node->type) {
         case AST_NODE_BINARY:
         case AST_NODE_ASSIGNMENT:
-            ast_print(node, 0);
             return resolve_expression_binary(analyser, node);
         case AST_NODE_LITERAL:
-            ast_print(node, 0);
             return node->value;
         case AST_NODE_IDENTIFIER:
             return h_locals_stack_get(analyser->locals, node->value.string, analyser->scope);
@@ -235,6 +256,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return resolve_expression_post_unary(analyser, node);
         case AST_NODE_ENUM_RESOLUTION:
             return NUM_VALUE(1);
+        case AST_NODE_INDEXING:
+            return resolve_expression_indexing(analyser, node);
         default:
             emit_error(analyser);
             return NULL_VALUE(0);

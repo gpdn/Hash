@@ -35,7 +35,8 @@ typedef enum ast_node_type_t{
     AST_NODE_STATEMENT_BLOCK_ENUM,
     AST_NODE_ENUM_RESOLUTION,
     AST_NODE_INDEXING,
-    AST_NODE_DECLARATION_VARIABLE_ARRAY
+    AST_NODE_DECLARATION_VARIABLE_ARRAY,
+    AST_NODE_ARRAY_INITIALISATION
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
