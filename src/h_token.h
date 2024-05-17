@@ -74,6 +74,10 @@ typedef enum token_type_t {
     H_TOKEN_ENUM,
     H_TOKEN_DOUBLE_BANG,
     H_TOKEN_ARR,
+    H_TOKEN_REPEAT,
+    H_TOKEN_BREAK,
+    H_TOKEN_SKIP,
+    H_TOKEN_LOOP,
     H_TOKEN_LAST
 } token_type_t;
 

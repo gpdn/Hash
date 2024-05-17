@@ -8,10 +8,10 @@
 #include <string.h>
 
 typedef struct h_string_t {
-    char* string;
-    uint32_t hash;
     size_t length;
     size_t capacity;
+    char* string;
+    uint32_t hash;
 } h_string_t;
 
 h_string_t* h_string_init(const char* string, size_t length);

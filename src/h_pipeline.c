@@ -84,7 +84,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
 
     h_string_t* empty_string = h_string_init_hash("", 0);
 
-    h_locals_stack_push(locals_stack, empty_string, NULL_VALUE(0), 0);
+    h_locals_stack_push(locals_stack, empty_string, UNDEFINED_VALUE(0), 0);
 
     semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack, labels_table, enums_table);
     h_sa_run(analyser);

@@ -44,7 +44,9 @@ typedef enum opcode_t {
     OP_JUMP_IF_TRUE,
     OP_JUMP,
     OP_JUMP_PLACEHOLDER,
-    OP_GOTO
+    OP_GOTO,
+    OP_SET_LOCAL_ARRAY,
+    OP_LOOP
 } opcode_t;
 
 typedef struct bytecode_store_t {

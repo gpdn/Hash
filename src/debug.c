@@ -7,6 +7,7 @@
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
 static int index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
+static int double_index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
 static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_t value);
 const char* resolve_token_type(token_type_t type);
 
@@ -59,6 +60,19 @@ static int index_instruction(const char* name, bytecode_store_t* store, size_t o
         free((void*)string);
     }
     return offset + 2;
+}
+
+static int double_index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
+    uint8_t value = store->code[offset + 1];
+    uint8_t value_2 = store->code[offset + 2];
+    DEBUG_LOG("%s %d %d\n", name, value, value_2);
+    if(file) {
+        char* string = (char*)malloc((sizeof(char) * (strlen(name) + 50)));
+        sprintf(string, "%s %d\n", name, value);
+        fwrite(string, 1, strlen(string), file);
+        free((void*)string);
+    }
+    return offset + 3;
 }
 
 void disassemble_bytecode_store(bytecode_store_t* store, const char* name, FILE* file) {
@@ -170,6 +184,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_SET_LOCAL:
             return index_instruction("OP_SET_LOCAL", store, offset, file);
             break;
+        case OP_LOOP:
+            return double_index_instruction("OP_LOOP", store, offset, file);
+            break;
+        case OP_SET_LOCAL_ARRAY:
+            return index_instruction("OP_SET_LOCAL_ARRAY", store, offset, file);
+            break;
         case OP_GET_LOCAL:
             return index_instruction("OP_GET_LOCAL", store, offset, file);
             break;
@@ -268,6 +288,10 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_ENUM: return "H_TOKEN_ENUM";
         case H_TOKEN_DOUBLE_BANG: return "H_TOKEN_DOUBLE_BANG";
         case H_TOKEN_ARR: return "H_TOKEN_ARR";
+        case H_TOKEN_REPEAT: return "H_TOKEN_REPEAT";
+        case H_TOKEN_BREAK: return "H_TOKEN_BREAK";
+        case H_TOKEN_SKIP: return "H_TOKEN_SKIP";
+        case H_TOKEN_LOOP: return "H_TOKEN_LOOP";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

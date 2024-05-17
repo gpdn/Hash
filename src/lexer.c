@@ -146,6 +146,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
                 }
             }
             break;
+        case 'b': return check_keyword(lexer, 1, 4, "reak", H_TOKEN_BREAK);
         case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
         case 'd': return check_keyword(lexer, 1, 1, "o", H_TOKEN_DO);
         case 'e': 
@@ -174,7 +175,14 @@ static token_t lexer_identifier(lexer_t* lexer) {
             }
             break;
         case 'i': return check_keyword(lexer, 1, 1, "f", H_TOKEN_IF);
-        case 'l': return check_keyword(lexer, 1, 4, "abel", H_TOKEN_LABEL);
+        case 'l':
+            if(lexer->current - lexer->start > 1) {
+                switch(lexer->start[1]) {
+                    case 'a': return check_keyword(lexer, 2, 3, "bel", H_TOKEN_LABEL);
+                    case 'o': return check_keyword(lexer, 2, 2, "op", H_TOKEN_LOOP);
+                }
+            }
+            break;
         case 'n': 
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'u') {
                 switch(lexer->start[2]) {
@@ -185,10 +193,18 @@ static token_t lexer_identifier(lexer_t* lexer) {
             break;
         case 'o': return check_keyword(lexer, 1, 1, "r", H_TOKEN_OR);
         case 'p': return check_keyword(lexer, 1, 4, "rint", H_TOKEN_PRINT);
-        case 'r': return check_keyword(lexer, 1, 2, "et", H_TOKEN_RETURN);
+        case 'r':
+            if(lexer->current - lexer->start > 2 && lexer->start[1] == 'e') {
+                switch(lexer->start[2]) {
+                    case 'p': return check_keyword(lexer, 3, 3, "eat", H_TOKEN_REPEAT);
+                    case 't': return token_create(lexer, H_TOKEN_RETURN);
+                }
+            }
+            break;
         case 's': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
+                    case 'k': return check_keyword(lexer, 2, 2, "ip", H_TOKEN_STR);
                     case 't': return check_keyword(lexer, 2, 1, "r", H_TOKEN_STR);
                     case 'u': return check_keyword(lexer, 2, 4, "uper", H_TOKEN_SUPER);
                 }

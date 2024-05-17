@@ -12,7 +12,9 @@ void print_value(value_t* value) {
             printf("Null\n");
             break;
         case H_VALUE_ARRAY:
-            printf("Array\n");
+            printf("[");
+            h_array_print_no_newline(value->array);
+            printf("]\n");
             break;
     }
 }
@@ -37,6 +39,19 @@ void print_value_no_newline(value_t* value) {
 
 const char* resolve_type(value_t* value) {
     switch(value->type) {
+        case H_VALUE_NUMBER:
+            return "Num";
+        case H_VALUE_STRING:
+            return "Str";
+        case H_VALUE_ARRAY:
+            return "Arr";
+        default:
+            return "Unk";
+    }
+}
+
+const char* resolve_value_type(value_type_t type) {
+    switch(type) {
         case H_VALUE_NUMBER:
             return "Num";
         case H_VALUE_STRING:

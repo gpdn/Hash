@@ -1,17 +1,13 @@
 #ifndef H_VALUES_H
 #define H_VALUES_H
 
+struct h_array_t;
+
 #include <stdio.h>
 #include <stdlib.h>
+#include "h_value_types.h"
 #include "h_string_t.h"
-
-typedef enum value_type_t {
-    H_VALUE_NULL,
-    H_VALUE_NUMBER,
-    H_VALUE_CHAR,
-    H_VALUE_STRING,
-    H_VALUE_ARRAY
-} value_type_t;
+#include "h_array_t.h"
 
 //typedef double value_t;
 
@@ -21,6 +17,7 @@ typedef struct value_t {
         double number;
         char character;
         h_string_t* string;
+        struct h_array_t* array;
     };
 } value_t;
 
@@ -28,14 +25,19 @@ typedef struct value_t {
 #define STR_VALUE(value) ((value_t){H_VALUE_STRING, {.string = value}})
 #define CHAR_VALUE(value) ((value_t){H_VALUE_CHAR, {.char = value}})
 #define NULL_VALUE(value) ((value_t){H_VALUE_NULL, {.number = 0}})
+#define UNDEFINED_VALUE(value) ((value_t){H_VALUE_UNDEFINED, {.number = 0}})
+#define VALUE_ARRAY(value) ((value_t){H_VALUE_ARRAY, {.array = value}})
 
 #define IS_NUM(value) ((value).type == H_VALUE_NUMBER);
 #define IS_STR(value) ((value).type == H_VALUE_STRING);
 #define IS_CHAR(value) ((value).type == H_VALUE_CHAR);
 #define IS_NULL(value) ((value).type == H_VALUE_NULL);
+#define IS_UNDEFINED(value) ((value).type == H_VALUE_UNDEFINED);
+#define IS_ARRAY(value) ((value).type == H_VALUE_ARRAY);
 
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);
 const char* resolve_type(value_t* value);
+const char* resolve_value_type(value_type_t value);
 
 #endif
