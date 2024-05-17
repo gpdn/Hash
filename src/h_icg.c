@@ -28,6 +28,7 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
 static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, uint8_t* instruction);
 
 static void emit_error(icg_t* icg) {
@@ -113,6 +114,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_BINARY:
             icg_generate_binary(icg, node);
+            break;
+        case AST_NODE_INDEXING:
+            icg_generate_indexing(icg, node);
             break;
         case AST_NODE_ASSIGNMENT:
             icg_generate_assignment(icg, node);
@@ -306,6 +310,12 @@ static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node) 
 static inline void icg_generate_identifier_assignment(icg_t* icg, ast_node_t* node) {
     //DEBUG_LOG("IDENTIFIER ASSIGNMENT\n");
     bs_write_constant(icg->bytecode_store, node->value);
+}
+
+static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->expression.right);
+    bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
 }
 
 /* static inline void icg_generate_number(icg_t* icg, ast_node_t* node) {

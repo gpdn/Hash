@@ -103,7 +103,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             }
             resolve_expression(analyser, node->expression.right);
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->expression.right->value, analyser->scope);
-            //h_locals_stack_print(analyser->locals);
+            h_locals_stack_print(analyser->locals);
             return;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
             value_t rvalue_global = resolve_expression(analyser, node->expression.right); 
@@ -186,7 +186,8 @@ static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser,
     value_t value_right = resolve_expression(analyser, node->expression.right);
     assert_iterable(analyser, value_left.type);
     assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
-    return value_left;
+    node->value.type = value_left.array->type;
+    return node->value;
 }
 
 static inline void resolve_expression_array_initialisation(semantic_analyser_t* analyser, ast_node_t* node, value_type_t type) {

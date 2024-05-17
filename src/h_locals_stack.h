@@ -26,6 +26,7 @@ value_t h_locals_stack_peek(h_locals_stack_t* locals_stack);
 value_t h_locals_stack_get(h_locals_stack_t* locals_stack, h_string_t* name, size_t scope);
 size_t h_locals_stack_get_index(h_locals_stack_t* locals_stack, h_string_t* name);
 value_t h_locals_array_get(h_locals_stack_t* locals_stack, size_t index);
+value_t h_locals_array_get_index(h_locals_stack_t* locals_stack, size_t index, size_t element_index);
 value_t h_locals_array_increase_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_decrease_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_post_increase_get(h_locals_stack_t* locals_stack, size_t index);

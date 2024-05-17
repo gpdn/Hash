@@ -167,6 +167,12 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_push(vm, local_value);
                 //h_ht_print(vm->globals_table);
                 break;
+            case OP_GET_LOCAL_INDEX:
+                value_t local_value_index = h_locals_array_get_index(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number);                
+                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
+                vm_stack_push(vm, local_value_index);
+                //h_ht_print(vm->globals_table);
+                break;
             /* case OP_LOOP:
                 size_t it_index = ADVANCE_INSTRUCTION_POINTER();
                 size_t loop_end = ADVANCE_INSTRUCTION_POINTER();
