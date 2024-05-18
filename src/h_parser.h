@@ -39,7 +39,8 @@ typedef enum ast_node_type_t{
     AST_NODE_ARRAY_INITIALISATION,
     AST_NODE_STATEMENT_REPEAT,
     AST_NODE_IDENTIFIER_TEMP,
-    AST_NODE_STATEMENT_LOOP
+    AST_NODE_STATEMENT_LOOP,
+    AST_NODE_ASSIGNMENT_COMPOUND
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

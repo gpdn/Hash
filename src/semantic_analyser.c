@@ -279,6 +279,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
     switch(node->type) {
         case AST_NODE_BINARY:
         case AST_NODE_ASSIGNMENT:
+        case AST_NODE_ASSIGNMENT_COMPOUND:
             return resolve_expression_binary(analyser, node);
         case AST_NODE_LITERAL:
             return node->value;

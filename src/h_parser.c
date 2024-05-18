@@ -42,6 +42,7 @@ static ast_node_t* parse_block_statement_enum(parser_t* parser);
 static ast_node_t* parse_enum_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_indexing(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_array_initialisation(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_compound_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message);
@@ -70,10 +71,10 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_BITWISE_NOT]               = {parse_unary_expression, NULL, OP_PREC_UNARY},
     [H_TOKEN_DOUBLE_EQUAL]              = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
     [H_TOKEN_BANG_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
-    [H_TOKEN_PLUS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
-    [H_TOKEN_MINUS_EQUAL]               = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
-    [H_TOKEN_STAR_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
-    [H_TOKEN_SLASH_EQUAL]               = {NULL, parse_binary_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_PLUS_EQUAL]                = {NULL, parse_compound_assignment_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_MINUS_EQUAL]               = {NULL, parse_compound_assignment_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_STAR_EQUAL]                = {NULL, parse_compound_assignment_expression, OP_PREC_EQUALITY},
+    [H_TOKEN_SLASH_EQUAL]               = {NULL, parse_compound_assignment_expression, OP_PREC_EQUALITY},
     [H_TOKEN_GREATER]                   = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_GREATER_EQUAL]             = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
@@ -629,6 +630,15 @@ static ast_node_t* parse_assignment_expression(parser_t* parser, operator_preced
     return node;
 }
 
+static ast_node_t* parse_compound_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+    ast_node_t* node = ast_node_create(AST_NODE_ASSIGNMENT_COMPOUND);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = left;
+    node->expression.right = parse_expression(parser, precedence);
+    return node;
+}
+
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node) {
     if(parser->ast_list_size >= parser->ast_list_capacity) {
         parser->ast_list_capacity *= 2; 
@@ -689,6 +699,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_ASSIGNMENT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_ASSIGNMENT %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_ASSIGNMENT_COMPOUND:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_ASSIGNMENT_COMPOUND %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_UNARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_UNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);

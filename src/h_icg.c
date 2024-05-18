@@ -26,6 +26,7 @@ static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
+static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
@@ -120,6 +121,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_ASSIGNMENT:
             icg_generate_assignment(icg, node);
+            break;
+        case AST_NODE_ASSIGNMENT_COMPOUND:
+            icg_generate_assignment_compound(icg, node);
             break;
         case AST_NODE_UNARY:
             icg_generate_unary(icg, node);
@@ -435,6 +439,49 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     }
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
     bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+}
+
+static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node) {
+
+    #define H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE(type) \
+        switch(type) { \
+            case H_TOKEN_PLUS_EQUAL: \
+                bs_write(icg->bytecode_store, OP_ADD); \
+                break; \
+            case H_TOKEN_MINUS_EQUAL: \
+                bs_write(icg->bytecode_store, OP_SUB); \
+                break; \
+            case H_TOKEN_STAR_EQUAL: \
+                bs_write(icg->bytecode_store, OP_MUL); \
+                break; \
+            case H_TOKEN_SLASH_EQUAL: \
+                bs_write(icg->bytecode_store, OP_DIV); \
+                break; \
+            default: \
+                break; \
+        }
+
+    icg_generate_expression(icg, node->expression.right);
+    if(node->expression.left->type == AST_NODE_INDEXING) {
+        size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string);
+        icg_generate_expression(icg, node->expression.left->expression.right);
+        bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
+        bs_write(icg->bytecode_store, local_index);
+        H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE(node->operator->type);
+        icg_generate_expression(icg, node->expression.left->expression.right);
+        bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
+        bs_write(icg->bytecode_store, local_index);
+        return;
+    }
+
+    size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string);
+    bs_write(icg->bytecode_store, OP_GET_LOCAL);
+    bs_write(icg->bytecode_store, local_index);
+    H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE(node->operator->type);
+    bs_write(icg->bytecode_store, OP_SET_LOCAL);
+    bs_write(icg->bytecode_store, local_index);
+
+    #undef H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE
 }
 
 icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
