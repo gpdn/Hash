@@ -48,6 +48,10 @@ value_t h_locals_array_get_index(h_locals_stack_t* locals_stack, size_t index, s
     return h_array_get(locals_stack->locals_array[index].value.array, element_index);
 }
 
+void h_locals_array_set_index(h_locals_stack_t* locals_stack, size_t index, size_t element_index, value_t value) {
+    h_array_set(locals_stack->locals_array[index].value.array, element_index, value);
+}
+
 void h_locals_array_set(h_locals_stack_t* locals_stack, size_t index, value_t value) {
     locals_stack->locals_array[index].value = value; 
 }

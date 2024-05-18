@@ -140,8 +140,8 @@ static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) {
-    size_t current_index = icg->bytecode_store->constants->size;
     if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
+        size_t current_index = icg->bytecode_store->constants->size;
         icg_generate_expression(icg, node->expression.right);
         bs_write_constant(icg->bytecode_store, NUM_VALUE(icg->bytecode_store->constants->size - current_index));
         bs_write(icg->bytecode_store, OP_SET_LOCAL_ARRAY);
@@ -427,6 +427,12 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.right);
     //icg_generate_identifier_assignment(icg, node->expression.left);
     //bs_write(icg->bytecode_store, OP_ASSIGN);
+    if(node->expression.left->type == AST_NODE_INDEXING) {
+        icg_generate_expression(icg, node->expression.left->expression.right);
+        bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
+        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string));
+        return;
+    }
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
     bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
 }

@@ -27,6 +27,7 @@ value_t h_locals_stack_get(h_locals_stack_t* locals_stack, h_string_t* name, siz
 size_t h_locals_stack_get_index(h_locals_stack_t* locals_stack, h_string_t* name);
 value_t h_locals_array_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_get_index(h_locals_stack_t* locals_stack, size_t index, size_t element_index);
+void h_locals_array_set_index(h_locals_stack_t* locals_stack, size_t index, size_t element_index, value_t value);
 value_t h_locals_array_increase_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_decrease_get(h_locals_stack_t* locals_stack, size_t index);
 value_t h_locals_array_post_increase_get(h_locals_stack_t* locals_stack, size_t index);

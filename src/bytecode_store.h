@@ -46,6 +46,7 @@ typedef enum opcode_t {
     OP_JUMP_PLACEHOLDER,
     OP_GOTO,
     OP_SET_LOCAL_ARRAY,
+    OP_SET_LOCAL_INDEX,
     OP_LOOP,
     OP_GET_LOCAL_INDEX
 } opcode_t;

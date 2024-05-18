@@ -157,6 +157,10 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->stack_top -= (size_t)array_size.number;
                 h_array_print(local_array.array);
                 break;
+            case OP_SET_LOCAL_INDEX:
+                size_t index = vm_stack_pop(vm).number;
+                h_locals_array_set_index(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), index, vm_stack_peek(vm));
+                break;
             case OP_GET_GLOBAL:
                 //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
                 vm_stack_push(vm, h_ht_array_get(vm->globals_table, ADVANCE_INSTRUCTION_POINTER()));
