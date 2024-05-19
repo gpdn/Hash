@@ -15,6 +15,8 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_break(icg_t* icg);
+static inline void icg_generate_statement_skip(icg_t* icg);
 static inline void icg_generate_array_initialisation(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
@@ -31,10 +33,28 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
 static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, uint8_t* instruction);
+static void breaks_instructions_list_push(break_instructions_list_t* breaks_list, uint8_t* instruction);
+static void skips_instructions_list_push(skip_instructions_list_t* skips_list, uint8_t* instruction);
+static inline void icg_resolve_breaks(icg_t* icg);
+static inline void icg_resolve_skips(icg_t* icg, size_t instruction_index);
 
 static void emit_error(icg_t* icg) {
     ++icg->errors_count;
     icg->current = icg->ast_nodes_list[icg->ast_nodes_list_count - 1];
+}
+
+static inline void icg_resolve_breaks(icg_t* icg) {
+    for(size_t i = 0; i < icg->breaks_list.size; ++i) {
+        *icg->breaks_list.instructions_list[i] = icg->bytecode_store->size;
+    }
+    icg->breaks_list.size = 0;
+}
+
+static inline void icg_resolve_skips(icg_t* icg, size_t instruction_index) {
+    for(size_t i = 0; i < icg->skips_list.size; ++i) {
+        *icg->skips_list.instructions_list[i] = instruction_index;
+    }
+    icg->skips_list.size = 0;
 }
 
 static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, uint8_t* instruction) {
@@ -45,6 +65,26 @@ static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, u
 
     gotos_list->instructions_list[gotos_list->size++] = instruction;
     DEBUG_LOG("Pushing Instruction %u\n", *instruction);
+}
+
+static void breaks_instructions_list_push(break_instructions_list_t* breaks_list, uint8_t* instruction) {
+    if(breaks_list->size >= breaks_list->capacity) {
+        breaks_list->capacity *= 2;
+        breaks_list->instructions_list = (uint8_t**)realloc(breaks_list->instructions_list, sizeof(uint8_t*) * breaks_list->capacity);
+    }
+
+    breaks_list->instructions_list[breaks_list->size++] = instruction;
+    DEBUG_LOG("Pushing Break %u\n", *instruction);
+}
+
+static void skips_instructions_list_push(skip_instructions_list_t* skips_list, uint8_t* instruction) {
+    if(skips_list->size >= skips_list->capacity) {
+        skips_list->capacity *= 2;
+        skips_list->instructions_list = (uint8_t**)realloc(skips_list->instructions_list, sizeof(uint8_t*) * skips_list->capacity);
+    }
+
+    skips_list->instructions_list[skips_list->size++] = instruction;
+    DEBUG_LOG("Pushing Skip %u\n", *instruction);
 }
 
 static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
@@ -94,6 +134,12 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_STATEMENT_BLOCK:
             icg_generate_statement_block(icg, node);
+            break;
+        case AST_NODE_STATEMENT_BREAK:
+            icg_generate_statement_break(icg);
+            break;
+        case AST_NODE_STATEMENT_SKIP:
+            icg_generate_statement_skip(icg);
             break;
         case AST_NODE_STATEMENT_EXPRESSION:
             icg_generate_statement_expression(icg, node);
@@ -201,6 +247,8 @@ static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction_index);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+    icg_resolve_breaks(icg);
+    icg_resolve_skips(icg, current_instruction_index);
 }
 
 static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node) {
@@ -209,6 +257,8 @@ static inline void icg_generate_statement_do_while(icg_t* icg, ast_node_t* node)
     icg_generate_expression(icg, node->expression.right);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, current_instruction_index);
+    icg_resolve_breaks(icg);
+    icg_resolve_skips(icg, current_instruction_index);
 }
 
 static inline void icg_generate_statement_goto(icg_t* icg, ast_node_t* node) {
@@ -233,11 +283,13 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
     size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
     icg_generate_statement_block(icg, node->expression.right);
+    icg_resolve_skips(icg, icg->bytecode_store->size);
     icg_generate_expression(icg, condition->expression.right);
     bs_write(icg->bytecode_store, OP_POP);
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+    icg_resolve_breaks(icg);
 }
 
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
@@ -249,6 +301,8 @@ static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_NOT_EQUAL);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
+    icg_resolve_breaks(icg);
+    icg_resolve_skips(icg, jump_index);
 }
 
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
@@ -258,12 +312,26 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
     icg_generate_statement_block(icg, node->expression.right);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+    icg_resolve_breaks(icg);
+    icg_resolve_skips(icg, jump_placeholder);
 }
 
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
     }
+}
+
+static inline void icg_generate_statement_break(icg_t* icg) {
+    bs_write(icg->bytecode_store, OP_JUMP);
+    breaks_instructions_list_push(&icg->breaks_list, icg->bytecode_store->code + icg->bytecode_store->size);
+    bs_write(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
+}
+
+static inline void icg_generate_statement_skip(icg_t* icg) {
+    bs_write(icg->bytecode_store, OP_JUMP);
+    skips_instructions_list_push(&icg->skips_list, icg->bytecode_store->code + icg->bytecode_store->size);
+    bs_write(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
 }
 
 static inline void icg_generate_array_initialisation(icg_t* icg, ast_node_t* node) {
@@ -497,11 +565,19 @@ icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash
     icg->gotos_list.capacity = 50;
     icg->gotos_list.size = 0;
     icg->gotos_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->gotos_list.capacity);
+    icg->breaks_list.capacity = 5;
+    icg->breaks_list.size = 0;
+    icg->breaks_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->breaks_list.capacity);
+    icg->skips_list.capacity = 5;
+    icg->skips_list.size = 0;
+    icg->skips_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->skips_list.capacity);
     return icg;
 }
 
 void icg_free(icg_t* icg) {
     free(icg->gotos_list.instructions_list);
+    free(icg->breaks_list.instructions_list);
+    free(icg->skips_list.instructions_list);
     free(icg);
 }
 

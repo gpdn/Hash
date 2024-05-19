@@ -9,6 +9,7 @@ static void emit_error(semantic_analyser_t* analyser);
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
 static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list);
+static inline void assert_loop_count(semantic_analyser_t* analyser);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node);
@@ -60,6 +61,10 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
     for(size_t i = 0; i < function->parameters_list_size; ++i) {
         if(function->parameters_list[i].type != parameters_list->block.declarations[i]->value.type) emit_error(analyser);
     }
+}
+
+static inline void assert_loop_count(semantic_analyser_t* analyser) {
+    if(analyser->loop_count == 0) emit_error(analyser);
 }
 
 semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
@@ -137,6 +142,10 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->expression.left);
             return;
+        case AST_NODE_STATEMENT_BREAK:
+        case AST_NODE_STATEMENT_SKIP:
+            assert_loop_count(analyser);
+            return;
         case AST_NODE_STATEMENT_IF:
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.right);
@@ -147,12 +156,16 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             ast_post_check_push(analyser, node);
             return;
         case AST_NODE_STATEMENT_WHILE:
+            ++analyser->loop_count;
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.right);
+            --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_DO_WHILE:
+            ++analyser->loop_count;
             if(resolve_expression(analyser, node->expression.right).type == H_VALUE_UNDEFINED) emit_error(analyser);
             resolve_block_statement(analyser, node->expression.left);
+            --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_ASSERTION:
             resolve_expression(analyser, node->expression.left);
@@ -164,23 +177,29 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             resolve_expression(analyser, node->expression.right);
             return;
         case AST_NODE_STATEMENT_FOR:
+            ++analyser->loop_count;
             ++analyser->scope;
             resolve_ast(analyser, node->expression.left);
             --analyser->scope;
             resolve_block_statement(analyser, node->expression.right);
             h_locals_stack_print(analyser->locals);
+            --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_REPEAT:
+            ++analyser->loop_count;
             resolve_ast(analyser, node->expression.left);
             assert_value_type(analyser, node->expression.left->value.type, H_VALUE_NUMBER);
             h_locals_stack_push(analyser->locals, node->expression.other->value.string, NUM_VALUE(0), analyser->scope + 1);
             resolve_block_statement(analyser, node->expression.right);
+            --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_LOOP:
+            ++analyser->loop_count;
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
             assert_iterable(analyser, node->expression.left->value.type);
             h_locals_stack_push(analyser->locals, node->expression.other->value.string, NUM_VALUE(0), analyser->scope + 1);
             resolve_block_statement(analyser, node->expression.right);
+            --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_BLOCK:
             resolve_block_statement(analyser, node);
