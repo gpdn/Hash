@@ -8,6 +8,7 @@
 static void emit_error(semantic_analyser_t* analyser);
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
+static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node);
@@ -52,6 +53,13 @@ static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t
 
 static inline void assert_ast_node_type(semantic_analyser_t* analyser, ast_node_t* node, ast_node_type_t type) {
     if(node->type != type) emit_error(analyser);
+}
+
+static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list) {
+    if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser);
+    for(size_t i = 0; i < function->parameters_list_size; ++i) {
+        if(function->parameters_list[i].type != parameters_list->block.declarations[i]->value.type) emit_error(analyser);
+    }
 }
 
 semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
@@ -121,6 +129,11 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             } 
             h_ht_enums_print(analyser->enums_table);
             return;
+        case AST_NODE_DECLARATION_FUNCTION:
+            h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
+            resolve_block_statement(analyser, node->expression.right);
+            h_locals_stack_print(analyser->locals);
+            return;
         case AST_NODE_STATEMENT_PRINT:
             resolve_expression(analyser, node->expression.left);
             return;
@@ -187,6 +200,15 @@ static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser,
     assert_iterable(analyser, value_left.type);
     assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
     node->value.type = value_left.array->type;
+    return node->value;
+}
+
+static inline value_t resolve_expression_function_call(semantic_analyser_t* analyser, ast_node_t* node) {
+    value_t value_left = resolve_expression(analyser, node->expression.left);
+    assert_value_type(analyser, value_left.type, H_VALUE_FUNCTION);
+    resolve_block_statement(analyser, node->expression.right);
+    assert_parameters_arity(analyser, value_left.function, node->expression.right);
+    node->value.type = value_left.function->return_type;
     return node->value;
 }
 
@@ -295,6 +317,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return NUM_VALUE(1);
         case AST_NODE_INDEXING:
             return resolve_expression_indexing(analyser, node);
+        case AST_NODE_FUNCTION_CALL:
+            return resolve_expression_function_call(analyser, node);
         default:
             emit_error(analyser);
             return UNDEFINED_VALUE(0);

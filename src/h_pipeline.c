@@ -51,6 +51,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     parser_t* parser = parser_init(tokens_array, tokens_count);
     ast_node_t** ast = parser_generate_ast(parser);
 
+
     #if DEBUG_TRACE_PARSER_AST
         DEBUG_PRINT_LINE();
         DEBUG_COLOR_SET(COLOR_CYAN);
