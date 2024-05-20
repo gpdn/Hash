@@ -45,7 +45,8 @@ typedef enum ast_node_type_t{
     AST_NODE_FUNCTION_CALL,
     AST_NODE_FUNCTION_PARAMETERS,
     AST_NODE_STATEMENT_BREAK,
-    AST_NODE_STATEMENT_SKIP
+    AST_NODE_STATEMENT_SKIP,
+    AST_NODE_STATEMENT_RETURN
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

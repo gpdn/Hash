@@ -5,6 +5,9 @@
             DEBUG_LOG("Add case to semantic analyser - %s - %s\n", node_type, resolve_token_type(node->operator->type));\
             DEBUG_COLOR_RESET();
 
+#define H_DEFAULT_POST_CHECKS_LIST_CAPACITY 5;
+#define H_DEFAULT_RETURNS_LIST_CAPACITY 5;
+
 static void emit_error(semantic_analyser_t* analyser);
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
@@ -13,12 +16,17 @@ static inline void assert_loop_count(semantic_analyser_t* analyser);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node);
+static inline value_t resolve_return_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_unary(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_post_unary(semantic_analyser_t* analyser, ast_node_t* node);
 static inline void resolve_expression_array_initialisation(semantic_analyser_t* analyser, ast_node_t* node, value_type_t type);
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node);
 static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node);
+static void returns_list_push(semantic_analyser_t* analyser, value_type_t type);
+static inline void resolve_returns_list(semantic_analyser_t* analyser, value_type_t type);
+static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type);
+static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 
 static value_type_t iterables[] = {
     [H_VALUE_UNDEFINED] = 0,
@@ -36,6 +44,38 @@ static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node)
     }
 
     analyser->ast_nodes_post_checks[analyser->ast_nodes_post_checks_size++] = node;
+}
+
+static void returns_list_push(semantic_analyser_t* analyser, value_type_t type) {
+    if(analyser->returns_list.size >= analyser->returns_list.capacity) {
+        analyser->returns_list.capacity *= 2;
+        analyser->returns_list.types = (value_type_t*)realloc(analyser->returns_list.types, sizeof(value_type_t) * analyser->returns_list.capacity);
+    }
+
+    analyser->returns_list.types[analyser->returns_list.size++] = type;
+}
+
+static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type) {
+    if(analyser->returns_list.size == 0) emit_error(analyser);
+    for(size_t i = 0; i < analyser->returns_list.size; ++i) {
+        if(analyser->returns_list.types[i] != type) emit_error(analyser);
+    }
+    analyser->returns_list.size = 0;
+}
+
+static inline void assert_returns_undefined(semantic_analyser_t* analyser) {
+    for(size_t i = 0; i < analyser->returns_list.size; ++i) {
+        if(analyser->returns_list.types[i] != H_VALUE_UNDEFINED) emit_error(analyser);
+    }
+    analyser->returns_list.size = 0;
+}
+
+static inline void resolve_returns_list(semantic_analyser_t* analyser, value_type_t type) {
+    if(type != H_VALUE_UNDEFINED) {
+        assert_returns_type(analyser, type);
+        return;
+    }
+    assert_returns_undefined(analyser);
 }
 
 static void emit_error(semantic_analyser_t* analyser) {
@@ -79,8 +119,11 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->labels_table = labels_table;
     analyser->enums_table = enums_table;
     analyser->ast_nodes_post_checks_size = 0;
-    analyser->ast_nodes_post_checks_capacity = 5;
+    analyser->ast_nodes_post_checks_capacity = H_DEFAULT_POST_CHECKS_LIST_CAPACITY;
     analyser->ast_nodes_post_checks = (ast_node_t**)malloc(sizeof(ast_node_t*) * analyser->ast_nodes_post_checks_capacity);
+    analyser->returns_list.capacity = H_DEFAULT_RETURNS_LIST_CAPACITY;
+    analyser->returns_list.size = 0;
+    analyser->returns_list.types = (value_type_t*)malloc(sizeof(value_type_t) * analyser->returns_list.capacity);
     return analyser;
 }
 
@@ -137,6 +180,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_DECLARATION_FUNCTION:
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
             resolve_block_statement(analyser, node->expression.right);
+            resolve_returns_list(analyser, node->value.function->return_type);
             h_locals_stack_print(analyser->locals);
             return;
         case AST_NODE_STATEMENT_PRINT:
@@ -145,6 +189,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_BREAK:
         case AST_NODE_STATEMENT_SKIP:
             assert_loop_count(analyser);
+            return;
+        case AST_NODE_STATEMENT_RETURN:
+            resolve_return_statement(analyser, node->expression.left);
             return;
         case AST_NODE_STATEMENT_IF:
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
@@ -220,6 +267,17 @@ static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser,
     assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
     node->value.type = value_left.array->type;
     return node->value;
+}
+
+static inline value_t resolve_return_statement(semantic_analyser_t* analyser, ast_node_t* node) {
+    if(node) {
+        value_t return_value = resolve_expression(analyser, node); 
+        returns_list_push(analyser, return_value.type);
+        return return_value;
+    }
+    value_t return_value = UNDEFINED_VALUE(0); 
+    returns_list_push(analyser, return_value.type);
+    return return_value;
 }
 
 static inline value_t resolve_expression_function_call(semantic_analyser_t* analyser, ast_node_t* node) {
@@ -355,7 +413,10 @@ static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_no
 
 void h_sa_free(semantic_analyser_t* analyser) {
     free(analyser->ast_nodes_post_checks);
+    free(analyser->returns_list.types);
     free(analyser);
 }
 
 #undef DEBUG_LOG_UNIMPLEMENTED
+#undef H_DEFAULT_POST_CHECKS_LIST_CAPACITY
+#undef H_DEFAULT_RETURNS_LIST_CAPACITY

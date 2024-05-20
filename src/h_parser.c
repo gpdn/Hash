@@ -39,6 +39,7 @@ static ast_node_t* parse_for_statement_condition(parser_t* parser);
 static ast_node_t* parse_for_statement(parser_t* parser);
 static ast_node_t* parse_break_statement(parser_t* parser);
 static ast_node_t* parse_skip_statement(parser_t* parser);
+static ast_node_t* parse_return_statement(parser_t* parser);
 static ast_node_t* parse_repeat_statement(parser_t* parser);
 static ast_node_t* parse_loop_statement(parser_t* parser);
 static ast_node_t* parse_block_statement(parser_t* parser);
@@ -241,6 +242,8 @@ static ast_node_t* parse_statement(parser_t* parser) {
             return parse_break_statement(parser);
         case H_TOKEN_SKIP:
             return parse_skip_statement(parser);
+        case H_TOKEN_RETURN:
+            return parse_return_statement(parser);
         case H_TOKEN_REPEAT:
             return parse_repeat_statement(parser);
         case H_TOKEN_DOUBLE_BANG:
@@ -299,9 +302,12 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     node->operator = parser->current;
     ++parser->current;
     h_function_t* function = h_function_init();
+    token_print(parser->current);
     assert_token_type(parser, H_TOKEN_LEFT_SQUARE, "Expected [ after fn keyword.");
-    function->return_type = parser_get_value_type(parser);
-    ++parser->current;
+    if(parser->current->type != H_TOKEN_RIGHT_SQUARE) {
+        function->return_type = parser_get_value_type(parser);
+        ++parser->current;
+    }
     assert_token_type(parser, H_TOKEN_RIGHT_SQUARE, "Expected ] after fn return type.");
     assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected function name after return types.");
     node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
@@ -476,6 +482,19 @@ static ast_node_t* parse_skip_statement(parser_t* parser) {
     ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_SKIP);
     node->operator = parser->current;
     ++parser->current;
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon after break statement");
+    return node;
+}
+
+static ast_node_t* parse_return_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_RETURN);
+    node->operator = parser->current;
+    ++parser->current;
+    if(parser->current->type == H_TOKEN_SEMICOLON) {
+        ++parser->current;
+        return node;
+    }
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon after break statement");
     return node;
 }
@@ -823,6 +842,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_STATEMENT_SKIP:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_SKIP %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_STATEMENT_RETURN:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_RETURN %.*s\n", indent, 0, "");
             break;
         case AST_NODE_STATEMENT_FOR:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_FOR %.*s\n", indent, (int)node->operator->length, node->operator->start);
