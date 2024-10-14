@@ -8,7 +8,7 @@
 #define H_DEFAULT_POST_CHECKS_LIST_CAPACITY 5;
 #define H_DEFAULT_RETURNS_LIST_CAPACITY 5;
 
-static void emit_error(semantic_analyser_t* analyser);
+static void emit_error(semantic_analyser_t* analyser, const char* error);
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
 static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list);
@@ -56,16 +56,16 @@ static void returns_list_push(semantic_analyser_t* analyser, value_type_t type) 
 }
 
 static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type) {
-    if(analyser->returns_list.size == 0) emit_error(analyser);
+    if(analyser->returns_list.size == 0) emit_error(analyser, "Expected return value");
     for(size_t i = 0; i < analyser->returns_list.size; ++i) {
-        if(analyser->returns_list.types[i] != type) emit_error(analyser);
+        if(analyser->returns_list.types[i] != type) emit_error(analyser, "Invalid return type");
     }
     analyser->returns_list.size = 0;
 }
 
 static inline void assert_returns_undefined(semantic_analyser_t* analyser) {
     for(size_t i = 0; i < analyser->returns_list.size; ++i) {
-        if(analyser->returns_list.types[i] != H_VALUE_UNDEFINED) emit_error(analyser);
+        if(analyser->returns_list.types[i] != H_VALUE_UNDEFINED) emit_error(analyser, "No return value expected");
     }
     analyser->returns_list.size = 0;
 }
@@ -78,33 +78,44 @@ static inline void resolve_returns_list(semantic_analyser_t* analyser, value_typ
     assert_returns_undefined(analyser);
 }
 
-static void emit_error(semantic_analyser_t* analyser) {
-    DEBUG_LOG("Error\n");
+static void emit_error(semantic_analyser_t* analyser, const char* error) {
+    DEBUG_LOG("Semantic Analyser Error: %s\n", error);
     ++analyser->errors_count;
     analyser->current = analyser->ast_nodes_list[analyser->ast_nodes_list_count - 1];
 }
 
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type) {
-    if(iterables[value_type] == 0) emit_error(analyser);
+    if(iterables[value_type] == 0) emit_error(analyser, "Expected iterable type");
 }
 
 static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type) {
-    if(value_type != type) emit_error(analyser);
+    if(value_type != type) emit_error(analyser, "Type mismatch");
 }
 
 static inline void assert_ast_node_type(semantic_analyser_t* analyser, ast_node_t* node, ast_node_type_t type) {
-    if(node->type != type) emit_error(analyser);
+    if(node->type != type) emit_error(analyser, "Add error to assert_ast_node_type");
 }
 
 static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list) {
-    if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser);
+    if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser, "Invalid arguments count");
+    //print_value(&parameters_list->block.declarations[0]->value);
+    
     for(size_t i = 0; i < function->parameters_list_size; ++i) {
-        if(function->parameters_list[i].type != parameters_list->block.declarations[i]->value.type) emit_error(analyser);
+        DEBUG_LOG("Iteration %lld\n", i);
+        DEBUG_LOG("Func: %s\n", resolve_value_type(function->parameters_list[i].type));
+        print_value(&parameters_list->block.declarations[i]->value);
+        value_t arg_value = resolve_expression(analyser, parameters_list->block.declarations[i]);
+        //parameters_list->block.declarations[i]->value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
+        DEBUG_LOG("Args: %s\n", resolve_value_type(parameters_list->block.declarations[i]->value.type));
+        print_value(&parameters_list->block.declarations[i]->value);
+        DEBUG_LOG("Type Param: %d\n", function->parameters_list[i].type);
+        DEBUG_LOG("Type Args: %d\n", parameters_list->block.declarations[i]->value.type);
+        if(function->parameters_list[i].type != arg_value.type) emit_error(analyser, "Invalid argument type");
     }
 }
 
 static inline void assert_loop_count(semantic_analyser_t* analyser) {
-    if(analyser->loop_count == 0) emit_error(analyser);
+    if(analyser->loop_count == 0) emit_error(analyser, "Cannot use statement outside fo a loop");
 }
 
 semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table) {
@@ -116,6 +127,7 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->scope = 0;
     analyser->loop_count = 0;
     analyser->locals = locals_stack;
+    analyser->initial_locals = locals_stack;
     analyser->labels_table = labels_table;
     analyser->enums_table = enums_table;
     analyser->ast_nodes_post_checks_size = 0;
@@ -130,8 +142,6 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
 void h_sa_run(semantic_analyser_t* analyser) {
     analyser->current = *analyser->ast_nodes_list++;
     while(analyser->current->type != AST_NODE_EOF) {
-        //ast_print(analyser->current, 0);
-        //disassemble_ast_node(analyser->current, 0);
         resolve_ast(analyser, analyser->current);
         analyser->current = *analyser->ast_nodes_list++;
     }
@@ -147,9 +157,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_DECLARATION_VARIABLE:
         case AST_NODE_DECLARATION_VARIABLE_CONSTANT:
             value_t rvalue_local = resolve_expression(analyser, node->expression.right);
-            if(node->value.type != rvalue_local.type) emit_error(analyser);
+            if(node->value.type != rvalue_local.type) emit_error(analyser, "Invalid type assignment");
+            if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_local, analyser->scope);
-            //h_locals_stack_print(analyser->locals);
             return;
         case AST_NODE_DECLARATION_VARIABLE_ARRAY:
             if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
@@ -159,11 +169,10 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             }
             resolve_expression(analyser, node->expression.right);
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->expression.right->value, analyser->scope);
-            h_locals_stack_print(analyser->locals);
             return;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
             value_t rvalue_global = resolve_expression(analyser, node->expression.right); 
-            if(node->value.type != rvalue_global.type) emit_error(analyser);
+            if(node->value.type != rvalue_global.type) emit_error(analyser, "Variable already defined");
             h_ht_set(analyser->globals_table, node->expression.left->value.string, rvalue_global);
             //h_ht_print(analyser->globals_table);
             return;
@@ -179,22 +188,31 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             return;
         case AST_NODE_DECLARATION_FUNCTION:
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
+            analyser->locals = node->value.function->locals_stack;
             resolve_block_statement(analyser, node->expression.right);
+            analyser->locals = analyser->initial_locals;
             resolve_returns_list(analyser, node->value.function->return_type);
-            h_locals_stack_print(analyser->locals);
+            return;
+        case AST_NODE_DECLARATION_DATA:
+            h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
+            analyser->locals = node->value.function->locals_stack;
+            resolve_block_statement(analyser, node->expression.right);
+            analyser->locals = analyser->initial_locals;
+            resolve_returns_list(analyser, node->value.function->return_type);
             return;
         case AST_NODE_STATEMENT_PRINT:
-            resolve_expression(analyser, node->expression.left);
+            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
             return;
         case AST_NODE_STATEMENT_BREAK:
         case AST_NODE_STATEMENT_SKIP:
             assert_loop_count(analyser);
             return;
         case AST_NODE_STATEMENT_RETURN:
+        case AST_NODE_STATEMENT_RETURN_VALUE:
             resolve_return_statement(analyser, node->expression.left);
             return;
         case AST_NODE_STATEMENT_IF:
-            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
+            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
             resolve_block_statement(analyser, node->expression.right);
             if(node->expression.other) resolve_block_statement(analyser, node->expression.other);
             return;
@@ -204,13 +222,13 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             return;
         case AST_NODE_STATEMENT_WHILE:
             ++analyser->loop_count;
-            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
+            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
             resolve_block_statement(analyser, node->expression.right);
             --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_DO_WHILE:
             ++analyser->loop_count;
-            if(resolve_expression(analyser, node->expression.right).type == H_VALUE_UNDEFINED) emit_error(analyser);
+            if(resolve_expression(analyser, node->expression.right).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
             resolve_block_statement(analyser, node->expression.left);
             --analyser->loop_count;
             return;
@@ -229,7 +247,6 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             resolve_ast(analyser, node->expression.left);
             --analyser->scope;
             resolve_block_statement(analyser, node->expression.right);
-            h_locals_stack_print(analyser->locals);
             --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_REPEAT:
@@ -241,10 +258,13 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             --analyser->loop_count;
             return;
         case AST_NODE_STATEMENT_LOOP:
+            //ast_print(node->expression.other, 0);
             ++analyser->loop_count;
-            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser);
+            if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
             assert_iterable(analyser, node->expression.left->value.type);
-            h_locals_stack_push(analyser->locals, node->expression.other->value.string, NUM_VALUE(0), analyser->scope + 1);
+            //h_locals_stack_push(analyser->locals, node->expression.other->value.string, NUM_VALUE(0), analyser->scope + 1);
+            h_locals_stack_push(analyser->locals, node->expression.other->expression.left->value.string, NUM_VALUE(0), analyser->scope + 1);
+            h_locals_stack_push(analyser->locals, node->expression.other->expression.right->value.string, NUM_VALUE(0), analyser->scope + 1);
             resolve_block_statement(analyser, node->expression.right);
             --analyser->loop_count;
             return;
@@ -252,7 +272,6 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             resolve_block_statement(analyser, node);
             return;
         case AST_NODE_STATEMENT_EXPRESSION:
-            ast_print(node->expression.left, 0);
             resolve_expression(analyser, node->expression.left);
             return;
         default:
@@ -281,6 +300,7 @@ static inline value_t resolve_return_statement(semantic_analyser_t* analyser, as
 }
 
 static inline value_t resolve_expression_function_call(semantic_analyser_t* analyser, ast_node_t* node) {
+    node->expression.left->type = AST_NODE_IDENTIFIER_FUNCTION;
     value_t value_left = resolve_expression(analyser, node->expression.left);
     assert_value_type(analyser, value_left.type, H_VALUE_FUNCTION);
     resolve_block_statement(analyser, node->expression.right);
@@ -330,9 +350,13 @@ static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node
             node->value.type = H_VALUE_NUMBER;
             return node->value;
             break;
+        case H_TOKEN_TO:
+            //assert_value_type(analyser, value_left.type, H_VALUE_NUMBER);
+            assert_value_type(analyser, value_left.type, value_right.type);
+            break;
         default:
             //if(value_left != value_right) emit_error(analyser);
-            emit_error(analyser);
+            emit_error(analyser, "Undefined node");
             break;
     }
     
@@ -379,11 +403,14 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
         case AST_NODE_BINARY:
         case AST_NODE_ASSIGNMENT:
         case AST_NODE_ASSIGNMENT_COMPOUND:
+        case AST_NODE_TO:
             return resolve_expression_binary(analyser, node);
         case AST_NODE_LITERAL:
             return node->value;
         case AST_NODE_IDENTIFIER:
             return h_locals_stack_get(analyser->locals, node->value.string, analyser->scope);
+        case AST_NODE_IDENTIFIER_FUNCTION:
+            return h_locals_stack_get(analyser->initial_locals, node->value.string, 0);
         case AST_NODE_IDENTIFIER_GLOBAL:
             return h_ht_get(analyser->globals_table, node->value.string);
         case AST_NODE_UNARY:
@@ -397,7 +424,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
         case AST_NODE_FUNCTION_CALL:
             return resolve_expression_function_call(analyser, node);
         default:
-            emit_error(analyser);
+            emit_error(analyser, "Undefined node");
             return UNDEFINED_VALUE(0);
             break;
     }

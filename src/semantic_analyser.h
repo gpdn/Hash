@@ -22,6 +22,7 @@ typedef struct semantic_analyser_t {
     size_t ast_nodes_list_count;
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals;
+    h_locals_stack_t* initial_locals;
     h_ht_labels_t* labels_table;
     h_ht_enums_t* enums_table;
     ast_node_t* current;

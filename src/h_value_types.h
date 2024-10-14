@@ -8,7 +8,8 @@ typedef enum value_type_t {
     H_VALUE_CHAR,
     H_VALUE_STRING,
     H_VALUE_ARRAY,
-    H_VALUE_FUNCTION
+    H_VALUE_FUNCTION,
+    H_VALUE_DATA
 } value_type_t;
 
 const char* resolve_value_type(value_type_t type);

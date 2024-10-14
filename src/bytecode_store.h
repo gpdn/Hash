@@ -3,11 +3,11 @@
 
 #include "headers.h"
 #include "h_memory.h"
-#include "h_values.h"
 #include "constants_pool.h"
 
 typedef enum opcode_t {
     OP_RETURN,
+    OP_RETURN_VALUE,
     OP_CONSTANT,
     OP_STOP,
     OP_START,
@@ -33,22 +33,27 @@ typedef enum opcode_t {
     OP_POP,
     OP_DEFINE_GLOBAL,
     OP_GET_GLOBAL,
-    OP_ASSIGN,
     OP_PRE_INCREMENT,
     OP_PRE_DECREMENT,
     OP_POST_INCREMENT,
     OP_POST_DECREMENT,
     OP_SET_LOCAL,
     OP_GET_LOCAL,
+    OP_GET_LOCAL_FUNCTION,
     OP_JUMP_IF_FALSE,
     OP_JUMP_IF_TRUE,
     OP_JUMP,
     OP_JUMP_PLACEHOLDER,
     OP_GOTO,
+    OP_DEFINE_LOCAL_ARRAY,
     OP_SET_LOCAL_ARRAY,
     OP_SET_LOCAL_INDEX,
-    OP_LOOP,
-    OP_GET_LOCAL_INDEX
+    OP_GET_LOCAL_INDEX,
+    OP_GENERATE_INTERVAL,
+    OP_CALL,
+    OP_DEFINE_LOCAL,
+    OP_START_ARRAY_INITIALISATION,
+    OP_GET_LOCAL_SIZE
 } opcode_t;
 
 typedef struct bytecode_store_t {

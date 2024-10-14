@@ -128,6 +128,7 @@ int main(int argc, char** argv) {
     switch(run_mode) {
         case MODE_FILE:
             DEBUG_LOG("\nFile Mode\n");
+            DEBUG_LOG("\nFile: %s\n", source_file_path);
             execute_file(source_file_path, &file_content);
             break;
         case MODE_REPL:

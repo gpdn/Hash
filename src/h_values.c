@@ -19,6 +19,9 @@ void print_value(value_t* value) {
         case H_VALUE_FUNCTION:
             h_function_print(value->function);
             break;
+        case H_VALUE_DATA:
+            h_struct_print(value->data);
+            break;
     }
 }
 
@@ -39,6 +42,9 @@ void print_value_no_newline(value_t* value) {
         case H_VALUE_FUNCTION:
             h_function_print_no_newline(value->function);
             break;
+        case H_VALUE_DATA:
+            printf("Data");
+            break;
     }
 }
 
@@ -52,6 +58,8 @@ const char* resolve_type(value_t* value) {
             return "Arr";
         case H_VALUE_FUNCTION:
             return "Fn";
+        case H_VALUE_DATA:
+            return "Data";
         default:
             return "Unk";
     }

@@ -94,6 +94,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_RETURN:
             return basic_instruction("OP_RETURN", offset, file);
             break;
+        case OP_RETURN_VALUE:
+            return basic_instruction("OP_RETURN_VALUE", offset, file);
+            break;
         case OP_START:
             return basic_instruction("OP_START", offset, file);
             break;
@@ -154,6 +157,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_LESS_EQUAL:
             return basic_instruction("OP_LESS_EQUAL", offset, file);
             break;
+        case OP_GENERATE_INTERVAL:
+            return basic_instruction("OP_GENERATE_INTERVAL", offset, file);
+            break;
         case OP_PRINT:
             return basic_instruction("OP_PRINT", offset, file);
             break;
@@ -165,9 +171,6 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             break;
         case OP_GET_GLOBAL:
             return index_instruction("OP_GET_GLOBAL", store, offset, file);
-            break;
-        case OP_ASSIGN:
-            return basic_instruction("OP_ASSIGN", offset, file);
             break;
         case OP_PRE_INCREMENT:
             return index_instruction("OP_PRE_INCREMENT", store, offset, file);
@@ -184,11 +187,17 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_SET_LOCAL:
             return index_instruction("OP_SET_LOCAL", store, offset, file);
             break;
-        case OP_LOOP:
-            return double_index_instruction("OP_LOOP", store, offset, file);
+        case OP_DEFINE_LOCAL:
+            return index_instruction("OP_DEFINE_LOCAL", store, offset, file);
             break;
         case OP_SET_LOCAL_ARRAY:
             return index_instruction("OP_SET_LOCAL_ARRAY", store, offset, file);
+            break;
+        case OP_START_ARRAY_INITIALISATION:
+            return basic_instruction("OP_START_ARRAY_INITIALISATION", offset, file);
+            break;
+        case OP_DEFINE_LOCAL_ARRAY:
+            return index_instruction("OP_DEFINE_LOCAL_ARRAY", store, offset, file);
             break;
         case OP_SET_LOCAL_INDEX:
             return index_instruction("OP_SET_LOCAL_INDEX", store, offset, file);
@@ -196,8 +205,17 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_GET_LOCAL:
             return index_instruction("OP_GET_LOCAL", store, offset, file);
             break;
+        case OP_GET_LOCAL_FUNCTION:
+            return index_instruction("OP_GET_LOCAL_FUNCTION", store, offset, file);
+            break;
         case OP_GET_LOCAL_INDEX:
             return index_instruction("OP_GET_LOCAL_INDEX", store, offset, file);
+            break;
+        case OP_GET_LOCAL_SIZE:
+            return index_instruction("OP_GET_LOCAL_SIZE", store, offset, file);
+            break;
+        case OP_CALL:
+            return index_instruction("OP_CALL", store, offset, file);
             break;
         case OP_JUMP_IF_FALSE:
             return index_instruction("OP_JUMP_IF_FALSE", store, offset, file);
@@ -299,6 +317,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_SKIP: return "H_TOKEN_SKIP";
         case H_TOKEN_LOOP: return "H_TOKEN_LOOP";
         case H_TOKEN_TO: return "H_TOKEN_TO";
+        case H_TOKEN_DATA: return "H_TOKEN_DATA";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

@@ -79,6 +79,7 @@ typedef enum token_type_t {
     H_TOKEN_SKIP,
     H_TOKEN_LOOP,
     H_TOKEN_TO,
+    H_TOKEN_DATA,
     H_TOKEN_LAST
 } token_type_t;
 

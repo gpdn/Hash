@@ -33,11 +33,13 @@ typedef struct icg_t {
     ast_node_t** ast_nodes_list;
     size_t ast_nodes_list_count;
     bytecode_store_t* bytecode_store;
+    bytecode_store_t* initial_bytecode_store;
     ast_node_t* current;
     ast_node_t** ast_nodes_list_it;
     unsigned int errors_count;
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals_stack;
+    h_locals_stack_t* initial_locals_stack;
     h_ht_labels_t* labels_table;
     h_ht_enums_t* enums_table;
     goto_instructions_list_t gotos_list;

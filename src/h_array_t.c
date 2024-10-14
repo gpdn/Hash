@@ -30,6 +30,7 @@ void h_array_print(h_array_t* array) {
 }
 
 void h_array_print_no_newline(h_array_t* array) {
+    if(array->size == 0) return;
     for(size_t i = 0; i < array->size - 1; ++i) { 
         print_value_no_newline(array->data + i);
         printf(", ");

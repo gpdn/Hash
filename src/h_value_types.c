@@ -10,6 +10,8 @@ const char* resolve_value_type(value_type_t type) {
             return "Arr";
         case H_VALUE_FUNCTION:
             return "Fn";
+        case H_VALUE_DATA:
+            return "Data";
         default:
             return "Unk";
     }
