@@ -10,6 +10,7 @@ struct h_array_t;
 #include "h_array_t.h"
 #include "h_function_t.h"
 #include "h_struct_t.h"
+#include "h_data_t.h"
 
 //typedef double value_t;
 
@@ -22,6 +23,7 @@ typedef struct value_t {
         struct h_array_t* array;
         struct h_function_t* function;
         struct h_struct_t* data;
+        struct h_data_t* data_type;
     };
 } value_t;
 
@@ -33,6 +35,7 @@ typedef struct value_t {
 #define VALUE_ARRAY(value) ((value_t){H_VALUE_ARRAY, {.array = value}})
 #define VALUE_FUNCTION(value) ((value_t){H_VALUE_FUNCTION, {.function = value}})
 #define VALUE_DATA(value) ((value_t){H_VALUE_DATA, {.data = value}})
+#define VALUE_TYPE(value) ((value_t){H_VALUE_TYPE, {.data_type = value}})
 
 #define IS_NUM(value) ((value).type == H_VALUE_NUMBER);
 #define IS_STR(value) ((value).type == H_VALUE_STRING);
@@ -42,6 +45,7 @@ typedef struct value_t {
 #define IS_ARRAY(value) ((value).type == H_VALUE_ARRAY);
 #define IS_FUNCTION(value) ((value).type == H_VALUE_FUNCTION);
 #define IS_DATA(value) ((value).type == H_VALUE_DATA);
+#define IS_TYPE(value) ((value).data_type == H_VALUE_TYPE);
 
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);

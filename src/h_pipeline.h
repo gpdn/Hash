@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "h_file.h"
 #include "h_timer.h"
+#include "h_ht_types.h"
 #include "bytecode_store.h"
 #include "lexer.h"
 #include "h_parser.h"

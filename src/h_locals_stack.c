@@ -59,8 +59,6 @@ int h_locals_stack_find(h_locals_stack_t* locals_stack, h_string_t* name, size_t
 
 size_t h_locals_stack_get_index(h_locals_stack_t* locals_stack, h_string_t* name) {
     h_local_t* it = locals_stack->locals_stack_top - 1;
-    DEBUG_LOG("Name: %s\n", name->string);
-    DEBUG_LOG("Index: %lld\n", it - locals_stack->locals_array);
     for(; it->name->hash != name->hash && it != locals_stack->locals_array; --it);
     return it - locals_stack->locals_array;
 }

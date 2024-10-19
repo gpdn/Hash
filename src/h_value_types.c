@@ -12,6 +12,8 @@ const char* resolve_value_type(value_type_t type) {
             return "Fn";
         case H_VALUE_DATA:
             return "Data";
+        case H_VALUE_TYPE:
+            return "Custom";
         default:
             return "Unk";
     }

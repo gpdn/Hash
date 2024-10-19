@@ -10,6 +10,7 @@ typedef enum ast_node_type_t{
     AST_NODE_BINARY,
     AST_NODE_LITERAL,
     AST_NODE_IDENTIFIER,
+    AST_NODE_IDENTIFIER_TYPE,
     AST_NODE_IDENTIFIER_FUNCTION,
     AST_NODE_IDENTIFIER_GLOBAL,
     AST_NODE_ERROR,
@@ -52,6 +53,8 @@ typedef enum ast_node_type_t{
     AST_NODE_TO,
     AST_NODE_TEMP_CONTAINER,
     AST_NODE_DECLARATION_DATA,
+    AST_NODE_DATA_INITIALISATION,
+    AST_NODE_DOT
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

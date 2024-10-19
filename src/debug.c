@@ -193,6 +193,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_SET_LOCAL_ARRAY:
             return index_instruction("OP_SET_LOCAL_ARRAY", store, offset, file);
             break;
+        case OP_SET_LOCAL_DATA:
+            return index_instruction("OP_SET_LOCAL_DATA", store, offset, file);
+            break;
         case OP_START_ARRAY_INITIALISATION:
             return basic_instruction("OP_START_ARRAY_INITIALISATION", offset, file);
             break;

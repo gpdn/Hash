@@ -51,7 +51,6 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     parser_t* parser = parser_init(tokens_array, tokens_count);
     ast_node_t** ast = parser_generate_ast(parser);
 
-
     #if DEBUG_TRACE_PARSER_AST
         DEBUG_PRINT_LINE();
         DEBUG_COLOR_SET(COLOR_CYAN);
@@ -82,12 +81,13 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     h_locals_stack_t* locals_stack = h_locals_stack_init(200);
     h_ht_labels_t* labels_table = h_ht_labels_init(50, 0.75);
     h_ht_enums_t* enums_table = h_ht_enums_init(50, 0.75);
+    h_ht_types_t* types_table = h_ht_types_init(200, 0.75);
 
     /* h_string_t* empty_string = h_string_init_hash("", 0);
 
     h_locals_stack_push(locals_stack, empty_string, UNDEFINED_VALUE(0), 0); */
 
-    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack, labels_table, enums_table);
+    semantic_analyser_t* analyser = h_sa_init(ast, parser->ast_list_size, globals_table, locals_stack, labels_table, enums_table, types_table);
     h_sa_run(analyser);
 
     if(analyser->errors_count > 0) {
@@ -101,7 +101,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
 
     DEBUG_LOG("Semantic Analysis Completed\n");
 
-    icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack, labels_table, enums_table);
+    icg_t* bytecode_generator = icg_init(ast, tokens_count, globals_table, locals_stack, labels_table, enums_table, types_table);
     bytecode_store_t* store = icg_generate_bytecode(bytecode_generator);
 
     #if DEBUG_TRACE_ICG_BYTECODE
@@ -124,6 +124,8 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags) {
     h_locals_stack_free(locals_stack);
     h_hash_table_free(globals_table);
     h_ht_labels_free(labels_table);
+    h_ht_enums_free(enums_table);
+    h_ht_types_free(types_table);
 
     timer_stop_log("Pipeline", pipeline_timer);
 

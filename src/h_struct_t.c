@@ -17,7 +17,16 @@ void h_struct_field_add(h_struct_t* data, h_string_t* name, value_type_t type) {
         data->fields = (h_struct_field_t*)realloc(data->fields, sizeof(h_struct_field_t) * data->capacity);
     }   
     data->fields[data->size++] = (h_struct_field_t){name, type};
+    h_struct_print(data);
 }
+
+int h_struct_field_get_index(h_struct_t* data, h_string_t* name) {
+    if(data->size == 0) return -1;
+    for(size_t i = 0; i < data->size; ++i) {
+        if(data->fields[i].name->hash == name->hash && data->fields[i].name->length == name->length && strcmp(data->fields[i].name->string, name->string) == 0) return i;
+    }
+    return -1;
+} 
 
 void h_struct_print(h_struct_t* data) {
     if(!data) return;

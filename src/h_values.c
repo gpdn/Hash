@@ -22,6 +22,9 @@ void print_value(value_t* value) {
         case H_VALUE_DATA:
             h_struct_print(value->data);
             break;
+        case H_VALUE_TYPE:
+            h_data_print(value->data_type);
+            break;
     }
 }
 
@@ -44,6 +47,9 @@ void print_value_no_newline(value_t* value) {
             break;
         case H_VALUE_DATA:
             printf("Data");
+            break;
+        case H_VALUE_TYPE:
+            h_data_print(value->data_type);
             break;
     }
 }

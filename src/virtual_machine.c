@@ -250,77 +250,48 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_pop(vm);
                 break;
             case OP_DEFINE_GLOBAL:
-                //value_t name = vm_stack_pop(vm);
-                //value_t ht_value = vm_stack_pop(vm);
                 h_ht_array_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
-                //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
-                //h_ht_print(vm->globals_table);
                 break;
             case OP_DEFINE_LOCAL:
-                //value_t name = vm_stack_pop(vm);
-                //value_t ht_value = vm_stack_pop(vm);
                 vm_stack_push(vm, h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
-                //h_ht_array_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
-                //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
-                //h_ht_print(vm->globals_table);
                 break;
             case OP_SET_LOCAL:
-                //value_t name = vm_stack_pop(vm);
-                //value_t ht_value = vm_stack_pop(vm);
-                //h_local_set(vm->globals_table, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
-                //h_ht_set(vm->globals_table, name.string, vm_stack_pop(vm));
-                //h_ht_print(vm->globals_table);
-                //h_locals_array_set(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
                 vm_stack_set(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_peek(vm));
                 break;
             case OP_DEFINE_LOCAL_ARRAY:
-                //value_t array_size = vm_stack_pop(vm);
                 vm_stack_push(vm, h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
-                //for(size_t i = array_size.number; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
-                //vm->stack_top -= (size_t)array_size.number;
-                //for(size_t i = vm->stack_top - vm->stack; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
-                //vm->stack_top = vm->stack;
-                //h_array_print(local_array.array);
                 break;
             case OP_START_ARRAY_INITIALISATION:
                 vm->array_initialisation_ptr = vm->stack_top;
                 break;
             case OP_SET_LOCAL_ARRAY:
-                //value_t array_size = vm_stack_pop(vm);
                 value_t local_array = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());
-                //for(size_t i = array_size.number; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
-                //vm->stack_top -= (size_t)array_size.number;
+                print_value(&local_array);
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
-                //h_array_print(local_array.array);
+                break;
+            case OP_SET_LOCAL_DATA:
+                value_t local_data = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());
+                print_value(&local_data);
+                for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_data_push(local_data.data_type, *(vm->stack_top - i));
+                vm->stack_top = vm->array_initialisation_ptr;
+                vm_stack_push(vm, NULL_VALUE());
                 break;
             case OP_SET_LOCAL_INDEX:
                 size_t index = vm_stack_pop(vm).number;
-                //h_locals_array_set_index(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), index, vm_stack_peek(vm));
                 vm_stack_set_index(vm, ADVANCE_INSTRUCTION_POINTER(), index, vm_stack_peek(vm));
                 break;
             case OP_GET_GLOBAL:
-                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
                 vm_stack_push(vm, h_ht_array_get(vm->globals_table, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_GET_LOCAL:
-                //value_t local_value = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());                
-                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
                 vm_stack_push(vm, vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER()));
-                //h_ht_print(vm->globals_table);
                 break;
             case OP_GET_LOCAL_FUNCTION:
-                //value_t local_value = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());                
-                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
                 vm_stack_push(vm, vm_stack_get_absolute(vm, ADVANCE_INSTRUCTION_POINTER()));
-                //h_ht_print(vm->globals_table);
                 break;
             case OP_GET_LOCAL_INDEX:
-                //value_t local_value_index = h_locals_array_get_index(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number);                
-                //value_t ht_value = h_ht_get(vm->globals_table, vm_stack_pop(vm).string);
-                //vm_stack_push(vm, local_value_index);
                 vm_stack_push(vm, vm_stack_get_index(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number));
-                //h_ht_print(vm->globals_table);
                 break;
             case OP_GET_LOCAL_SIZE:
                 value_t array_value = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
@@ -356,19 +327,15 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 } */
                 break;
             case OP_PRE_INCREMENT:
-                //vm_stack_push(vm, h_locals_array_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
                 vm_stack_push(vm, vm_stack_pre_increase(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_PRE_DECREMENT:
-                //vm_stack_push(vm, h_locals_array_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
                 vm_stack_push(vm, vm_stack_pre_decrease(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_POST_INCREMENT:
-                //vm_stack_push(vm, h_locals_array_post_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
                 vm_stack_push(vm, vm_stack_post_increase(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_POST_DECREMENT:
-                //vm_stack_push(vm, h_locals_array_post_increase_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
                 vm_stack_push(vm, vm_stack_post_decrease(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_JUMP_IF_FALSE:
@@ -386,7 +353,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->instruction_pointer = vm->store->code + ht_jump;
                 break;
             case OP_GOTO:
-                //value_t ht_jump_if_false = vm_stack_pop(vm);
                 size_t ht_goto = ADVANCE_INSTRUCTION_POINTER();
                 vm->instruction_pointer = vm->store->code + ht_goto;
                 break;
@@ -431,6 +397,11 @@ static inline void resolve_value(value_t* value) {
             break;
         case H_VALUE_NULL:
             DEBUG_LOG("[%s, %d]\n", "Null", 0);
+            break;
+        case H_VALUE_TYPE:
+            DEBUG_LOG("[%s] - ", value->data_type->type_name->string);
+            h_data_print_no_newline(value->data_type);
+            DEBUG_LOG("\n");
             break;
         default:
             DEBUG_LOG("Undefined value\n");
