@@ -25,9 +25,9 @@ static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node);
 static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node);
-static void returns_list_push(semantic_analyser_t* analyser, value_type_t type);
-static inline void resolve_returns_list(semantic_analyser_t* analyser, value_type_t type);
-static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type);
+static void returns_list_push(semantic_analyser_t* analyser, value_t type);
+static inline void resolve_returns_list(semantic_analyser_t* analyser, value_t type);
+static inline void assert_returns_type(semantic_analyser_t* analyser, value_t type);
 static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type);
 static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type);
@@ -50,26 +50,35 @@ static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node)
     analyser->ast_nodes_post_checks[analyser->ast_nodes_post_checks_size++] = node;
 }
 
-static void returns_list_push(semantic_analyser_t* analyser, value_type_t type) {
+static void returns_list_push(semantic_analyser_t* analyser, value_t type) {
     if(analyser->returns_list.size >= analyser->returns_list.capacity) {
         analyser->returns_list.capacity *= 2;
-        analyser->returns_list.types = (value_type_t*)realloc(analyser->returns_list.types, sizeof(value_type_t) * analyser->returns_list.capacity);
+        analyser->returns_list.types = (value_t*)realloc(analyser->returns_list.types, sizeof(value_t) * analyser->returns_list.capacity);
     }
 
     analyser->returns_list.types[analyser->returns_list.size++] = type;
 }
 
-static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type) {
+static inline void assert_returns_type(semantic_analyser_t* analyser, value_t type) {
     if(analyser->returns_list.size == 0) emit_error(analyser, "Expected return value");
     for(size_t i = 0; i < analyser->returns_list.size; ++i) {
-        if(analyser->returns_list.types[i] != type) emit_error(analyser, "Invalid return type");
+        DEBUG_LOG("%s - %s\n", resolve_value_type(analyser->returns_list.types[i].type), resolve_value_type(type.type));
+        if(analyser->returns_list.types[i].type != type.type) emit_error(analyser, "Invalid return type");
+        if(analyser->returns_list.types[i].type == H_VALUE_TYPE) {
+            DEBUG_LOG("%s - %s\n", analyser->returns_list.types[i].data_type->type_name->string, type.string->string);
+            if(analyser->returns_list.types[i].data_type->type_name->hash != type.string->hash 
+                || analyser->returns_list.types[i].data_type->type_name->length != type.string->length 
+                || strcmp(analyser->returns_list.types[i].data_type->type_name->string, type.string->string) != 0) {
+                    emit_error(analyser, "Invalid return type");
+                }  
+        }
     }
     analyser->returns_list.size = 0;
 }
 
 static inline void assert_returns_undefined(semantic_analyser_t* analyser) {
     for(size_t i = 0; i < analyser->returns_list.size; ++i) {
-        if(analyser->returns_list.types[i] != H_VALUE_UNDEFINED) emit_error(analyser, "No return value expected");
+        if(analyser->returns_list.types[i].type != H_VALUE_UNDEFINED) emit_error(analyser, "No return value expected");
     }
     analyser->returns_list.size = 0;
 }
@@ -82,9 +91,9 @@ static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t
     if(h_ht_types_check_defined(analyser->types_table, type) != 1) emit_error(analyser, "Type undefined");
 }
 
-static inline void resolve_returns_list(semantic_analyser_t* analyser, value_type_t type) {
-    if(type != H_VALUE_UNDEFINED) {
-        assert_returns_type(analyser, type);
+static inline void resolve_returns_list(semantic_analyser_t* analyser, value_t value) {
+    if(value.type != H_VALUE_UNDEFINED) {
+        assert_returns_type(analyser, value);
         return;
     }
     assert_returns_undefined(analyser);
@@ -114,15 +123,16 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
     
     for(size_t i = 0; i < function->parameters_list_size; ++i) {
         DEBUG_LOG("Iteration %lld\n", i);
-        DEBUG_LOG("Func: %s\n", resolve_value_type(function->parameters_list[i].type));
+        DEBUG_LOG("Func: %s\n", resolve_value_type(function->parameters_list_values[i].type));
         print_value(&parameters_list->block.declarations[i]->value);
         value_t arg_value = resolve_expression(analyser, parameters_list->block.declarations[i]);
         //parameters_list->block.declarations[i]->value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
         DEBUG_LOG("Args: %s\n", resolve_value_type(parameters_list->block.declarations[i]->value.type));
         print_value(&parameters_list->block.declarations[i]->value);
-        DEBUG_LOG("Type Param: %d\n", function->parameters_list[i].type);
+        DEBUG_LOG("Type Param: %d\n", function->parameters_list_values[i].type);
         DEBUG_LOG("Type Args: %d\n", parameters_list->block.declarations[i]->value.type);
-        if(function->parameters_list[i].type != arg_value.type) emit_error(analyser, "Invalid argument type");
+        //FIX
+        if(function->parameters_list_values[i].type != arg_value.type) emit_error(analyser, "Invalid argument type");
     }
 }
 
@@ -148,7 +158,7 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->ast_nodes_post_checks = (ast_node_t**)malloc(sizeof(ast_node_t*) * analyser->ast_nodes_post_checks_capacity);
     analyser->returns_list.capacity = H_DEFAULT_RETURNS_LIST_CAPACITY;
     analyser->returns_list.size = 0;
-    analyser->returns_list.types = (value_type_t*)malloc(sizeof(value_type_t) * analyser->returns_list.capacity);
+    analyser->returns_list.types = (value_t*)malloc(sizeof(value_t) * analyser->returns_list.capacity);
     return analyser;
 }
 
@@ -201,11 +211,13 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             h_ht_types_set(analyser->types_table, values->name, NUM_VALUE(0), H_TYPE_INFO_ENUM);
             return;
         case AST_NODE_DECLARATION_FUNCTION:
+            print_value(&node->value);
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
             analyser->locals = node->value.function->locals_stack;
             resolve_block_statement(analyser, node->expression.right);
             analyser->locals = analyser->initial_locals;
-            resolve_returns_list(analyser, node->value.function->return_type);
+            //FIX
+            resolve_returns_list(analyser, node->value.function->return_type[0]);
             return;
         case AST_NODE_DECLARATION_DATA:
             assert_type_undefined(analyser, node->expression.left->value.string);
@@ -307,13 +319,14 @@ static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser,
 }
 
 static inline value_t resolve_return_statement(semantic_analyser_t* analyser, ast_node_t* node) {
+    assert_loop_count(analyser);
     if(node) {
         value_t return_value = resolve_expression(analyser, node); 
-        returns_list_push(analyser, return_value.type);
+        returns_list_push(analyser, return_value);
         return return_value;
     }
     value_t return_value = UNDEFINED_VALUE(0); 
-    returns_list_push(analyser, return_value.type);
+    returns_list_push(analyser, return_value);
     return return_value;
 }
 
@@ -323,7 +336,8 @@ static inline value_t resolve_expression_function_call(semantic_analyser_t* anal
     assert_value_type(analyser, value_left.type, H_VALUE_FUNCTION);
     resolve_block_statement(analyser, node->expression.right);
     assert_parameters_arity(analyser, value_left.function, node->expression.right);
-    node->value.type = value_left.function->return_type;
+    //FIX
+    node->value.type = value_left.function->return_type->type;
     return node->value;
 }
 

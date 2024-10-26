@@ -60,6 +60,8 @@ static void emit_error(parser_t* parser, const char* error_message);
 static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
 static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node);  
+static value_type_t parser_get_value_type(parser_t* parser);
+static value_t parser_get_value(parser_t* parser);
 
 static parse_rule_t parse_table[] = {
     [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_ASSIGNMENT},
@@ -315,6 +317,32 @@ static value_type_t parser_get_value_type(parser_t* parser) {
     }
 }
 
+static value_t parser_get_value(parser_t* parser) {
+    switch(parser->current->type) {
+        case H_TOKEN_NUM:
+            return NUM_VALUE(0);
+            break;
+        case H_TOKEN_STR:
+            return STR_VALUE(NULL);
+            break;
+        case H_TOKEN_FUNCTION:
+            return VALUE_FUNCTION(NULL);
+            break;
+        case H_TOKEN_DATA:
+            return VALUE_DATA(NULL);
+            break;
+        case H_TOKEN_IDENTIFIER:
+            DEBUG_LOG("\nHere\n");
+            h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
+            DEBUG_LOG("%s\n", type_name->string);
+            return (value_t){.type = H_VALUE_TYPE, .string = type_name};
+            break;
+        default: 
+            emit_error(parser, "Undefined type.");
+            return NULL_VALUE();
+    }
+}
+
 static ast_node_t* parse_statement(parser_t* parser) {
     switch(parser->current->type) {
         case H_TOKEN_PRINT:
@@ -395,7 +423,8 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     h_function_t* function = h_function_init();
     assert_token_type(parser, H_TOKEN_LEFT_SQUARE, "Expected [ after fn keyword.");
     if(parser->current->type != H_TOKEN_RIGHT_SQUARE) {
-        value_type_t value_type = parser_get_value_type(parser);
+        value_t return_type = parser_get_value(parser);
+        function->return_type[0] = return_type;
         /* if(value_type == H_VALUE_TYPE) {
             h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
             function->return_type = (value_t){.string = type_name, .type = H_VALUE_TYPE};
@@ -409,7 +438,7 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     assert_token_type(parser, H_TOKEN_LEFT_PAR, "Expected ( after function name.");
     if(parser->current->type != H_TOKEN_RIGHT_PAR) {
         do {
-            value_type_t type = parser_get_value_type(parser);
+            value_t type = parser_get_value(parser);
             ++parser->current;
             assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected parameter name.");
             h_string_t* parameter_name = h_string_init_hash(parser->current->start, parser->current->length);
@@ -424,6 +453,7 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     node->expression.right = parse_block_statement(parser);
     current_parse_table = parse_table;
     node->value = VALUE_FUNCTION(function);
+    print_value(&node->value);
     return node;
 }
 

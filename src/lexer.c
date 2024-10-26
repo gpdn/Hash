@@ -10,7 +10,8 @@ static int lexer_skip(lexer_t* lexer);
 static token_t lexer_string(lexer_t* lexer);
 static token_t lexer_number(lexer_t* lexer);
 static token_t lexer_identifier(lexer_t* lexer);
-static token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type);
+static inline token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type);
+static inline token_t create_keyword(lexer_t* lexer, token_type_t type, size_t length);
 static void lexer_report_error(lexer_t* lexer, token_t* token, token_t* prev_token);
 static void lexer_report_warning(lexer_t* lexer, token_t* token, token_t* prev_token);
 
@@ -99,6 +100,19 @@ static int lexer_skip(lexer_t* lexer) {
 
                 return 1;
             }
+            if(*(lexer->current+1) != '\0' && *(lexer->current+1) == '^') {
+                ++lexer->current;
+                ++lexer->current;
+                while(*lexer->current != '\0' && *lexer->current != '/' &&  *(lexer->current + 1) != '\0' && *(lexer->current + 1) != "^") {
+                    ++lexer->current;
+                }
+
+                #if DEBUG_TRACE_LEXER_PRINT_SKIPPED
+                    DEBUG_LOG("Skipped comment\n");
+                #endif
+
+                return 1;
+            }
             return 0;
             break;
     }
@@ -137,7 +151,6 @@ static token_t lexer_identifier(lexer_t* lexer) {
     while(isalnum(*lexer->current) || *lexer->current == '_') ++lexer->current;
 
     switch(lexer->start[0]) {
-        //case 'a': return check_keyword(lexer, 1, 2, "nd", H_TOKEN_AND);
         case 'a': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
@@ -204,7 +217,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'e') {
                 switch(lexer->start[2]) {
                     case 'p': return check_keyword(lexer, 3, 3, "eat", H_TOKEN_REPEAT);
-                    case 't': return token_create(lexer, H_TOKEN_RETURN);
+                    case 't': return create_keyword(lexer, H_TOKEN_RETURN, 3);
                 }
             }
             break;
@@ -225,10 +238,16 @@ static token_t lexer_identifier(lexer_t* lexer) {
     return token_create(lexer, H_TOKEN_IDENTIFIER);
 }
 
-static token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type) {
-    if((size_t)(lexer->current - (lexer->start + start)) == length && memcmp(lexer->start + start, string_to_match, length) == 0) {
+static inline token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type) {
+    if((size_t)(lexer->current - (lexer->start + start)) == length && memcmp(lexer->start + start, string_to_match, length) == 0 && (lexer->current - lexer->start) == (start + length)) {
+        DEBUG_LOG("%lld - %lld\n", lexer->current - lexer->start, start + length);
         return token_create(lexer, type);
     }
+    return token_create(lexer, H_TOKEN_IDENTIFIER);
+}
+
+static inline token_t create_keyword(lexer_t* lexer, token_type_t type, size_t length) {
+    if((lexer->current - lexer->start) == (long long int)length) return token_create(lexer, type);
     return token_create(lexer, H_TOKEN_IDENTIFIER);
 }
 

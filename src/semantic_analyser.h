@@ -9,7 +9,7 @@
 #include "h_ht_types.h"
 
 typedef struct returns_list_t {
-    value_type_t* types;
+    value_t* types;
     size_t size;
     size_t capacity;
 } returns_list_t;
