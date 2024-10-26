@@ -6,7 +6,7 @@
 
 typedef struct h_param_t {
     h_string_t* name;
-    value_type_t type;
+    value_t type;
 } h_param_t;
 
 typedef struct h_function_t {
@@ -14,7 +14,7 @@ typedef struct h_function_t {
     h_param_t* parameters_list;
     size_t parameters_list_size;
     size_t parameters_list_capacity;
-    value_type_t return_type;
+    value_t return_type;
     struct bytecode_store_t* store;
     struct h_locals_stack_t* locals_stack;
 } h_function_t;

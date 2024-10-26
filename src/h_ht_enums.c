@@ -53,7 +53,6 @@ void h_ht_enum_value_set(ht_enum_t* array, h_string_t* key) {
 }
 
 int h_ht_enum_value_get(ht_enum_t* array, h_string_t* key) {
-    DEBUG_LOG("Size: %lld", array->size);
     for(size_t i = 0; i < array->size; ++i) {
         if(array->names[i]->hash == key->hash) return (int)i;
     }

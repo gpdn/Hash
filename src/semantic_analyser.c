@@ -30,6 +30,7 @@ static inline void resolve_returns_list(semantic_analyser_t* analyser, value_typ
 static inline void assert_returns_type(semantic_analyser_t* analyser, value_type_t type);
 static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type);
+static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type);
 
 static value_type_t iterables[] = {
     [H_VALUE_UNDEFINED] = 0,
@@ -75,6 +76,10 @@ static inline void assert_returns_undefined(semantic_analyser_t* analyser) {
 
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type) {
     if(h_ht_types_check_defined(analyser->types_table, type) == 1) emit_error(analyser, "Type already defined");
+}
+
+static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type) {
+    if(h_ht_types_check_defined(analyser->types_table, type) != 1) emit_error(analyser, "Type undefined");
 }
 
 static inline void resolve_returns_list(semantic_analyser_t* analyser, value_type_t type) {
@@ -192,7 +197,8 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
                 h_ht_enum_value_set(values, node->expression.right->block.declarations[i]->value.string);
             } 
-            h_ht_enums_print(analyser->enums_table);
+            //h_ht_enums_print(analyser->enums_table);
+            h_ht_types_set(analyser->types_table, values->name, NUM_VALUE(0), H_TYPE_INFO_ENUM);
             return;
         case AST_NODE_DECLARATION_FUNCTION:
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
@@ -204,7 +210,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_DECLARATION_DATA:
             assert_type_undefined(analyser, node->expression.left->value.string);
             for(size_t i = 0; i < node->value.data->size; ++i) {
-                if(node->value.data->fields[i].value == H_VALUE_TYPE) assert_type_undefined(analyser, node->value.data->fields[i].type_name);
+                if(node->value.data->field_values[i].type == H_VALUE_TYPE) {
+                    assert_type_defined(analyser, node->value.data->field_values[i].string);
+                }
             }
             h_ht_types_set(analyser->types_table, node->expression.left->value.string, node->value, H_TYPE_INFO_DATA);
             //h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->value, analyser->scope);
@@ -330,20 +338,20 @@ static inline void resolve_expression_array_initialisation(semantic_analyser_t* 
 static inline void resolve_expression_data_initialisation(semantic_analyser_t* analyser, ast_node_t* node, value_t type) {
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         value_t value = resolve_expression(analyser, node->block.declarations[i]);
-        print_value(&value);
-        assert_value_type(analyser, value.type, type.data->fields[i].value);
+        assert_value_type(analyser, value.type, type.data->field_values[i].type);
     }
 }
 
 static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_node_t* node) {
+    DEBUG_LOG("Analyser");
     ast_print(node, 0);
     value_t lvalue = resolve_expression(analyser, node->expression.left);
+    if(lvalue.type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined value");
     assert_value_type(analyser, lvalue.type, H_VALUE_TYPE);
     ht_type_t type = h_ht_types_get(analyser->types_table, lvalue.data_type->type_name);
-    print_value(&type.value);
     if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
     int property_index = h_struct_field_get_index(type.value.data, node->expression.right->value.string);
-    DEBUG_LOG("%d\n", property_index);
+    //DEBUG_LOG("%d\n", property_index);
     if(property_index == -1) {
         emit_error(analyser, "Undefined property");
         return NULL_VALUE();
@@ -351,7 +359,7 @@ static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_
     node->type = AST_NODE_INDEXING;
     node->expression.right->type = AST_NODE_LITERAL;
     node->expression.right->value = NUM_VALUE(property_index);
-    return (value_t){.type = type.value.data->fields[property_index].value};
+    return type.value.data->field_values[property_index];
 }
 
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node) {

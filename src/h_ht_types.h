@@ -10,7 +10,8 @@
 typedef enum ht_type_info_t {
     H_TYPE_INFO_UNDEFINED,
     H_TYPE_INFO_DATA,
-    H_TYPE_INFO_ALIAS
+    H_TYPE_INFO_ALIAS,
+    H_TYPE_INFO_ENUM
 } ht_type_info_t;
 
 typedef struct ht_type_t {

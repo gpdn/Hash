@@ -16,11 +16,14 @@ void h_ht_types_print(h_ht_types_t* table) {
         DEBUG_LOG("[%lld] - ", i);
         if(table->array[i].name == NULL) {DEBUG_LOG("Empty\n"); continue;}
         DEBUG_LOG("%s - ", table->array[i].name->string);
-        print_value(&table->array[i].value);
+        //print_value(&table->array[i].value);
     }
 }
 
 int h_ht_types_check_defined(h_ht_types_t* table, h_string_t* key) {
+    #if DEBUG_TRACE_TYPES_TABLE
+        DEBUG_LOG("Checking %s defined\n", key->string);
+    #endif
     return table->array[key->hash % table->capacity].type != H_TYPE_INFO_UNDEFINED;
 }
 
@@ -30,7 +33,9 @@ ht_type_t h_ht_types_get(h_ht_types_t* table, h_string_t* key) {
 
 int h_ht_types_set(h_ht_types_t* table, h_string_t* key, value_t value, ht_type_info_t type) {
     table->array[key->hash % table->capacity] = (ht_type_t){type, key, value};
-    DEBUG_LOG("New type set: %s\n", key->string);
+    #if DEBUG_TRACE_TYPES_TABLE
+        DEBUG_LOG("New type set: %s\n", key->string);
+    #endif
     return 1;
 }
 

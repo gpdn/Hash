@@ -584,11 +584,8 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.right);
     if(node->expression.left->type == AST_NODE_INDEXING) {
         icg_generate_expression(icg, node->expression.left->expression.right);
-        printf("HERE");
         bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
-        printf("HERE");
         bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string));
-        printf("HERE");
         return;
     }
     /* if(node->expression.left->type == AST_NODE_DOT) {

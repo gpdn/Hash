@@ -49,7 +49,7 @@ void print_value_no_newline(value_t* value) {
             printf("Data");
             break;
         case H_VALUE_TYPE:
-            h_data_print(value->data_type);
+            h_data_print_no_newline(value->data_type);
             break;
     }
 }

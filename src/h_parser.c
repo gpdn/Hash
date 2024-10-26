@@ -62,7 +62,7 @@ static void assert_token_type_no_advance(parser_t* parser, token_type_t type, co
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node);  
 
 static parse_rule_t parse_table[] = {
-    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_ASSIGNMENT},
     [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
@@ -92,12 +92,12 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_GREATER_EQUAL]             = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
-    [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
 static parse_rule_t parse_table_array_initialisation[] = {
-    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_ASSIGNMENT},
     [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
@@ -132,12 +132,12 @@ static parse_rule_t parse_table_array_initialisation[] = {
 };
 
 static parse_rule_t parse_table_function[] = {
-    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_EQUAL]                     = {NULL, parse_assignment_expression, OP_PREC_ASSIGNMENT},
     [H_TOKEN_NUMBER_LITERAL]            = {parse_number, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
-    [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
@@ -395,7 +395,11 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     h_function_t* function = h_function_init();
     assert_token_type(parser, H_TOKEN_LEFT_SQUARE, "Expected [ after fn keyword.");
     if(parser->current->type != H_TOKEN_RIGHT_SQUARE) {
-        function->return_type = parser_get_value_type(parser);
+        value_type_t value_type = parser_get_value_type(parser);
+        /* if(value_type == H_VALUE_TYPE) {
+            h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
+            function->return_type = (value_t){.string = type_name, .type = H_VALUE_TYPE};
+        } */
         ++parser->current;
     }
     assert_token_type(parser, H_TOKEN_RIGHT_SQUARE, "Expected ] after fn return type.");
@@ -434,11 +438,20 @@ static ast_node_t* parse_data_declaration(parser_t* parser) {
     if(parser->current->type != H_TOKEN_COLON) {
         do {
             value_type_t type = parser_get_value_type(parser);
+            if(type == H_VALUE_TYPE) {
+                h_string_t* field_type = h_string_init_hash(parser->current->start, parser->current->length);
+                ++parser->current;
+                assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected parameter name.");
+                h_string_t* field_name = h_string_init_hash(parser->current->start, parser->current->length);
+                ++parser->current;
+                h_struct_field_add(data, field_name, (value_t){.type = type, .string = field_type});
+                continue;
+            }
             ++parser->current;
             assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected parameter name.");
             h_string_t* field_name = h_string_init_hash(parser->current->start, parser->current->length);
             ++parser->current;
-            h_struct_field_add(data, field_name, type);
+            h_struct_field_add(data, field_name, (value_t){.type = type});
         }
         while(parser->current->type == H_TOKEN_SEMICOLON && ++parser->current && parser->current->type != H_TOKEN_COLON);
     }
