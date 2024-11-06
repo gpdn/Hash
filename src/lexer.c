@@ -103,7 +103,7 @@ static int lexer_skip(lexer_t* lexer) {
             if(*(lexer->current+1) != '\0' && *(lexer->current+1) == '^') {
                 ++lexer->current;
                 ++lexer->current;
-                while(*lexer->current != '\0' && *lexer->current != '/' &&  *(lexer->current + 1) != '\0' && *(lexer->current + 1) != "^") {
+                while(*lexer->current != '\0' && *lexer->current != '/' &&  *(lexer->current + 1) != '\0' && *(lexer->current + 1) != '^') {
                     ++lexer->current;
                 }
 
@@ -239,7 +239,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
 }
 
 static inline token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type) {
-    if((size_t)(lexer->current - (lexer->start + start)) == length && memcmp(lexer->start + start, string_to_match, length) == 0 && (lexer->current - lexer->start) == (start + length)) {
+    if((size_t)(lexer->current - (lexer->start + start)) == length && memcmp(lexer->start + start, string_to_match, length) == 0 && ((size_t)(lexer->current - lexer->start)) == (start + length)) {
         DEBUG_LOG("%lld - %lld\n", lexer->current - lexer->start, start + length);
         return token_create(lexer, type);
     }

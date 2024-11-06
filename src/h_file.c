@@ -48,6 +48,14 @@ size_t write_file(const char* path, const char* content, size_t element_size, si
     return count;
 }
 
+inline FILE* create_file(const char* path, const char* mode) {
+    return fopen(path, mode);
+}
+
+inline int close_file(FILE* file) {
+    return fclose(file);
+}
+
 size_t append_file(FILE* file, const char* content, size_t element_size, size_t elements_count) {
     return fwrite(content, element_size, elements_count, file);
 }

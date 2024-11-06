@@ -95,6 +95,7 @@ const char* resolve_token_type(token_type_t type);
     #define DEBUG_TRACE_LEXER_PRINT_SKIPPED 1
     #define DEBUG_TRACE_PARSER_AST 1
     #define DEBUG_TRACE_ICG_BYTECODE 1
+    #define DEBUG_TRACE_PREPROCESSOR_FILES_SET 1
 
     #define DEBUG_TRACE_LOCALS_STACK 0
     #define DEBUG_TRACE_TYPES_TABLE 0

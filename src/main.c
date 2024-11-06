@@ -8,6 +8,7 @@
 #include "virtual_machine.h"
 #include "h_pipeline.h"
 #include "h_hash_table_t.h"
+#include "preprocessor/h_preprocessor.h"
 
 #define PATH "./test.hash"
 
@@ -63,9 +64,6 @@ static const char* execute_repl(char* source) {
     DEBUG_COLOR_RESET();
 
     while(fgets(last_input, HASH_REPL_BUFFER_SIZE, stdin) && last_input[0] != '#') {
-        
-        //size_t last_input_length = strlen(last_input);
-
         source = (char*)realloc(source, strlen(source) + strlen(last_input) + 1);
         if(source == NULL) {
             DEBUG_LOG("Source Null\n");
@@ -88,25 +86,6 @@ static const char* execute_repl(char* source) {
 
 
 int main(int argc, char** argv) {
-
-    /* 
-    h_hash_table_t* table = h_hash_table_init(200, 0.75);
-
-    h_string_t* string = h_string_init_hash("test", strlen("test"));
-    h_string_t* string2 = h_string_init_hash("test2", strlen("test2"));
-
-    h_ht_set(table, string, NUM_VALUE(1));
-    h_ht_set(table, string2, NUM_VALUE(2));
-
-    value_t value = h_ht_get(table, string);
-
-    DEBUG_LOG("VALUE: %f\n", value.number); 
-
-    h_ht_print(table);
-
-    h_hash_table_free(table);
-    return 0;
-    */
 
     PRINT_TITLE();
 
@@ -149,7 +128,17 @@ int main(int argc, char** argv) {
         write_file(repl_save_file_path, file_content, sizeof(char), strlen(file_content));
     }
 
-    interpreter_result_t result = pipeline_start(file_content, args_flags);
+    clock_t preprocessor_timer = timer_start_time("Preprocessor");
+
+    h_preprocessor_t* preprocessor = preprocessor_init(source_file_path);
+
+    preprocessor_run(preprocessor, file_content);
+
+    preprocessor_destroy(preprocessor);
+
+    timer_stop_log("Preprocessor", preprocessor_timer);
+
+    //interpreter_result_t result = pipeline_start(file_content, args_flags);
 
     free((void*)file_content);
     return 0;
