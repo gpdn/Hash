@@ -29,10 +29,12 @@ typedef struct h_preprocessor_t {
     size_t file_buffer_size;
     h_preprocessor_env_t* environment;
     h_preprocessor_conditions_stack_t* conditions_stack;
+    int output_enabled;
+    int ignore_input;
 } h_preprocessor_t;
 
 h_preprocessor_t* preprocessor_init(const char* source_path);
-int preprocessor_run(h_preprocessor_t* preprocessor, const char* file);
+int preprocessor_run(h_preprocessor_t* preprocessor);
 void preprocessor_destroy(h_preprocessor_t* preprocessor);
 
 #endif 

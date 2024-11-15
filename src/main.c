@@ -118,10 +118,6 @@ int main(int argc, char** argv) {
             exit(HASH_INVALID_RUN_MODE);
     }
     DEBUG_COLOR_RESET();
-
-    if(args_flags & (1 << H_ARGS_FLAG_COMPILE)) {
-        DEBUG_LOG("Running in Compile Mode\n");
-    }
     
     if(run_mode == MODE_REPL && args_flags & (1 << H_ARGS_FLAG_SAVE_FILE)) {
         DEBUG_LOG("Saving Repl input to %s\n", repl_save_file_path);
@@ -132,7 +128,7 @@ int main(int argc, char** argv) {
 
     h_preprocessor_t* preprocessor = preprocessor_init(source_file_path);
 
-    preprocessor_run(preprocessor, file_content);
+    preprocessor_run(preprocessor);
 
     preprocessor_destroy(preprocessor);
 

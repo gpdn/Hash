@@ -29,6 +29,11 @@ int h_files_set_push(h_files_set_t* table, const char* key) {
     return 1;
 }
 
+int h_files_set_get(h_files_set_t* table, const char* key) {
+    size_t index = h_files_set_hash(key) % table->capacity;
+    return table->array[index];
+}
+
 void h_files_set_free(h_files_set_t* hash_table) {
     free(hash_table->array);
     free(hash_table);

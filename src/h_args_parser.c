@@ -9,6 +9,7 @@ static void show_help();
 static void show_help() {
     DEBUG_COLOR_SET(COLOR_CYAN);
     DEBUG_LOG("%s -> %s", "--compile", "Compiles the source instead of intepreting it\n");
+    DEBUG_LOG("%s -> %s", "--run", "Only used if --compile provided. Runs the code after compilation.\n");
     DEBUG_LOG("%s -> %s", "--file \"path\"", "Uses the file at the specified path as source\n");
     DEBUG_LOG("%s -> %s", "--repl", "Launches the REPL\n");
     DEBUG_LOG("%s -> %s", "--save \"path\"", "Only used in REPL mode. Saves the input of the REPL in a file at the specified path\n");
@@ -72,7 +73,13 @@ void parse_args(int argc, char** argv, execution_mode_t* run_mode, const char** 
                 DEBUG_LOG("Matching option: %s\n", argv[i]);
             #endif
             switch(argv[i][2]) {
-                case 'r': if(match_arg(3, 3, argv[i], "epl")) {*run_mode = MODE_REPL;} break;
+                case 'r': {
+                    switch(argv[i][3]) {
+                        case 'e': if(match_arg(4, 2, argv[i], "pl")) {*run_mode = MODE_REPL;} break;       
+                        case 'u': if(match_arg(4, 1, argv[i], "n")) set_args_flag(args_flags, H_ARGS_FLAG_RUN); break;
+                    }
+                    break;
+                }
                 case 'f': if(match_arg(3, 3, argv[i], "ile")) consume_arg("file", i+1, argc, argv, source_file_path); break;
                 case 'c': if(match_arg(3, 6, argv[i], "ompile")) set_args_flag(args_flags, H_ARGS_FLAG_COMPILE); break;
                 case 's': if(match_arg(3, 3, argv[i], "ave")) consume_set_arg_flag("save", i+1, argc, argv, repl_save_file_path, args_flags, H_ARGS_FLAG_SAVE_FILE); break;

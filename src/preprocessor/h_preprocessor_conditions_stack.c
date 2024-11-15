@@ -19,13 +19,14 @@ int h_preprocessor_conditions_stack_push(h_preprocessor_conditions_stack_t* cond
     return 1;
 }
 
-int h_preprocessor_conditions_stack_update(h_preprocessor_conditions_stack_t* conditions_stack, h_preprocessor_directive_t directive, int reverse_output) {
-    if(conditions_stack->size == 0) return 0;
+int h_preprocessor_conditions_stack_update(h_preprocessor_conditions_stack_t* conditions_stack, h_preprocessor_directive_t directive) {
+    if(conditions_stack->size == 0) return -1;
     --conditions_stack->stack_top;
     conditions_stack->stack_top->directive = directive;
     conditions_stack->stack_top->output = !conditions_stack->stack_top->output;
+    int enable_output = conditions_stack->stack_top->output;
     ++conditions_stack->stack_top;
-    return 1;
+    return enable_output;
 }
 
 h_preprocessor_condition_t h_preprocessor_conditions_stack_pop(h_preprocessor_conditions_stack_t* conditions_stack) {

@@ -22,11 +22,38 @@ static inline void preprocessor_read_string_inline(h_preprocessor_t* preprocesso
 static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocessor_t* preprocessor);
 static int preprocessor_evaluate_value(h_preprocessor_t* preprocessor, h_preprocessor_value_t value);
 static inline void preprocessor_advance_new_line(h_preprocessor_t* preprocessor);
+static int preprocessor_process_file(h_preprocessor_t* preprocessor);
+static const char* preprocessor_filter_path(h_preprocessor_t* preprocessor, const char* path);
+
+static const char* preprocessor_filter_path(h_preprocessor_t* preprocessor, const char* path) {
+    int start = 0;
+    int end = 0;
+    int last_dot = 0;
+
+    if(path[0] == '.') ++start;
+    if(path[start] == '/') ++start;
+
+    end = strlen(path);
+
+    for(const char* c = path + end; c != path; --c) {
+        if(*c == '.') last_dot = (path + end) - c;
+    }
+
+    int length = end - start - last_dot;
+
+    char* filtered_path = (char*)malloc(sizeof(char) * (length + 6));
+    
+    strncpy(filtered_path, path + start, length);
+    filtered_path[length] = '\0';
+    strncat(filtered_path, ".hasha", 5);
+
+    return filtered_path;
+}
 
 static inline void preprocessor_read_string_inline(h_preprocessor_t* preprocessor) {    
     while(*preprocessor->current == ' ') ++preprocessor->current;
     preprocessor->start = preprocessor->current;
-    while(isalnum(*preprocessor->current) || *preprocessor->current == '_') ++preprocessor->current;
+    while(isalnum(*preprocessor->current) || *preprocessor->current == '_' || *preprocessor->current == '.') ++preprocessor->current;
 }
 
 static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocessor_t* preprocessor) {
@@ -85,9 +112,13 @@ static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const c
         DEBUG_LOG("%s - %s\n", "Preprocessing file", file);
     #endif
 
-    if(h_files_set_push(preprocessor->files_set, file) == 0) return 0;
+    const char* filtered_path = preprocessor_filter_path(preprocessor, file);
 
-    preprocessor_files_list_push(preprocessor, file);
+    DEBUG_LOG("%s\n", filtered_path);
+
+    if(h_files_set_push(preprocessor->files_set, filtered_path) == 0) return 0;
+
+    preprocessor_files_list_push(preprocessor, filtered_path);
     preprocessor_files_list_print(preprocessor);
 
     return 1;
@@ -96,7 +127,6 @@ static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const c
 static inline void preprocessor_advance_new_line(h_preprocessor_t* preprocessor) {
     ++preprocessor->current;
     while(*preprocessor->current == ' ' || *preprocessor->current == '\n') ++preprocessor->current;
-    ++preprocessor->current;
 }
 
 static void preprocessor_files_list_print(h_preprocessor_t* preprocessor) {
@@ -112,9 +142,14 @@ static inline int preprocessor_check_directive(h_preprocessor_t* preprocessor, s
 }
 
 static inline int resolve_directive_if(h_preprocessor_t* preprocessor) {
+    if(preprocessor->output_enabled == 0) {
+        preprocessor->ignore_input = 1;
+        return 1;
+    }
     DEBUG_LOG("Resolving if\n");
     h_preprocessor_value_t value = preprocessor_read_value_inline(preprocessor);
     int result = preprocessor_evaluate_value(preprocessor, value);
+    preprocessor->output_enabled = result;
     h_preprocessor_conditions_stack_push(preprocessor->conditions_stack, H_DIRECTIVE_IF, result);
     h_preprocessor_conditions_stack_print(preprocessor->conditions_stack);
     DEBUG_LOG("If evaluated: %d\n", result);
@@ -123,6 +158,14 @@ static inline int resolve_directive_if(h_preprocessor_t* preprocessor) {
 
 static inline int resolve_directive_import(h_preprocessor_t* preprocessor) {
     DEBUG_LOG("Resolving import\n");
+    preprocessor_read_string_inline(preprocessor);
+    h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+    DEBUG_LOG("File name: %s\n", name->string);
+    if(preprocessor_file_push(preprocessor, name->string) == 0) {
+        DEBUG_LOG("File already imported\n");
+        return 0;
+    }
+    preprocessor_process_file(preprocessor);
     return 1;
 }
 
@@ -132,8 +175,11 @@ static inline int resolve_directive_elif(h_preprocessor_t* preprocessor) {
 }
 
 static inline int resolve_directive_else(h_preprocessor_t* preprocessor) {
+    if(preprocessor->ignore_input == 1) return 1;
     DEBUG_LOG("Resolving else\n");
-    h_preprocessor_conditions_stack_update(preprocessor->conditions_stack, H_DIRECTIVE_ELSE, 0);
+    int result = h_preprocessor_conditions_stack_update(preprocessor->conditions_stack, H_DIRECTIVE_ELSE);
+    if(result == -1) return 0;
+    preprocessor->output_enabled = result;
     return 1;
 }
 
@@ -142,6 +188,7 @@ static inline int resolve_directive_endif(h_preprocessor_t* preprocessor) {
     h_preprocessor_condition_t condition = h_preprocessor_conditions_stack_pop(preprocessor->conditions_stack);
     print_preprocessor_directive_no_newline(condition.directive);
     DEBUG_LOG("- Output enabled: %d\n", condition.output);
+    preprocessor->output_enabled = !condition.output;
     return condition.directive != H_DIRECTIVE_UNKNOWN;
 }
 
@@ -250,20 +297,17 @@ h_preprocessor_t* preprocessor_init(const char* source_path) {
     preprocessor->current = NULL;
     preprocessor->environment = h_preprocessor_env_init(PREPROCESSOR_ENVIRONMENT_CAPACITY, 0.75);
     preprocessor->conditions_stack = h_preprocessor_conditions_stack_init(PREPROCESSOR_CONDITIONS_STACK_CAPACITY);
+    preprocessor->output_enabled = 1;
+    preprocessor->ignore_input = 0;
     preprocessor_file_push(preprocessor, source_path);
     return preprocessor;
 }
 
-int preprocessor_run(h_preprocessor_t* preprocessor, const char* file) {
-    
-    DEBUG_LOG("File: %s\n", file);
+static int preprocessor_process_file(h_preprocessor_t* preprocessor) {
+    const char* file = read_file(preprocessor->files_list[preprocessor->files_list_size - 1]);
 
-    preprocessor->out_file = create_file("preprocessed", "wb");
-
-    if(preprocessor->out_file == NULL) {
-        DEBUG_LOG("Failed to create preprocessor output file");
-        return 0;
-    }
+    const char* pre_start = preprocessor->start;
+    const char* pre_current = preprocessor->current;
 
     preprocessor->start = file;
     preprocessor->current = file;
@@ -277,12 +321,29 @@ int preprocessor_run(h_preprocessor_t* preprocessor, const char* file) {
             if(preprocessor_resolve_directive(preprocessor) == 0) {
                 return 0;
             }
-            preprocessor_advance_new_line(preprocessor);
+            //preprocessor_advance_new_line(preprocessor);
             continue;
         }
-        append_file(preprocessor->out_file, preprocessor->current, sizeof(char), 1);
+        if(preprocessor->output_enabled) append_file(preprocessor->out_file, preprocessor->current, sizeof(char), 1);
         ++preprocessor->current;
     }
+
+    preprocessor->start = pre_start;
+    preprocessor->current = pre_current;
+
+    return 1;
+}
+
+int preprocessor_run(h_preprocessor_t* preprocessor) {
+
+    preprocessor->out_file = create_file("preprocessed", "wb");
+
+    if(preprocessor->out_file == NULL) {
+        DEBUG_LOG("Failed to create preprocessor output file");
+        return 0;
+    }
+
+    preprocessor_process_file(preprocessor);
 
     if(preprocessor->conditions_stack->size > 0) {
         DEBUG_LOG("%s\n", "Missing #endif directive");

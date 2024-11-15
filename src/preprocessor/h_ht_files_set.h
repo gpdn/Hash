@@ -15,6 +15,7 @@ typedef struct h_files_set_t {
 
 h_files_set_t* h_files_set_init(size_t capacity, float load_factor);
 int h_files_set_push(h_files_set_t* table, const char* key);
+int h_files_set_get(h_files_set_t* table, const char* key);
 void h_files_set_free(h_files_set_t* hash_table);
 
 #endif
