@@ -31,6 +31,7 @@ typedef struct semantic_analyser_t {
     unsigned int errors_count;
     size_t scope;
     size_t loop_count;
+    size_t return_count;
     returns_list_t returns_list;
 } semantic_analyser_t;
 

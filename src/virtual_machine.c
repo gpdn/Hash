@@ -281,6 +281,17 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 size_t index = vm_stack_pop(vm).number;
                 vm_stack_set_index(vm, ADVANCE_INSTRUCTION_POINTER(), index, vm_stack_peek(vm));
                 break;
+            case OP_SET_LOCAL_INDEX_COMPOUND:
+                size_t iterable_set_index = ADVANCE_INSTRUCTION_POINTER();
+                size_t index_set_loop_count = ADVANCE_INSTRUCTION_POINTER();
+                value_t index_set_value = vm_stack_get(vm, iterable_set_index);
+                value_t* index_set_value_ref = &index_set_value;
+                for(size_t i = 0; i < index_set_loop_count; ++i) {
+                    index_set_value_ref = index_set_value_ref->array->data + (size_t)vm_stack_pop(vm).number;
+                }
+                *index_set_value_ref = vm_stack_peek(vm);
+                vm_stack_set(vm, iterable_set_index, index_set_value);
+                break;
             case OP_GET_GLOBAL:
                 vm_stack_push(vm, h_ht_array_get(vm->globals_table, ADVANCE_INSTRUCTION_POINTER()));
                 break;
@@ -292,6 +303,15 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 break;
             case OP_GET_LOCAL_INDEX:
                 vm_stack_push(vm, vm_stack_get_index(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number));
+                break;
+            case OP_GET_LOCAL_INDEX_COMPOUND:
+                size_t iterable_index = ADVANCE_INSTRUCTION_POINTER();
+                size_t index_loop_count = ADVANCE_INSTRUCTION_POINTER();
+                value_t index_value = vm_stack_get_index(vm, iterable_index, vm_stack_pop(vm).number);
+                for(size_t i = 0; i < index_loop_count - 1; ++i) {
+                    index_value = index_value.array->data[(size_t)vm_stack_pop(vm).number];
+                }
+                vm_stack_push(vm, index_value);
                 break;
             case OP_GET_LOCAL_SIZE:
                 value_t array_value = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());

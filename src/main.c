@@ -134,8 +134,11 @@ int main(int argc, char** argv) {
 
     timer_stop_log("Preprocessor", preprocessor_timer);
 
-    //interpreter_result_t result = pipeline_start(file_content, args_flags);
+    const char* preprocessed_file_content = read_file("preprocessed");
 
+    interpreter_result_t result = pipeline_start(preprocessed_file_content, args_flags);
+
+    free((void*)preprocessed_file_content);
     free((void*)file_content);
     return 0;
 

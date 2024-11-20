@@ -54,7 +54,9 @@ typedef enum opcode_t {
     OP_DEFINE_LOCAL,
     OP_START_ARRAY_INITIALISATION,
     OP_GET_LOCAL_SIZE,
-    OP_SET_LOCAL_DATA
+    OP_SET_LOCAL_DATA,
+    OP_GET_LOCAL_INDEX_COMPOUND,
+    OP_SET_LOCAL_INDEX_COMPOUND
 } opcode_t;
 
 typedef struct bytecode_store_t {

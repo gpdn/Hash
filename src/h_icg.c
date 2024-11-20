@@ -464,9 +464,31 @@ static inline void icg_generate_identifier_assignment(icg_t* icg, ast_node_t* no
 }
 
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node) {
+    ast_print(node, 0);
     icg_generate_expression(icg, node->expression.right);
-    bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+
+    disassemble_bytecode_store(icg->bytecode_store, "Bytecode Store", NULL);
+    
+    ast_node_t* left_child = node->expression.left;
+    size_t count = 1;
+
+    while(left_child->type != AST_NODE_IDENTIFIER) {
+        icg_generate_expression(icg, left_child->expression.right);
+        left_child = left_child->expression.left;
+        ++count;
+    }
+
+    if(count == 1) {
+        bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
+        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+        return;
+    }
+
+    bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX_COMPOUND);
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+    bs_write(icg->bytecode_store, count);
+
+    return;
 }
 
 static inline void icg_generate_function_call(icg_t* icg, ast_node_t* node) {
@@ -583,9 +605,28 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.right);
     if(node->expression.left->type == AST_NODE_INDEXING) {
-        icg_generate_expression(icg, node->expression.left->expression.right);
-        bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
-        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string));
+        ast_node_t* left_child = node->expression.left;
+        size_t count = 0;
+
+        ast_print(left_child, 0);
+        
+        while(left_child->type != AST_NODE_IDENTIFIER) {
+            icg_generate_expression(icg, left_child->expression.right);
+            left_child = left_child->expression.left;
+            ++count;
+        }
+
+        DEBUG_LOG("Count %lld\n", count);
+
+        if(count == 1) {
+            bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+            return;
+        }
+
+        bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX_COMPOUND);
+        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+        bs_write(icg->bytecode_store, count);
         return;
     }
     /* if(node->expression.left->type == AST_NODE_DOT) {

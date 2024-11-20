@@ -311,6 +311,9 @@ static value_type_t parser_get_value_type(parser_t* parser) {
         case H_TOKEN_IDENTIFIER:
             return H_VALUE_TYPE;
             break;
+        case H_TOKEN_ARR:
+            return H_VALUE_ARRAY;
+            break;
         default: 
             emit_error(parser, "Undefined type.");
             return H_VALUE_NULL;
@@ -332,9 +335,7 @@ static value_t parser_get_value(parser_t* parser) {
             return VALUE_DATA(NULL);
             break;
         case H_TOKEN_IDENTIFIER:
-            DEBUG_LOG("\nHere\n");
             h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
-            DEBUG_LOG("%s\n", type_name->string);
             return (value_t){.type = H_VALUE_TYPE, .string = type_name};
             break;
         default: 
@@ -425,10 +426,6 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     if(parser->current->type != H_TOKEN_RIGHT_SQUARE) {
         value_t return_type = parser_get_value(parser);
         function->return_type[0] = return_type;
-        /* if(value_type == H_VALUE_TYPE) {
-            h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
-            function->return_type = (value_t){.string = type_name, .type = H_VALUE_TYPE};
-        } */
         ++parser->current;
     }
     assert_token_type(parser, H_TOKEN_RIGHT_SQUARE, "Expected ] after fn return type.");
@@ -705,7 +702,6 @@ static ast_node_t* parse_block_statement(parser_t* parser) {
 static ast_node_t* parse_data_initialisation(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create_statement_block(AST_NODE_DATA_INITIALISATION);
     node->operator = parser->current;
-    //++parser->current;
     node->block.declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
     node->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->block.declarations_capacity);
     do {

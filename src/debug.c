@@ -214,6 +214,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_GET_LOCAL_INDEX:
             return index_instruction("OP_GET_LOCAL_INDEX", store, offset, file);
             break;
+        case OP_GET_LOCAL_INDEX_COMPOUND:
+            return double_index_instruction("OP_GET_LOCAL_INDEX_COMPOUND", store, offset, file);
+            break;
+        case OP_SET_LOCAL_INDEX_COMPOUND:
+            return double_index_instruction("OP_SET_LOCAL_INDEX_COMPOUND", store, offset, file);
+            break;
         case OP_GET_LOCAL_SIZE:
             return index_instruction("OP_GET_LOCAL_SIZE", store, offset, file);
             break;
