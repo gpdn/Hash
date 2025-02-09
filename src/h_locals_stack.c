@@ -81,6 +81,8 @@ void h_locals_array_set(h_locals_stack_t* locals_stack, size_t index, value_t va
 
 void h_print_local(h_local_t* local) {
     printf("Name: %s - Value: ", local->name->string);
+    //printf("%s", resolve_value_type(local->value.type));
+    //printf("%s", local->value.data_type->type_name->string);
     print_value_no_newline(&local->value);
     printf(" - Scope: %lld\n", local->scope);
 }

@@ -13,6 +13,7 @@
 #include "h_ht_preprocessor_env.h"
 #include "h_preprocessor_directive.h"
 #include "h_preprocessor_conditions_stack.h"
+#include "../std/h_std.h"
 
 #undef RELATIVE_PATH
 #undef MAKE_PATH
@@ -31,9 +32,10 @@ typedef struct h_preprocessor_t {
     h_preprocessor_conditions_stack_t* conditions_stack;
     int output_enabled;
     int ignore_input;
+    h_std_t* std;
 } h_preprocessor_t;
 
-h_preprocessor_t* preprocessor_init(const char* source_path);
+h_preprocessor_t* preprocessor_init(const char* source_path, h_std_t* std);
 int preprocessor_run(h_preprocessor_t* preprocessor);
 void preprocessor_destroy(h_preprocessor_t* preprocessor);
 

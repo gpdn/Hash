@@ -1,9 +1,7 @@
 #include "h_timer.h"
 
 clock_t timer_start(const char* name) {
-    DEBUG_COLOR_SET(COLOR_GREEN);
-    DEBUG_LOG("%s started\n", name);
-    DEBUG_COLOR_RESET();
+    printf("%s%s started %s\n", COLOR_CYAN, name, COLOR_RESET);
     return clock();
 }
 
@@ -18,9 +16,7 @@ clock_t timer_start_time(const char* name) {
 
     strftime(time_string, 50, "%a %d %B %Y %H:%M:%S", time_info);
 
-    DEBUG_COLOR_SET(COLOR_GREEN);
-    DEBUG_LOG("%s started at %s\n", name, time_string);
-    DEBUG_COLOR_RESET();
+    printf("%s%s started at %s%s\n", COLOR_GREEN, name, time_string, COLOR_RESET);
 
     return clock();
 }
@@ -29,10 +25,8 @@ float timer_stop(clock_t timer_start) {
     return (clock() - timer_start)/((float)CLOCKS_PER_SEC);
 }
 
-float timer_stop_log(const char* name, clock_t timer_start) {
+float timer_stop_log(const char* name, clock_t timer_start, const char* color) {
     float timer_end = timer_stop(timer_start);
-    DEBUG_COLOR_SET(COLOR_GREEN);
-    DEBUG_LOG("%s finished in %1.4fs\n", name, timer_end);
-    DEBUG_COLOR_RESET();
+    printf("%s%s finished in %1.4fs%s\n", color, name, timer_end, COLOR_RESET);
     return timer_end;
 }

@@ -11,6 +11,7 @@ struct h_array_t;
 #include "h_function_t.h"
 #include "h_struct_t.h"
 #include "h_data_t.h"
+#include "h_native.h"
 
 //typedef double value_t;
 
@@ -24,6 +25,7 @@ typedef struct value_t {
         struct h_function_t* function;
         struct h_struct_t* data;
         struct h_data_t* data_type;
+        struct h_native_t* native_fn;
     };
 } value_t;
 
@@ -36,6 +38,7 @@ typedef struct value_t {
 #define VALUE_FUNCTION(value) ((value_t){H_VALUE_FUNCTION, {.function = value}})
 #define VALUE_DATA(value) ((value_t){H_VALUE_DATA, {.data = value}})
 #define VALUE_TYPE(value) ((value_t){H_VALUE_TYPE, {.data_type = value}})
+#define VALUE_NATIVE(value) ((value_t){H_VALUE_NATIVE, {.native_fn = value}})
 
 #define IS_NUM(value) ((value).type == H_VALUE_NUMBER);
 #define IS_STR(value) ((value).type == H_VALUE_STRING);
@@ -46,6 +49,7 @@ typedef struct value_t {
 #define IS_FUNCTION(value) ((value).type == H_VALUE_FUNCTION);
 #define IS_DATA(value) ((value).type == H_VALUE_DATA);
 #define IS_TYPE(value) ((value).data_type == H_VALUE_TYPE);
+#define IS_NATIVE(value) ((value).native_fn == H_VALUE_NATIVE);
 
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);

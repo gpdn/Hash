@@ -33,6 +33,15 @@ h_string_t* h_string_init_hash(const char* string, size_t length) {
     return h_string;
 }
 
+h_string_t* h_string_init_hash_set(const char* string, size_t length) {
+    h_string_t* h_string = (h_string_t*)malloc(sizeof(h_string_t));
+    h_string->string = string;
+    h_string->length = length;
+    h_string->capacity = length;
+    h_string->hash = h_ht_hash(string, length);
+    return h_string;
+}
+
 uint8_t h_string_compare(h_string_t* string_1, h_string_t* string_2) {
     return string_1->length == string_2->length && memcmp(string_1->string, string_2->string, string_1->length) == 0;
 }

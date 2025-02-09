@@ -206,7 +206,8 @@ static token_t lexer_identifier(lexer_t* lexer) {
         case 'n': 
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'u') {
                 switch(lexer->start[2]) {
-                    case 'm': return token_create(lexer, H_TOKEN_NUM);
+                    //case 'm': return token_create(lexer, H_TOKEN_NUM);
+                    case 'm': return check_keyword(lexer, 3, 0, "", H_TOKEN_NUM);
                     case 'l': return check_keyword(lexer, 3, 1, "l", H_TOKEN_NULL);
                 }
             }
@@ -240,7 +241,6 @@ static token_t lexer_identifier(lexer_t* lexer) {
 
 static inline token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type) {
     if((size_t)(lexer->current - (lexer->start + start)) == length && memcmp(lexer->start + start, string_to_match, length) == 0 && ((size_t)(lexer->current - lexer->start)) == (start + length)) {
-        DEBUG_LOG("%lld - %lld\n", lexer->current - lexer->start, start + length);
         return token_create(lexer, type);
     }
     return token_create(lexer, H_TOKEN_IDENTIFIER);

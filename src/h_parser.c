@@ -450,7 +450,6 @@ static ast_node_t* parse_function_declaration(parser_t* parser) {
     node->expression.right = parse_block_statement(parser);
     current_parse_table = parse_table;
     node->value = VALUE_FUNCTION(function);
-    print_value(&node->value);
     return node;
 }
 
@@ -1020,6 +1019,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_IDENTIFIER_FUNCTION:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER_FUNCTION %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
+        case AST_NODE_IDENTIFIER_NATIVE:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER_NATIVE %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
         case AST_NODE_IDENTIFIER_GLOBAL:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER_GLOBAL %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
@@ -1055,6 +1057,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_FUNCTION_CALL:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_FUNCTION_CALL %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_NATIVE_CALL:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_NATIVE_CALL %.*s\n", indent, 0, "");
             break;
         case AST_NODE_STATEMENT_PRINT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_PRINT %.*s\n", indent, (int)node->operator->length, node->operator->start);

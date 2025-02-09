@@ -16,6 +16,7 @@ typedef struct h_string_t {
 
 h_string_t* h_string_init(const char* string, size_t length);
 h_string_t* h_string_init_hash(const char* string, size_t length);
+h_string_t* h_string_init_hash_set(const char* string, size_t length);
 uint8_t h_string_compare(h_string_t* string_1, h_string_t* string_2);
 h_string_t* h_string_concatenate(h_string_t* string_1, h_string_t* string_2);
 char h_string_get(h_string_t* string, size_t index);

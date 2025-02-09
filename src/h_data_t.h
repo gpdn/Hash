@@ -11,6 +11,7 @@ typedef struct h_data_t {
     size_t capacity;
     struct value_t* data;
     h_string_t* type_name;
+    void* other;
 } h_data_t;
 
 h_data_t* h_data_init(size_t capacity);

@@ -217,6 +217,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             analyser->locals = node->value.function->locals_stack;
             resolve_block_statement(analyser, node->expression.right);
             analyser->locals = analyser->initial_locals;
+            //h_locals_stack_print(node->value.function->locals_stack);
             resolve_returns_list(analyser, node->value.function->return_type[0]);
             --analyser->return_count;
             return;
@@ -332,10 +333,24 @@ static inline value_t resolve_return_statement(semantic_analyser_t* analyser, as
 static inline value_t resolve_expression_function_call(semantic_analyser_t* analyser, ast_node_t* node) {
     node->expression.left->type = AST_NODE_IDENTIFIER_FUNCTION;
     value_t value_left = resolve_expression(analyser, node->expression.left);
-    assert_value_type(analyser, value_left.type, H_VALUE_FUNCTION);
+            
     resolve_block_statement(analyser, node->expression.right);
-    assert_parameters_arity(analyser, value_left.function, node->expression.right);
-    node->value.type = value_left.function->return_type->type;
+    
+    switch(value_left.type) {
+        case H_VALUE_FUNCTION:
+            assert_parameters_arity(analyser, value_left.function, node->expression.right);
+            node->value.type = value_left.function->return_type->type;
+            break;
+        case H_VALUE_NATIVE:
+            node->expression.left->type = AST_NODE_IDENTIFIER_NATIVE;
+            //assert_parameters_arity(analyser, value_left.native_fn, node->expression.right);
+            node->value.type = value_left.native_fn->return_type->type;
+            node->type = AST_NODE_NATIVE_CALL;
+            break;
+        default:
+            emit_error(analyser, "Invalid type for function call");
+    }
+    
     return node->value;
 }
 
@@ -488,6 +503,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
         case AST_NODE_INDEXING:
             return resolve_expression_indexing(analyser, node);
         case AST_NODE_FUNCTION_CALL:
+        case AST_NODE_NATIVE_CALL:
             return resolve_expression_function_call(analyser, node);
         case AST_NODE_DOT:
             return resolve_expression_dot(analyser, node);

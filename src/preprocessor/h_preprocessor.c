@@ -12,6 +12,8 @@ static inline int preprocessor_check_directive(h_preprocessor_t* preprocessor, s
 static void preprocessor_files_list_print(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_if(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_import(h_preprocessor_t* preprocessor);
+static inline int resolve_directive_std(h_preprocessor_t* preprocessor);
+static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_elif(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_else(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_endif(h_preprocessor_t* preprocessor);
@@ -119,7 +121,10 @@ static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const c
     if(h_files_set_push(preprocessor->files_set, filtered_path) == 0) return 0;
 
     preprocessor_files_list_push(preprocessor, filtered_path);
-    preprocessor_files_list_print(preprocessor);
+
+    #if DEBUG_TRACE_PREPROCESSOR_FILES_SET
+        preprocessor_files_list_print(preprocessor);
+    #endif
 
     return 1;
 }
@@ -167,6 +172,12 @@ static inline int resolve_directive_import(h_preprocessor_t* preprocessor) {
     }
     preprocessor_process_file(preprocessor);
     return 1;
+}
+
+static inline int resolve_directive_std(h_preprocessor_t* preprocessor) {
+    DEBUG_LOG("Resolving std\n");
+    preprocessor_read_string_inline(preprocessor);
+    return preprocessor_resolve_directive_std(preprocessor);
 }
 
 static inline int resolve_directive_elif(h_preprocessor_t* preprocessor) {
@@ -223,6 +234,46 @@ static inline int resolve_directive_print(h_preprocessor_t* preprocessor) {
     return 1;
 }
 
+static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
+    switch(*preprocessor->start) {
+        case 'a':
+            return preprocessor_check_directive(preprocessor, 1, 2, "rr") && h_std_set_flag(preprocessor->std, H_STD_FLAG_ARR);
+            break;
+        case 'c':
+            if(preprocessor->current - preprocessor->start > 1) {
+                switch(preprocessor->start[1]) {
+                    case 'm':
+                        return preprocessor_check_directive(preprocessor, 2, 1, "d") && h_std_set_flag(preprocessor->std, H_STD_FLAG_CMD);
+                        break;
+                    case 'o':
+                        return preprocessor_check_directive(preprocessor, 2, 2, "re") && h_std_set_flags(preprocessor->std, H_STD_FLAG_ARR | H_STD_FLAG_STR | H_STD_FLAG_TYPE);
+                        break;
+                    default:
+                        return 0;
+                }
+            }
+            return 0;
+        case 'f':
+            return preprocessor_check_directive(preprocessor, 1, 3, "ile") && h_std_set_flag(preprocessor->std, H_STD_FLAG_FILE);
+            break;
+        case 'i':
+            return preprocessor_check_directive(preprocessor, 1, 1, "o") && h_std_set_flags(preprocessor->std, H_STD_FLAG_CMD | H_STD_FLAG_FILE | H_STD_FLAG_SYSTEM);
+            break;
+        case 's':
+            return preprocessor_check_directive(preprocessor, 1, 2, "tr") && h_std_set_flag(preprocessor->std, H_STD_FLAG_STR);
+            break;
+        case 't':
+            return preprocessor_check_directive(preprocessor, 1, 3, "ime") && h_std_set_flag(preprocessor->std, H_STD_FLAG_TIME);
+            break;
+        case 'u':
+            return preprocessor_check_directive(preprocessor, 1, 4, "tils") && h_std_set_flag(preprocessor->std, H_STD_FLAG_TIMER);
+            break;
+        default:
+            return 0;
+    }
+    return 0;
+} 
+
 static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
     ++preprocessor->current;
     preprocessor->start = preprocessor->current;
@@ -275,7 +326,17 @@ static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
             return preprocessor_check_directive(preprocessor, 1, 4, "rint") && resolve_directive_print(preprocessor);
             break;
         case 's':
-            return preprocessor_check_directive(preprocessor, 1, 2, "et") && resolve_directive_set(preprocessor);
+            if(preprocessor->current - preprocessor->start > 1) {
+                switch(preprocessor->start[1]) {
+                    case 'e':
+                        return preprocessor_check_directive(preprocessor, 2, 1, "t") && resolve_directive_set(preprocessor);
+                    case 't':  
+                        return preprocessor_check_directive(preprocessor, 2, 1, "d") && resolve_directive_std(preprocessor);
+                    default:
+                        return 0;
+                }
+            }
+            return 0;
             break;
         case 'u':
             return preprocessor_check_directive(preprocessor, 1, 4, "nset") && resolve_directive_unset(preprocessor);
@@ -287,7 +348,7 @@ static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
     return 1;
 }
 
-h_preprocessor_t* preprocessor_init(const char* source_path) {
+h_preprocessor_t* preprocessor_init(const char* source_path, h_std_t* std) {
     h_preprocessor_t* preprocessor = (h_preprocessor_t*)malloc(sizeof(h_preprocessor_t));
     preprocessor->files_set = h_files_set_init(50, 0.75);
     preprocessor->files_list_size = 0;
@@ -299,6 +360,7 @@ h_preprocessor_t* preprocessor_init(const char* source_path) {
     preprocessor->conditions_stack = h_preprocessor_conditions_stack_init(PREPROCESSOR_CONDITIONS_STACK_CAPACITY);
     preprocessor->output_enabled = 1;
     preprocessor->ignore_input = 0;
+    preprocessor->std = std;
     preprocessor_file_push(preprocessor, source_path);
     return preprocessor;
 }
@@ -311,9 +373,6 @@ static int preprocessor_process_file(h_preprocessor_t* preprocessor) {
 
     preprocessor->start = file;
     preprocessor->current = file;
-
-    DEBUG_LOG("HERE");
-    DEBUG_LOG("Current %c\n", *preprocessor->current);
 
     while(*preprocessor->current != '\0' && preprocessor->files_list_size != 0) {
         if(*preprocessor->current == '#') {

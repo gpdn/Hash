@@ -9,6 +9,7 @@
 #include "h_pipeline.h"
 #include "h_hash_table_t.h"
 #include "preprocessor/h_preprocessor.h"
+#include "std/h_std.h"
 
 #define PATH "./test.hash"
 
@@ -33,6 +34,8 @@
     printf("#################################################################\n\n");\
     DEBUG_COLOR_RESET();\
     DEBUG_PRINT_LINE()
+#else
+    #define PRINT_TITLE()
 #endif
 
 static void execute_file(const char* source_path, const char** source);
@@ -124,19 +127,26 @@ int main(int argc, char** argv) {
         write_file(repl_save_file_path, file_content, sizeof(char), strlen(file_content));
     }
 
-    clock_t preprocessor_timer = timer_start_time("Preprocessor");
+    #if DEBUG_TIMERS
+        clock_t preprocessor_timer = timer_start("Preprocessor");
+    #endif
+    h_std_t* std = h_std_init();
 
-    h_preprocessor_t* preprocessor = preprocessor_init(source_file_path);
+    h_preprocessor_t* preprocessor = preprocessor_init(source_file_path, std);
 
     preprocessor_run(preprocessor);
 
     preprocessor_destroy(preprocessor);
 
-    timer_stop_log("Preprocessor", preprocessor_timer);
+    #if DEBUG_TIMERS
+        timer_stop_log("Preprocessor", preprocessor_timer, COLOR_CYAN);
+    #endif
 
     const char* preprocessed_file_content = read_file("preprocessed");
 
-    interpreter_result_t result = pipeline_start(preprocessed_file_content, args_flags);
+    interpreter_result_t result = pipeline_start(preprocessed_file_content, args_flags, std);
+
+    h_std_free(std);
 
     free((void*)preprocessed_file_content);
     free((void*)file_content);

@@ -2,8 +2,6 @@
 
 #include "debug.h"
 
-#if DEBUG
-
 static int basic_instruction(const char* name, size_t offset, FILE* file);
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
 static int index_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file);
@@ -211,6 +209,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_GET_LOCAL_FUNCTION:
             return index_instruction("OP_GET_LOCAL_FUNCTION", store, offset, file);
             break;
+        case OP_GET_LOCAL_NATIVE:
+            return index_instruction("OP_GET_LOCAL_NATIVE", store, offset, file);
+            break;
         case OP_GET_LOCAL_INDEX:
             return index_instruction("OP_GET_LOCAL_INDEX", store, offset, file);
             break;
@@ -225,6 +226,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             break;
         case OP_CALL:
             return index_instruction("OP_CALL", store, offset, file);
+            break;
+        case OP_CALL_NATIVE:
+            return index_instruction("OP_CALL_NATIVE", store, offset, file);
             break;
         case OP_JUMP_IF_FALSE:
             return index_instruction("OP_JUMP_IF_FALSE", store, offset, file);
@@ -344,5 +348,3 @@ size_t token_write_print_string(FILE* file, token_t* token) {
     free((void*)string);
     return result;
 }
-
-#endif

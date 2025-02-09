@@ -1,0 +1,19 @@
+#ifndef H_STD_IMPORT_FLAGS
+#define H_STD_IMPORT_FLAGS
+
+#include <stdint.h>
+
+typedef enum h_std_import_flag_t {
+    H_STD_FLAG_CMD,
+    H_STD_FLAG_FILE,
+    H_STD_FLAG_STR,
+    H_STD_FLAG_ARR,
+    H_STD_FLAG_TYPE,
+    H_STD_FLAG_TIME,
+    H_STD_FLAG_TIMER,
+    H_STD_FLAG_SYSTEM,
+} h_std_import_flag_t;
+
+const char* h_std_resolve_import_flag(size_t flag);
+
+#endif

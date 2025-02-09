@@ -14,6 +14,8 @@ const char* resolve_value_type(value_type_t type) {
             return "Data";
         case H_VALUE_TYPE:
             return "Custom";
+        case H_VALUE_NATIVE:
+            return "Native";
         default:
             return "Unk";
     }

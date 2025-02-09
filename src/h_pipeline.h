@@ -6,12 +6,13 @@
 #include "h_timer.h"
 #include "h_ht_types.h"
 #include "bytecode_store.h"
+#include "std/h_std.h"
 #include "lexer.h"
 #include "h_parser.h"
 #include "semantic_analyser.h"
 #include "h_icg.h"
 #include "virtual_machine.h"
 
-interpreter_result_t pipeline_start(const char* source_path, uint8_t flags);
+interpreter_result_t pipeline_start(const char* source_path, uint8_t flags, h_std_t* std);
 
 #endif

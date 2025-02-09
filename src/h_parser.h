@@ -54,7 +54,9 @@ typedef enum ast_node_type_t{
     AST_NODE_TEMP_CONTAINER,
     AST_NODE_DECLARATION_DATA,
     AST_NODE_DATA_INITIALISATION,
-    AST_NODE_DOT
+    AST_NODE_DOT,
+    AST_NODE_IDENTIFIER_NATIVE,
+    AST_NODE_NATIVE_CALL
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

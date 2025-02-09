@@ -82,7 +82,7 @@ static inline void vm_stack_set_index(virtual_machine_t* vm, size_t index, size_
 virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack)
 {
     virtual_machine_t* vm = (virtual_machine_t*)malloc(sizeof(virtual_machine_t));
-    vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity);
+    vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity + sizeof(value_t) * locals_stack->size);
     vm->stack_top = vm->stack;
     vm->store = store;
     vm->initial_store = store;
@@ -96,6 +96,12 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
 }
 
 interpreter_result_t vm_run(virtual_machine_t* vm) {
+    
+    for(h_local_t* it = vm->locals_stack->locals_array; it != vm->locals_stack->locals_stack_top; ++it) {
+        if(it->value.type != H_VALUE_NATIVE) break;
+        vm_stack_push(vm, it->value);
+    }
+
     #define ADVANCE_INSTRUCTION_POINTER() (*vm->instruction_pointer++) 
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
     #define BINARY_OP(type, op) vm_stack_push(vm, type(vm_stack_pop(vm).number op vm_stack_pop(vm).number))
@@ -124,6 +130,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 break;
             case OP_CONSTANT:
                 value_t value = READ_CONSTANT();
+                resolve_value(&value);
                 vm_stack_push(vm, value);
                 break;
             case OP_NEGATE:
@@ -210,6 +217,17 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->stack_base = frame_stack_start;
                 vm->store = frame.function->store;
                 //call_frame_print(vm->calls_stack + vm->calls_stack_size);
+                break;
+            case OP_CALL_NATIVE:
+                size_t native_arguments_count = ADVANCE_INSTRUCTION_POINTER();
+                h_native_t* native_function = (vm->stack_top - native_arguments_count - 1)->native_fn;
+                value_t* values = (value_t*)malloc(sizeof(value_t) * native_arguments_count);
+                for(size_t i = native_arguments_count; i != 0; --i) {
+                    values[i - 1] = vm_stack_pop(vm);
+                }
+                value_t native_return_value = native_function->fn(values, native_arguments_count);
+                vm_stack_pop(vm);
+                vm_stack_push(vm, native_return_value);
                 break;
             case OP_RETURN:
                 /* value_t result = vm_stack_pop(vm);
@@ -299,6 +317,9 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_push(vm, vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_GET_LOCAL_FUNCTION:
+                vm_stack_push(vm, vm_stack_get_absolute(vm, ADVANCE_INSTRUCTION_POINTER()));
+                break;
+            case OP_GET_LOCAL_NATIVE:
                 vm_stack_push(vm, vm_stack_get_absolute(vm, ADVANCE_INSTRUCTION_POINTER()));
                 break;
             case OP_GET_LOCAL_INDEX:
@@ -422,6 +443,11 @@ static inline void resolve_value(value_t* value) {
             DEBUG_LOG("[%s] - ", value->data_type->type_name->string);
             h_data_print_no_newline(value->data_type);
             DEBUG_LOG("\n");
+            break;
+        case H_VALUE_NATIVE:
+            DEBUG_LOG("["); 
+            h_native_print_no_newline(value->native_fn);
+            DEBUG_LOG(", %s]\n", value->native_fn->name->string); 
             break;
         default:
             DEBUG_LOG("Undefined value\n");

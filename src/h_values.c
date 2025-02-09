@@ -25,6 +25,9 @@ void print_value(value_t* value) {
         case H_VALUE_TYPE:
             h_data_print(value->data_type);
             break;
+        case H_VALUE_NATIVE:
+            h_native_print(value->native_fn);
+            break;
     }
 }
 
@@ -51,6 +54,9 @@ void print_value_no_newline(value_t* value) {
         case H_VALUE_TYPE:
             h_data_print_no_newline(value->data_type);
             break;
+        case H_VALUE_NATIVE:
+            h_native_print_no_newline(value->native_fn);
+            break;
     }
 }
 
@@ -66,6 +72,10 @@ const char* resolve_type(value_t* value) {
             return "Fn";
         case H_VALUE_DATA:
             return "Data";
+        case H_VALUE_TYPE:
+            return "Custom";
+        case H_VALUE_NATIVE:
+            return "Native";
         default:
             return "Unk";
     }

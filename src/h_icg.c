@@ -29,6 +29,7 @@ static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_function(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_identifier_native(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
@@ -37,6 +38,7 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_function_call(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_native_call(icg_t* icg, ast_node_t* node);
 static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, uint8_t* instruction);
 static void breaks_instructions_list_push(break_instructions_list_t* breaks_list, uint8_t* instruction);
 static void skips_instructions_list_push(skip_instructions_list_t* skips_list, uint8_t* instruction);
@@ -120,6 +122,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_FUNCTION_CALL:
             icg_generate_function_call(icg, node);
             break;
+        case AST_NODE_NATIVE_CALL:
+            icg_generate_native_call(icg, node);
+            break;
         case AST_NODE_STATEMENT_IF:
             icg_generate_statement_if(icg, node);
             break;
@@ -178,6 +183,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_IDENTIFIER_FUNCTION:
             icg_generate_identifier_function(icg, node);
             break;
+        case AST_NODE_IDENTIFIER_NATIVE:
+            icg_generate_identifier_native(icg, node);
+            break;
         case AST_NODE_IDENTIFIER_GLOBAL:
             icg_generate_identifier_global(icg, node);
             break;
@@ -213,10 +221,7 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
-    ast_print(node, 0);
     if(node->expression.right) icg_generate_expression(icg, node->expression.right);
-    //bs_write(icg->bytecode_store, OP_SET_LOCAL);
-    //bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
 }
 
 static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) {
@@ -267,18 +272,16 @@ static inline void icg_generate_declaration_label(icg_t* icg, ast_node_t* node) 
 
 static void icg_generate_declaration_function(icg_t* icg, ast_node_t* node) {
     icg->bytecode_store = node->value.function->store;
-    //icg->locals_stack = node->value.function->locals_stack;
-    ast_print(node->expression.right, 0);
+    icg->locals_stack = node->value.function->locals_stack;
     icg_generate_statement_block(icg, node->expression.right);
     bs_write(node->value.function->store, OP_RETURN);
     icg->bytecode_store = icg->initial_bytecode_store;
-    //print_value(&node->value);
+    icg->locals_stack = icg->initial_locals_stack;
     bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
     bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
     #if DEBUG_ALL
     disassemble_bytecode_store(node->value.function->store, node->value.function->name->string, NULL);
     #endif
-    //icg->locals_stack = icg->initial_locals_stack;
 }
 
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node) {
@@ -301,7 +304,6 @@ static inline void icg_generate_statement_if(icg_t* icg, ast_node_t* node) {
         return;
     }
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
-    //disassemble_bytecode_store(icg->bytecode_store, "Test", NULL);
 }
 
 static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node) {
@@ -454,6 +456,11 @@ static inline void icg_generate_identifier_function(icg_t* icg, ast_node_t* node
     bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string));
 }
 
+static inline void icg_generate_identifier_native(icg_t* icg, ast_node_t* node) {
+    bs_write(icg->bytecode_store, OP_GET_LOCAL_NATIVE);
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string));
+}
+
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_GET_GLOBAL);
     bs_write(icg->bytecode_store, h_ht_get_index(icg->globals_table, node->value.string));
@@ -464,7 +471,6 @@ static inline void icg_generate_identifier_assignment(icg_t* icg, ast_node_t* no
 }
 
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node) {
-    ast_print(node, 0);
     icg_generate_expression(icg, node->expression.right);
 
     disassemble_bytecode_store(icg->bytecode_store, "Bytecode Store", NULL);
@@ -495,10 +501,19 @@ static inline void icg_generate_function_call(icg_t* icg, ast_node_t* node) {
     size_t i = 0;
     icg_generate_expression(icg, node->expression.left);
     for(; i < node->expression.right->block.declarations_size; ++i) {
-        ast_print(node->expression.right->block.declarations[i], 0);
         icg_generate_expression(icg, node->expression.right->block.declarations[i]);
     }
     bs_write(icg->bytecode_store, OP_CALL);
+    bs_write(icg->bytecode_store, i);
+}
+
+static inline void icg_generate_native_call(icg_t* icg, ast_node_t* node) {
+    size_t i = 0;
+    icg_generate_expression(icg, node->expression.left);
+    for(; i < node->expression.right->block.declarations_size; ++i) {
+        icg_generate_expression(icg, node->expression.right->block.declarations[i]);
+    }
+    bs_write(icg->bytecode_store, OP_CALL_NATIVE);
     bs_write(icg->bytecode_store, i);
 }
 
@@ -608,8 +623,6 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
         ast_node_t* left_child = node->expression.left;
         size_t count = 0;
 
-        ast_print(left_child, 0);
-        
         while(left_child->type != AST_NODE_IDENTIFIER) {
             icg_generate_expression(icg, left_child->expression.right);
             left_child = left_child->expression.left;

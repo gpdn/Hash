@@ -7,6 +7,10 @@
 #include <string.h>
 #include <conio.h>
 
+#if _WIN32 | _WIN64
+    #define OS_WINDOWS 1
+#endif
+
 #define COLOR_WHITE "\e[0;37m"
 #define COLOR_RED "\x1b[31m"
 #define COLOR_GRAY "\x1b[30m"
@@ -21,6 +25,7 @@
 
 #define DEBUG 1
 #define DEBUG_ALL 1
+#define DEBUG_TIMERS 1
 
 #if DEBUG
 #define DEBUG_LOG(...) printf(__VA_ARGS__)
@@ -58,6 +63,12 @@
 #define DEBUG_PRINT_LINE(X)
 #define DEBUG_COLOR_SET(X)
 #define DEBUG_COLOR_RESET(X)
+#define DEBUG_BINARY_8(X)
+#define DEBUG_LOG_BINARY_8(X)
+#undef DEBUG_ALL
+#define DEBUG_ALL 0
+#undef DEBUG_TIMERS
+#define DEBUG_TIMERS 0
 #endif
 
 #if PROFILE
@@ -71,18 +82,13 @@
 #define TIMER_GET_ELAPSED(X)
 #endif
 
-#if DEBUG
 #include "bytecode_store.h"
 #include "h_token.h"
-#define ECHO(X)        \
-    printf("%s\n", X); \
-    return X;
 void disassemble_bytecode_store(bytecode_store_t *store, const char *name, FILE *file);
 size_t disassemble_instruction(bytecode_store_t *store, size_t offset, FILE *file);
 void token_print(token_t *token);
 size_t token_write_print_string(FILE *file, token_t *token);
 const char* resolve_token_type(token_type_t type);
-#endif
 
 #if DEBUG_ALL
     #define DEBUG_TRACE_VM_BYTECODE 1
@@ -108,6 +114,8 @@ const char* resolve_token_type(token_type_t type);
     #define DEBUG_FILE_LEXER_TOKEN_PATH DEBUG_FOLDER_PATH "tokens"
     #define DEBUG_FILE_BYTECODE_PATH DEBUG_FOLDER_PATH "bytecode"
     #define DEBUG_FILE_PARSER_AST_PATH DEBUG_FOLDER_PATH "parser_ast"
+
+    #define DEBUG_STD_FLAGS 1
 #endif
 
 #endif
