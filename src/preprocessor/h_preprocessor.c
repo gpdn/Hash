@@ -4,6 +4,9 @@
 #define PREPROCESSOR_ENVIRONMENT_CAPACITY 100
 #define PREPROCESSOR_CONDITIONS_STACK_CAPACITY 10
 
+#define PREPROCESSOR_CHECK_ERROR(X, ...) \
+        (X == 1) ? 1 : (fprintf(stderr, "%s%s. File: %s%s\n", COLOR_RED, __VA_ARGS__, preprocessor->files_list[preprocessor->files_list_size - 1], COLOR_RESET) && 0)
+
 static int preprocessor_resolve(h_preprocessor_t* preprocessor, const char* file);
 static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor);
 static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const char* file);
@@ -130,8 +133,7 @@ static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const c
 }
 
 static inline void preprocessor_advance_new_line(h_preprocessor_t* preprocessor) {
-    ++preprocessor->current;
-    while(*preprocessor->current == ' ' || *preprocessor->current == '\n') ++preprocessor->current;
+    while(*preprocessor->current == ' ' || *preprocessor->current == '\n' || *preprocessor->current == '\t' || *preprocessor->current == '\r') ++preprocessor->current;
 }
 
 static void preprocessor_files_list_print(h_preprocessor_t* preprocessor) {
@@ -149,13 +151,14 @@ static inline int preprocessor_check_directive(h_preprocessor_t* preprocessor, s
 static inline int resolve_directive_if(h_preprocessor_t* preprocessor) {
     if(preprocessor->output_enabled == 0) {
         preprocessor->ignore_input = 1;
+        h_preprocessor_conditions_stack_push(preprocessor->conditions_stack, H_DIRECTIVE_IF, 1, 0);
         return 1;
     }
     DEBUG_LOG("Resolving if\n");
     h_preprocessor_value_t value = preprocessor_read_value_inline(preprocessor);
     int result = preprocessor_evaluate_value(preprocessor, value);
     preprocessor->output_enabled = result;
-    h_preprocessor_conditions_stack_push(preprocessor->conditions_stack, H_DIRECTIVE_IF, result);
+    h_preprocessor_conditions_stack_push(preprocessor->conditions_stack, H_DIRECTIVE_IF, 0, result);
     h_preprocessor_conditions_stack_print(preprocessor->conditions_stack);
     DEBUG_LOG("If evaluated: %d\n", result);
     return 1;
@@ -186,21 +189,21 @@ static inline int resolve_directive_elif(h_preprocessor_t* preprocessor) {
 }
 
 static inline int resolve_directive_else(h_preprocessor_t* preprocessor) {
-    if(preprocessor->ignore_input == 1) return 1;
-    DEBUG_LOG("Resolving else\n");
     int result = h_preprocessor_conditions_stack_update(preprocessor->conditions_stack, H_DIRECTIVE_ELSE);
-    if(result == -1) return 0;
-    preprocessor->output_enabled = result;
+    if(result == -1) return PREPROCESSOR_CHECK_ERROR(0, "No matching #if for #else");
+    preprocessor->ignore_input = result >> 1 & 1;
+    if(preprocessor->ignore_input == 1) return 1;
+    preprocessor->output_enabled = result & 1;
     return 1;
 }
 
 static inline int resolve_directive_endif(h_preprocessor_t* preprocessor) {
+    //if(preprocessor->ignore_input == 1) return 1;
     DEBUG_LOG("Resolving endif\n");
     h_preprocessor_condition_t condition = h_preprocessor_conditions_stack_pop(preprocessor->conditions_stack);
-    print_preprocessor_directive_no_newline(condition.directive);
-    DEBUG_LOG("- Output enabled: %d\n", condition.output);
     preprocessor->output_enabled = !condition.output;
-    return condition.directive != H_DIRECTIVE_UNKNOWN;
+    preprocessor->ignore_input = condition.input;
+    return PREPROCESSOR_CHECK_ERROR(condition.directive != H_DIRECTIVE_UNKNOWN, "Unnecessary #endif. No conditional statements opened");
 }
 
 static inline int resolve_directive_define(h_preprocessor_t* preprocessor) {
@@ -208,7 +211,7 @@ static inline int resolve_directive_define(h_preprocessor_t* preprocessor) {
     preprocessor_read_string_inline(preprocessor);
     h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
     h_preprocessor_value_t value = preprocessor_read_value_inline(preprocessor);
-    return h_preprocessor_env_define(preprocessor->environment, name, value);
+    return PREPROCESSOR_CHECK_ERROR(h_preprocessor_env_define(preprocessor->environment, name, value), "Variable", name->string, "already defined");
 }
 
 static inline int resolve_directive_set(h_preprocessor_t* preprocessor) {
@@ -216,14 +219,14 @@ static inline int resolve_directive_set(h_preprocessor_t* preprocessor) {
     preprocessor_read_string_inline(preprocessor);
     h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
     h_preprocessor_value_t value = preprocessor_read_value_inline(preprocessor);
-    return h_preprocessor_env_set(preprocessor->environment, name, value);
+    return PREPROCESSOR_CHECK_ERROR(h_preprocessor_env_set(preprocessor->environment, name, value), "Unable to set undefined variable", name->string);
 }
 
 static inline int resolve_directive_unset(h_preprocessor_t* preprocessor) {
     DEBUG_LOG("Resolving unset\n");
     preprocessor_read_string_inline(preprocessor);
     h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
-    return h_preprocessor_env_unset(preprocessor->environment, name);
+    return PREPROCESSOR_CHECK_ERROR(h_preprocessor_env_unset(preprocessor->environment, name), "Unable to unset undefined variable", name->string);
 }
 
 static inline int resolve_directive_print(h_preprocessor_t* preprocessor) {
@@ -376,13 +379,14 @@ static int preprocessor_process_file(h_preprocessor_t* preprocessor) {
 
     while(*preprocessor->current != '\0' && preprocessor->files_list_size != 0) {
         if(*preprocessor->current == '#') {
-            //append_file(preprocessor->out_file, preprocessor->start, sizeof(char), preprocessor->current - preprocessor->start);
             if(preprocessor_resolve_directive(preprocessor) == 0) {
+                DEBUG_LOG("Preprocessor failed");
                 return 0;
             }
-            //preprocessor_advance_new_line(preprocessor);
+            preprocessor_advance_new_line(preprocessor);
             continue;
         }
+
         if(preprocessor->output_enabled) append_file(preprocessor->out_file, preprocessor->current, sizeof(char), 1);
         ++preprocessor->current;
     }
@@ -402,14 +406,15 @@ int preprocessor_run(h_preprocessor_t* preprocessor) {
         return 0;
     }
 
-    preprocessor_process_file(preprocessor);
+    if(preprocessor_process_file(preprocessor) == 0) {
+        close_file(preprocessor->out_file);
+        return 0;
+    }
 
     if(preprocessor->conditions_stack->size > 0) {
         DEBUG_LOG("%s\n", "Missing #endif directive");
         return 0;
     }
-
-    close_file(preprocessor->out_file);
     
     return 1;
 }
@@ -422,3 +427,6 @@ void preprocessor_destroy(h_preprocessor_t* preprocessor) {
 }
 
 #undef PREPROCESSOR_FILES_LIST_CAPACITY
+#undef PREPROCESSOR_ENVIRONMENT_CAPACITY
+#undef PREPROCESSOR_CONDITIONS_STACK_CAPACITY
+#undef PREPROCESSOR_CHECK_ERROR

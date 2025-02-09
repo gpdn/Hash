@@ -1,4 +1,4 @@
-#include "h_std_mysql.h"
+/* #include "h_std_mysql.h"
 
 value_t h_std_mysql_connect(struct value_t* parameters, size_t args_count) {
     MYSQL* connection = mysql_init(NULL);
@@ -64,4 +64,4 @@ int h_std_mysql_import(h_locals_stack_t* stack, h_ht_enums_t* enums_table, h_ht_
         {.name = "status", .value = H_NFI_VALUE(H_VALUE_NUMBER)}
     }, 1);
     define_native(stack, "mysql_connect", h_std_mysql_connect, (value_t[]){(value_t){.type = H_VALUE_STRING}}, 1, (value_t){.type = H_VALUE_STRING});
-}
+} */

@@ -9,7 +9,7 @@ void print_preprocessor_directive(h_preprocessor_directive_t directive) {
             DEBUG_LOG("%s\n", "DIRECTIVE ELIF");
             break;
         case H_DIRECTIVE_ELSE:
-            DEBUG_LOG("%s\n", "H_DIRECTIVE_ELSE");
+            DEBUG_LOG("%s\n", "DIRECTIVE_ELSE");
             break;
         case H_DIRECTIVE_ENDIF:
             DEBUG_LOG("%s\n", "DIRECTIVE ENDIF");
@@ -44,7 +44,7 @@ void print_preprocessor_directive_no_newline(h_preprocessor_directive_t directiv
             DEBUG_LOG("%s", "DIRECTIVE ELIF");
             break;
         case H_DIRECTIVE_ELSE:
-            DEBUG_LOG("%s", "H_DIRECTIVE_ELSE");
+            DEBUG_LOG("%s", "DIRECTIVE_ELSE");
         break;
         case H_DIRECTIVE_ENDIF:
             DEBUG_LOG("%s", "DIRECTIVE ENDIF");

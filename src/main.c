@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
 
     h_preprocessor_t* preprocessor = preprocessor_init(source_file_path, std);
 
-    preprocessor_run(preprocessor);
+    if(preprocessor_run(preprocessor) == 0) return 0;
 
     preprocessor_destroy(preprocessor);
 
