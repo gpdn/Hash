@@ -57,8 +57,8 @@ static ast_node_t* parse_data_initialisation(parser_t* parser, operator_preceden
 static ast_node_t* parse_dot_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_compound_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static void emit_error(parser_t* parser, const char* error_message);
-static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
-static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message);
+static inline void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
+static inline void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message);
 static void ast_nodes_array_push(parser_t* parser, ast_node_t* node);  
 static value_type_t parser_get_value_type(parser_t* parser);
 static value_t parser_get_value(parser_t* parser);
@@ -172,7 +172,7 @@ static parse_rule_t* current_parse_table = parse_table;
 
 static const char* parser_debug_colors[] = {COLOR_BLUE, COLOR_YELLOW, COLOR_GREEN, COLOR_RED};
 
-static void assert_token_type(parser_t* parser, token_type_t type, const char* error_message) {
+static inline void assert_token_type(parser_t* parser, token_type_t type, const char* error_message) {
     if(parser->current->type == type) {
         ++parser->current;
         return;
@@ -181,7 +181,7 @@ static void assert_token_type(parser_t* parser, token_type_t type, const char* e
     if(parser->errors_count == 0) emit_error(parser, error_message);
 }
 
-static void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message) {
+static inline void assert_token_type_no_advance(parser_t* parser, token_type_t type, const char* error_message) {
     if(parser->current->type == type) {
         return;
     }
@@ -491,7 +491,7 @@ static ast_node_t* parse_variable_declaration_enum(parser_t* parser) {
     ++parser->current;
     node->operator = parser->current;
     node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
-    assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected { for enum declaration");
+    assert_token_type_no_advance(parser, H_TOKEN_COLON, "Expected : for enum declaration");
     node->expression.right = parse_block_statement_enum(parser);
     //assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
     return node;
@@ -503,15 +503,18 @@ static ast_node_t* parse_block_statement_enum(parser_t* parser) {
     ++parser->current;
     node->block.declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
     node->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->block.declarations_capacity);
-    while(parser->current->type != H_TOKEN_RIGHT_CURLY) {
+    if(parser->current->type == H_TOKEN_COLON) {
+        emit_error(parser, "Empty enum not allowed");
+        return ast_node_create(AST_NODE_ERROR);
+    }
+    do {
         if(node->block.declarations_size >= node->block.declarations_capacity) {
             node->block.declarations_capacity *= 2;
             node->block.declarations = realloc(node->block.declarations, sizeof(ast_node_t*) * node->block.declarations_capacity);
         }
         node->block.declarations[node->block.declarations_size++] = parse_identifier(parser, OP_PREC_HIGHEST);
-        assert_token_type(parser, H_TOKEN_COMMA, "Expected comma after enum entry");
-    }
-    assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected }.");
+    } while(parser->current->type == H_TOKEN_COMMA && (++parser->current)->type != H_TOKEN_COLON);
+    assert_token_type(parser, H_TOKEN_COLON, "Expected :.");
     return node;
 }
 
