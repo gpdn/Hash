@@ -21,6 +21,7 @@
 typedef struct h_preprocessor_t {
     const char* start;
     const char* current;
+    size_t line;
     const char** files_list;
     size_t files_list_size;
     size_t files_list_capacity;

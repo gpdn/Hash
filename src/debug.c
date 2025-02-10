@@ -34,7 +34,6 @@ static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_
 } 
 
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
-    DEBUG_LOG("%s ", name);
     #if DEBUG_ALL
         value_t value = store->constants->constants[store->code[offset + 1]];
         bs_print_value(store, offset, value);

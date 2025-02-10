@@ -837,7 +837,7 @@ static ast_node_t* parse_function_parameters_list(parser_t* parser) {
             node->block.declarations_capacity *= 2;
             node->block.declarations = (ast_node_t**)realloc(node->block.declarations, sizeof(ast_node_t*) * node->block.declarations_capacity);
         }
-        node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_HIGHEST);
+        node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
     } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
     return node;
 }

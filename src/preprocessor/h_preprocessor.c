@@ -4,8 +4,9 @@
 #define PREPROCESSOR_ENVIRONMENT_CAPACITY 100
 #define PREPROCESSOR_CONDITIONS_STACK_CAPACITY 10
 
+#define PREPROCESSOR_PRINT_ERROR(...) fprintf(stderr, "%s%s. File: %s at line %lld%s\n", COLOR_RED, __VA_ARGS__, preprocessor->files_list[preprocessor->files_list_size - 1], preprocessor->line, COLOR_RESET)
 #define PREPROCESSOR_CHECK_ERROR(X, ...) \
-        (X == 1) ? 1 : (fprintf(stderr, "%s%s. File: %s%s\n", COLOR_RED, __VA_ARGS__, preprocessor->files_list[preprocessor->files_list_size - 1], COLOR_RESET) && 0)
+        (X == 1) ? 1 : ((PREPROCESSOR_PRINT_ERROR(__VA_ARGS__)) && 0)
 
 static int preprocessor_resolve(h_preprocessor_t* preprocessor, const char* file);
 static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor);
@@ -73,6 +74,7 @@ static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocess
 
     if(*preprocessor->current == '"') {
        ++preprocessor->current;
+       preprocessor->start = preprocessor->current;
        while(*preprocessor->current != '\0' && *preprocessor->current != '"') ++preprocessor->current;
        h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
        return PREPROCESSOR_VALUE_STRING(name); 
@@ -133,7 +135,7 @@ static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const c
 }
 
 static inline void preprocessor_advance_new_line(h_preprocessor_t* preprocessor) {
-    while(*preprocessor->current == ' ' || *preprocessor->current == '\n' || *preprocessor->current == '\t' || *preprocessor->current == '\r') ++preprocessor->current;
+    while(*preprocessor->current == ' ' || *preprocessor->current == '\t' || *preprocessor->current == '\r' || (*preprocessor->current == '\n' && ++preprocessor->line)) ++preprocessor->current;
 }
 
 static void preprocessor_files_list_print(h_preprocessor_t* preprocessor) {
@@ -170,11 +172,11 @@ static inline int resolve_directive_import(h_preprocessor_t* preprocessor) {
     h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
     DEBUG_LOG("File name: %s\n", name->string);
     if(preprocessor_file_push(preprocessor, name->string) == 0) {
-        DEBUG_LOG("File already imported\n");
+        PREPROCESSOR_PRINT_ERROR("File", name->string, "already imported");
         return 0;
     }
-    preprocessor_process_file(preprocessor);
-    return 1;
+    preprocessor->line = 0;
+    return preprocessor_process_file(preprocessor);
 }
 
 static inline int resolve_directive_std(h_preprocessor_t* preprocessor) {
@@ -359,6 +361,7 @@ h_preprocessor_t* preprocessor_init(const char* source_path, h_std_t* std) {
     preprocessor->files_list = (const char**)malloc(sizeof(const char*) * PREPROCESSOR_FILES_LIST_CAPACITY);
     preprocessor->start = NULL;
     preprocessor->current = NULL;
+    preprocessor->line = 1;
     preprocessor->environment = h_preprocessor_env_init(PREPROCESSOR_ENVIRONMENT_CAPACITY, 0.75);
     preprocessor->conditions_stack = h_preprocessor_conditions_stack_init(PREPROCESSOR_CONDITIONS_STACK_CAPACITY);
     preprocessor->output_enabled = 1;
@@ -413,8 +416,11 @@ int preprocessor_run(h_preprocessor_t* preprocessor) {
 
     if(preprocessor->conditions_stack->size > 0) {
         DEBUG_LOG("%s\n", "Missing #endif directive");
+        close_file(preprocessor->out_file);
         return 0;
     }
+
+    close_file(preprocessor->out_file);
     
     return 1;
 }
@@ -429,4 +435,5 @@ void preprocessor_destroy(h_preprocessor_t* preprocessor) {
 #undef PREPROCESSOR_FILES_LIST_CAPACITY
 #undef PREPROCESSOR_ENVIRONMENT_CAPACITY
 #undef PREPROCESSOR_CONDITIONS_STACK_CAPACITY
+#undef PREPROCESSOR_PRINT_ERROR
 #undef PREPROCESSOR_CHECK_ERROR

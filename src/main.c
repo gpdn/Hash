@@ -38,18 +38,7 @@
     #define PRINT_TITLE()
 #endif
 
-static void execute_file(const char* source_path, const char** source);
 static const char* execute_repl(char* source);
-
-static void execute_file(const char* source_path, const char** source) {
-    *source = read_file(source_path);
-
-    if(*source == NULL) {
-        fprintf(stderr, "Failed to open file. Path: %s", source_path);
-        exit(HASH_FILE_OPEN_FAILED);
-    }
-
-}
 
 static const char* execute_repl(char* source) {
     
@@ -111,7 +100,6 @@ int main(int argc, char** argv) {
         case MODE_FILE:
             DEBUG_LOG("\nFile Mode\n");
             DEBUG_LOG("\nFile: %s\n", source_file_path);
-            execute_file(source_file_path, &file_content);
             break;
         case MODE_REPL:
             DEBUG_LOG("\nRepl\n");

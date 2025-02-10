@@ -111,7 +111,7 @@ const char* resolve_token_type(token_type_t type);
     #define DEBUG_FILE_PARSER_AST 1
 
     #define DEBUG_FOLDER_PATH "debug_files/"
-    #define DEBUG_FILE_LEXER_TOKEN_PATH DEBUG_FOLDER_PATH "tokens"
+    #define DEBUG_FILE_LEXER_TOKEN_PATH DEBUG_FOLDER_PATH "tokens.txt"
     #define DEBUG_FILE_BYTECODE_PATH DEBUG_FOLDER_PATH "bytecode"
     #define DEBUG_FILE_PARSER_AST_PATH DEBUG_FOLDER_PATH "parser_ast"
 
