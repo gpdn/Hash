@@ -148,7 +148,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                     default:
                         return VM_ERROR;
                 }
-                //BINARY_OP_ASSOC(add_val, NUM_VALUE, +);
                 break;
             case OP_SUB:
                 BINARY_OP(NUM_VALUE, -);
@@ -230,8 +229,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm_stack_push(vm, native_return_value);
                 break;
             case OP_RETURN:
-                /* value_t result = vm_stack_pop(vm);
-                resolve_value(&result); */
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
                 vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack;
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
@@ -241,11 +238,8 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 }
                 vm->store = vm->initial_store;
                 vm->stack_base = vm->stack;
-                //return VM_SUCCESS;
                 break;
             case OP_RETURN_VALUE:
-                /* value_t result = vm_stack_pop(vm);
-                resolve_value(&result); */
                 value_t return_value = vm_stack_pop(vm);
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
                 vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack - 1;
@@ -258,7 +252,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->store = vm->initial_store;
                 vm->stack_base = vm->stack;
                 vm_stack_push(vm, return_value);
-                //return VM_SUCCESS;
                 break;
             case OP_PRINT:
                 value_t print_val = vm_stack_pop(vm);
@@ -337,35 +330,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_GET_LOCAL_SIZE:
                 value_t array_value = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
                 vm_stack_push(vm, NUM_VALUE(array_value.array->size - 1));
-                break;
-            /*case OP_LOOP:
-                 
-                size_t it_index = ADVANCE_INSTRUCTION_POINTER();
-                size_t loop_end = ADVANCE_INSTRUCTION_POINTER();
-                DEBUG_LOG("Index: %lld\n", it_index);
-                DEBUG_LOG("Loop End: %lld\n", loop_end);
-                uint8_t* current_instruction = ++vm->instruction_pointer;
-                disassemble_instruction(vm->store, vm->instruction_pointer - vm->store->code - 1, NULL);
-                value_t local_iterator_value = h_locals_array_get(vm->locals_stack, it_index);
-                DEBUG_LOG("Here");
-                print_value(&local_iterator_value);
-                
-                //break;
-                
-                for(size_t i = 0; i < local_iterator_value.array->size; ++i) {
-                    //DEBUG_LOG("%lld\n", i);
-                    vm->instruction_pointer = current_instruction;
-                    h_locals_array_set(vm->locals_stack, it_index + 1, local_iterator_value.array->data[i]);
-                    while(vm->instruction_pointer != vm->store->code + loop_end) { 
-                        for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
-                           DEBUG_COLOR_SET(COLOR_CYAN);
-                            resolve_value(temp);
-                            DEBUG_COLOR_RESET();
-                        }
-                        disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
-                        ++vm->instruction_pointer;
-                    }
-                } */
                 break;
             case OP_PRE_INCREMENT:
                 vm_stack_push(vm, vm_stack_pre_increase(vm, ADVANCE_INSTRUCTION_POINTER()));

@@ -114,7 +114,6 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_DECLARATION_ENUM:
         case AST_NODE_DECLARATION_DATA:
-            //icg_generate_declaration_label(icg, node);
             break;
         case AST_NODE_DECLARATION_FUNCTION:
             icg_generate_declaration_function(icg, node);

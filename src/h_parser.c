@@ -662,7 +662,7 @@ static ast_node_t* parse_repeat_statement(parser_t* parser) {
     ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_REPEAT);
     node->operator = parser->current;
     ++parser->current;
-    node->expression.left = parse_expression(parser, OP_PREC_HIGHEST);
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     node->expression.other = parser->temp_one;
     assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
     node->expression.right = parse_block_statement(parser);

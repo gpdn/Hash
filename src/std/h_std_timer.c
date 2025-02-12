@@ -57,7 +57,7 @@ value_t h_std_timer_stop(struct value_t* parameters, size_t args_count) {
 
 value_t h_std_timer_lap(struct value_t* parameters, size_t args_count) {
     h_data_t* data = H_NFI_TYPE_TO_TYPE(parameters[0]);
-    h_array_t* laps = H_NFI_ARRAY(H_NFI_TYPE_GET_DATA(data, 1));
+    h_array_t* laps = H_NFI_ARR(H_NFI_TYPE_GET_DATA(data, 1));
 
     value_t lap_time;
 
@@ -74,7 +74,7 @@ value_t h_std_timer_lap(struct value_t* parameters, size_t args_count) {
 value_t h_std_timer_reset(struct value_t* parameters, size_t args_count) {
     h_data_t* data = H_NFI_TYPE_TO_TYPE(parameters[0]);
     H_NFI_TYPE_SET_DATA(data, 0, NUM_VALUE(0));
-    h_array_free(H_NFI_ARRAY(H_NFI_TYPE_GET_DATA(data, 1)));
+    h_array_free(H_NFI_ARR(H_NFI_TYPE_GET_DATA(data, 1)));
     h_array_t* array = h_array_init(H_VALUE_NUMBER, 5);
     clock_t time = clock();
     data->data[0] = NUM_VALUE(time);

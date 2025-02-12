@@ -51,8 +51,8 @@ int h_locals_stack_find(h_locals_stack_t* locals_stack, h_string_t* name, size_t
     #if DEBUG_TRACE_LOCALS_STACK
         DEBUG_LOG("Find: %s - %lld\n", name->string, it->scope);
     #endif
-    for(; it->scope <= scope && it != locals_stack->locals_array - 1; --it) {
-        if(it->name->hash == name->hash && it->name->length == name->length && strcmp(it->name->string, name->string) == 0) return 1;
+    for(; it->scope == scope && it != locals_stack->locals_array - 1; --it) {
+        if(it->name->hash <= name->hash && it->name->length == name->length && strcmp(it->name->string, name->string) == 0) return 1;
     }
     return 0;
 }

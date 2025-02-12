@@ -35,6 +35,7 @@ static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_
 
 static int constant_instruction(const char* name, bytecode_store_t* store, size_t offset, FILE* file) {
     #if DEBUG_ALL
+        DEBUG_LOG("%s ", name);
         value_t value = store->constants->constants[store->code[offset + 1]];
         bs_print_value(store, offset, value);
     #endif
@@ -87,6 +88,7 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
     printf("%04lld  ", offset);
 
     uint8_t instruction = store->code[offset];
+
     switch(instruction) {
         case OP_RETURN:
             return basic_instruction("OP_RETURN", offset, file);
