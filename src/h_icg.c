@@ -17,14 +17,13 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_block_no_scope(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_break(icg_t* icg);
 static inline void icg_generate_statement_skip(icg_t* icg);
 static inline void icg_generate_array_initialisation(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_data_initialisation(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node);
 static void icg_generate_expression(icg_t* icg, ast_node_t* node);
-/* static inline void icg_generate_number(icg_t* icg, ast_node_t* node);
-static inline void icg_generate_string(icg_t* icg, ast_node_t* node); */
 static inline void icg_generate_literal(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node);
@@ -224,7 +223,7 @@ static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
 }
 
 static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) {
-    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string);
+    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
     bs_write(icg->bytecode_store, OP_DEFINE_LOCAL_ARRAY);
     bs_write(icg->bytecode_store, index);
     if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
@@ -242,7 +241,7 @@ static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node
 }
 
 static void icg_generate_declaration_data(icg_t* icg, ast_node_t* node) {
-    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string);
+    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
     bs_write(icg->bytecode_store, OP_DEFINE_LOCAL_ARRAY);
     bs_write(icg->bytecode_store, index);
     if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
@@ -277,7 +276,7 @@ static void icg_generate_declaration_function(icg_t* icg, ast_node_t* node) {
     icg->bytecode_store = icg->initial_bytecode_store;
     icg->locals_stack = icg->initial_locals_stack;
     bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
     #if DEBUG_ALL
     disassemble_bytecode_store(node->value.function->store, node->value.function->name->string, NULL);
     #endif
@@ -345,11 +344,13 @@ static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node
 
 static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     ast_node_t* condition = node->expression.left;
+    ++icg->scope;
+    if(condition->expression.left) icg_generate_expression(icg, condition->expression.left);
     size_t current_instruction = icg->bytecode_store->size;
     icg_generate_expression(icg, condition->expression.other);
     bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
     size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
-    icg_generate_statement_block(icg, node->expression.right);
+    icg_generate_statement_block_no_scope(icg, node->expression.right);
     icg_resolve_skips(icg, icg->bytecode_store->size);
     icg_generate_expression(icg, condition->expression.right);
     bs_write(icg->bytecode_store, OP_POP);
@@ -357,14 +358,16 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
     icg_resolve_breaks(icg);
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
-    size_t temp_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->value.string);
+    ++icg->scope;
+    size_t temp_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->value.string, icg->scope);
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_PRE_INCREMENT);
     bs_write(icg->bytecode_store, temp_index);
-    icg_generate_statement_block(icg, node->expression.right);
+    icg_generate_statement_block_no_scope(icg, node->expression.right);
     icg_generate_expression(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_NOT_EQUAL);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
@@ -372,12 +375,14 @@ static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     icg_resolve_skips(icg, jump_index);
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
-    size_t temp_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->expression.left->value.string);
-    size_t count_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->expression.right->value.string);
-    size_t array_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string);
+    ++icg->scope;
+    size_t temp_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->expression.left->value.string, icg->scope);
+    size_t count_index = h_locals_stack_get_index(icg->locals_stack, node->expression.other->expression.right->value.string, icg->scope);
+    size_t array_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_GET_LOCAL);
@@ -386,7 +391,7 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, array_index);
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
     bs_write(icg->bytecode_store, temp_index);
-    icg_generate_statement_block(icg, node->expression.right);
+    icg_generate_statement_block_no_scope(icg, node->expression.right);
     bs_write(icg->bytecode_store, OP_POP);
     bs_write(icg->bytecode_store, OP_GET_LOCAL_SIZE);
     bs_write(icg->bytecode_store, array_index);
@@ -399,9 +404,18 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     icg_resolve_skips(icg, jump_index);
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
+    ++icg->scope;
+    for(size_t i = 0; i < node->block.declarations_size; ++i) {
+        icg_generate_expression(icg, node->block.declarations[i]);
+    }
+    --icg->scope;
+}
+
+static inline void icg_generate_statement_block_no_scope(icg_t* icg, ast_node_t* node) {
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
     }
@@ -447,17 +461,17 @@ static inline void icg_generate_enum_resolution(icg_t* icg, ast_node_t* node) {
 
 static inline void icg_generate_identifier(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_GET_LOCAL);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->value.string, icg->scope));
 }
 
 static inline void icg_generate_identifier_function(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_GET_LOCAL_FUNCTION);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string, icg->scope));
 }
 
 static inline void icg_generate_identifier_native(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_GET_LOCAL_NATIVE);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->initial_locals_stack, node->value.string, icg->scope));
 }
 
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node) {
@@ -485,12 +499,12 @@ static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node) {
 
     if(count == 1) {
         bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
-        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));
         return;
     }
 
     bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX_COMPOUND);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));
     bs_write(icg->bytecode_store, count);
 
     return;
@@ -528,11 +542,11 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node) {
             break;
         case H_TOKEN_PLUS_PLUS:
             bs_write(icg->bytecode_store, OP_PRE_INCREMENT);
-            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
             break;
         case H_TOKEN_MINUS_MINUS:
             bs_write(icg->bytecode_store, OP_PRE_DECREMENT);
-            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
             break;
         default:
             return;
@@ -543,11 +557,11 @@ static void icg_generate_post_unary(icg_t* icg, ast_node_t* node) {
     switch(node->operator->type) {
         case H_TOKEN_PLUS_PLUS:
             bs_write(icg->bytecode_store, OP_POST_INCREMENT);
-            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
             break;
         case H_TOKEN_MINUS_MINUS:
             bs_write(icg->bytecode_store, OP_POST_DECREMENT);
-            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
             break;
         default:
             return;
@@ -632,12 +646,12 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
 
         if(count == 1) {
             bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
-            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+            bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));
             return;
         }
 
         bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX_COMPOUND);
-        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string));
+        bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));
         bs_write(icg->bytecode_store, count);
         return;
     }
@@ -648,7 +662,7 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
         return;
     } */
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
-    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string));
+    bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope));
 }
 
 static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node) {
@@ -673,7 +687,7 @@ static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node) {
 
     icg_generate_expression(icg, node->expression.right);
     if(node->expression.left->type == AST_NODE_INDEXING) {
-        size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string);
+        size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->expression.left->value.string, icg->scope);
         icg_generate_expression(icg, node->expression.left->expression.right);
         bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
         bs_write(icg->bytecode_store, local_index);
@@ -684,7 +698,7 @@ static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node) {
         return;
     }
 
-    size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string);
+    size_t local_index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
     bs_write(icg->bytecode_store, OP_GET_LOCAL);
     bs_write(icg->bytecode_store, local_index);
     H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE(node->operator->type);
@@ -716,6 +730,7 @@ icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash
     icg->skips_list.capacity = 5;
     icg->skips_list.size = 0;
     icg->skips_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->skips_list.capacity);
+    icg->scope = 0;
     return icg;
 }
 

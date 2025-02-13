@@ -116,7 +116,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
 
     uint8_t instruction;
     while((instruction = ADVANCE_INSTRUCTION_POINTER()) != OP_STOP) {
-        
+
         #if DEBUG_TRACE_VM_BYTECODE
             disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
         #endif
@@ -130,7 +130,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 break;
             case OP_CONSTANT:
                 value_t value = READ_CONSTANT();
-                resolve_value(&value);
                 vm_stack_push(vm, value);
                 break;
             case OP_NEGATE:
@@ -197,7 +196,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_GENERATE_INTERVAL:
                 value_t value_one = vm_stack_pop(vm); 
                 value_t value_two = vm_stack_pop(vm);
-                print_value(&value_one); 
+                print_value(&value_one);
                 print_value(&value_two); 
                 for(size_t i = value_two.number; i <= value_one.number; ++i) vm_stack_push(vm, NUM_VALUE(i));
                 break;
