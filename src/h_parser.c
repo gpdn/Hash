@@ -69,6 +69,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
@@ -139,6 +140,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_CURLY]               = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
@@ -704,6 +706,7 @@ static ast_node_t* parse_block_statement(parser_t* parser) {
 static ast_node_t* parse_data_initialisation(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create_statement_block(AST_NODE_DATA_INITIALISATION);
     node->operator = parser->current;
+    ++parser->current;
     node->block.declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
     node->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->block.declarations_capacity);
     do {
@@ -769,8 +772,7 @@ static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t
     node->value = STR_VALUE(value);
     ++parser->current;
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected = before data initialisation");
-    assert_token_type(parser, H_TOKEN_LEFT_CURLY, "Expected data initialisation");
-    left->expression.right = parse_data_initialisation(parser, OP_PREC_LOWEST);
+    left->expression.right = parse_expression(parser, OP_PREC_LOWEST);
     left->expression.right->value.data_type->type_name = left->value.string;
     return left;
 }
@@ -1165,7 +1167,6 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
 
 parser_t* parser_init(token_t* tokens_array, size_t tokens_list_size) {
     parser_t* parser = (parser_t*)malloc((sizeof(parser_t)));
-    parser->current_node = NULL;
     parser->ast_nodes_list = (ast_node_t**)malloc(sizeof(ast_node_t*) * tokens_list_size);
     parser->ast_list_capacity = tokens_list_size;
     parser->ast_list_size = 0;

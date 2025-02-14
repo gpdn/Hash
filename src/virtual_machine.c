@@ -91,6 +91,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     vm->locals_stack = locals_stack;
     vm->array_initialisation_ptr = vm->stack;
     vm->stack_base = vm->stack;
+    vm->calls_stack_size = 0;
     //vm_stack_push(vm, NULL_VALUE(0));
     return vm;
 }
@@ -201,15 +202,10 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 for(size_t i = value_two.number; i <= value_one.number; ++i) vm_stack_push(vm, NUM_VALUE(i));
                 break;
             case OP_CALL:
-                //h_function_t* function = vm_stack_get_absolute(vm, ADVANCE_INSTRUCTION_POINTER()).function;
                 size_t arguments_count = ADVANCE_INSTRUCTION_POINTER();
                 h_function_t* function = (vm->stack_top - arguments_count - 1)->function;
-                //value_t* frame_stack_start = vm->stack_top - arguments_count;
                 value_t* frame_stack_start = vm->stack_top - arguments_count;
-                call_frame_t frame = {function, frame_stack_start, vm->instruction_pointer};
-                /* for(size_t i = 0; i < arguments_count; ++i) {
-                    h_locals_stack_push(vm->calls_locals_stack, function->parameters_list[i].name, vm_stack_pop(vm), vm->calls_stack_size);
-                } */
+                call_frame_t frame = {function, frame_stack_start, vm->instruction_pointer};                
                 vm->calls_stack[vm->calls_stack_size++] = frame;
                 vm->instruction_pointer = frame.function->store->code;
                 vm->stack_base = frame_stack_start;

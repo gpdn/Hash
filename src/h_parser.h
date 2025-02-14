@@ -101,7 +101,6 @@ typedef struct ast_node_t {
 
 typedef struct parser_t {
     ast_node_t** ast_nodes_list;
-    ast_node_t* current_node;
     size_t ast_list_capacity;
     size_t ast_list_size;
     token_t* tokens_list;

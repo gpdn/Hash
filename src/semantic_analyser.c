@@ -99,7 +99,7 @@ static inline void resolve_returns_list(semantic_analyser_t* analyser, value_t v
 }
 
 static void emit_error(semantic_analyser_t* analyser, const char* error) {
-    DEBUG_LOG("Semantic Analyser Error: %s\n", error);
+    DEBUG_LOG("Semantic Analyser Error: %s. At line: %lld\n", error, analyser->current->operator->line);
     ++analyser->errors_count;
     analyser->current = analyser->ast_nodes_list[analyser->ast_nodes_list_count - 1];
 }
@@ -120,12 +120,12 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
     if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser, "Invalid arguments count");
     
     for(size_t i = 0; i < function->parameters_list_size; ++i) {
-        parameters_list->block.declarations[i]->value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
-        if(function->parameters_list_values[i].type != parameters_list->block.declarations[i]->value.type) emit_error(analyser, "Invalid argument type");
+        value_t parameter_value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
+        if(function->parameters_list_values[i].type != parameter_value.type) emit_error(analyser, "Invalid argument type");
         if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
-            if(analyser->returns_list.types[i].string->hash != parameters_list->block.declarations[i]->value.data_type->type_name->hash 
-                || analyser->returns_list.types[i].string->length != parameters_list->block.declarations[i]->value.data_type->type_name->length 
-                || strcmp(analyser->returns_list.types[i].string->string, parameters_list->block.declarations[i]->value.data_type->type_name->string) != 0) {
+            if(analyser->returns_list.types[i].string->hash != parameter_value.data_type->type_name->hash 
+                || analyser->returns_list.types[i].string->length != parameter_value.data_type->type_name->length 
+                || strcmp(analyser->returns_list.types[i].string->string, parameter_value.data_type->type_name->string) != 0) {
                     emit_error(analyser, "Invalid argument type");
                 }
         }

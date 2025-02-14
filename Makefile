@@ -22,6 +22,9 @@ $(info $$SUB_FOLDERS_SOURCES = $(SUB_FOLDERS_SOURCES))
 $(info $$SUB_FOLDERS_OBJECTS = $(SUB_FOLDERS_OBJECTS))
 $(info $$OBJECTS = $(OBJECTS))
 
+.debug: CC += -g
+.debug: all
+
 all: ${BIN}
 
 ${BIN}: ${OBJECTS}
