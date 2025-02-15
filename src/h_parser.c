@@ -51,6 +51,7 @@ static ast_node_t* parse_block_statement_enum(parser_t* parser);
 static ast_node_t* parse_enum_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_indexing(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_function_call(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
+static ast_node_t* parse_function_arguments_list(parser_t* parser);
 static ast_node_t* parse_function_parameters_list(parser_t* parser);
 static ast_node_t* parse_array_initialisation(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_data_initialisation(parser_t* parser, operator_precedence_t precedence);
@@ -337,8 +338,11 @@ static value_t parser_get_value(parser_t* parser) {
             return VALUE_DATA(NULL);
             break;
         case H_TOKEN_IDENTIFIER:
-        h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
-        return (value_t){.type = H_VALUE_TYPE, .string = type_name};
+            h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
+            return (value_t){.type = H_VALUE_TYPE, .string = type_name};
+            break;
+        case H_TOKEN_ARR:
+            return VALUE_ARRAY(NULL);
             break;
         default: 
             emit_error(parser, "Undefined type.");
@@ -716,8 +720,7 @@ static ast_node_t* parse_data_initialisation(parser_t* parser, operator_preceden
         }
         node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
     } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
-    h_data_t* data = h_data_init(node->block.declarations_size);
-    node->value = VALUE_TYPE(data);
+    node->value = VALUE_TYPE(NULL);
     assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected }.");
     return node;
 }
@@ -773,7 +776,6 @@ static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t
     ++parser->current;
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected = before data initialisation");
     left->expression.right = parse_expression(parser, OP_PREC_LOWEST);
-    if(left->expression.right->type == AST_NODE_DATA_INITIALISATION) left->expression.right->value.data_type->type_name = left->value.string;
     return left;
 }
 
@@ -831,6 +833,22 @@ static ast_node_t* parse_indexing(parser_t* parser, operator_precedence_t preced
     return node;
 }
 
+static ast_node_t* parse_function_arguments_list(parser_t* parser) {
+    ast_node_t* node = ast_node_create_statement_block(AST_NODE_FUNCTION_ARGUMENTS);
+    node->operator = parser->current;
+    if(parser->current->type == H_TOKEN_RIGHT_PAR) return node;
+    node->block.declarations_capacity = H_PARAMETERS_LIST_CAPACITY;
+    node->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->block.declarations_capacity);
+    do {
+        if(node->block.declarations_size >= node->block.declarations_capacity) {
+            node->block.declarations_capacity *= 2;
+            node->block.declarations = (ast_node_t**)realloc(node->block.declarations, sizeof(ast_node_t*) * node->block.declarations_capacity);
+        }
+        node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
+    } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
+    return node;
+}
+
 static ast_node_t* parse_function_parameters_list(parser_t* parser) {
     ast_node_t* node = ast_node_create_statement_block(AST_NODE_FUNCTION_PARAMETERS);
     node->operator = parser->current;
@@ -852,7 +870,7 @@ static ast_node_t* parse_function_call(parser_t* parser, operator_precedence_t p
     node->operator = parser->current;
     ++parser->current;
     node->expression.left = left;
-    node->expression.right = parse_function_parameters_list(parser);
+    node->expression.right = parse_function_arguments_list(parser);
     assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected )");
     return node;
 }
@@ -887,9 +905,7 @@ static ast_node_t* parse_array_initialisation(parser_t* parser, operator_precede
     } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
     
     current_parse_table = parse_table;
-
-    h_array_t* array = h_array_init(H_VALUE_UNDEFINED, 20);
-    node->value = VALUE_ARRAY(array);
+    node->value = VALUE_ARRAY(NULL);
     assert_token_type(parser, H_TOKEN_RIGHT_SQUARE, "Expected ]");
     return node;
 } 
@@ -989,6 +1005,7 @@ static void ast_node_free(ast_node_t* node) {
         case AST_NODE_STATEMENT_BLOCK_ENUM:
         case AST_NODE_ARRAY_INITIALISATION:
         case AST_NODE_DATA_INITIALISATION:
+        case AST_NODE_FUNCTION_ARGUMENTS:
         case AST_NODE_FUNCTION_PARAMETERS:
             if(node->block.declarations) {
                 for(size_t i = 0; i < node->block.declarations_size; ++i) ast_node_free(node->block.declarations[i]);
@@ -1056,6 +1073,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_INDEXING:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_INDEXING %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_FUNCTION_ARGUMENTS:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_FUNCTION_ARGUMENTS %.*s\n", indent, 0, "");
             break;
         case AST_NODE_FUNCTION_PARAMETERS:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_FUNCTION_PARAMETERS %.*s\n", indent, 0, "");
@@ -1195,6 +1215,7 @@ void ast_print(ast_node_t* node, int indent) {
         case AST_NODE_STATEMENT_BLOCK_ENUM:
         case AST_NODE_ARRAY_INITIALISATION:
         case AST_NODE_DATA_INITIALISATION:
+        case AST_NODE_FUNCTION_ARGUMENTS:
         case AST_NODE_FUNCTION_PARAMETERS:
             if(node->block.declarations) {
                 for(size_t i = 0; i < node->block.declarations_size; ++i) ast_print(node->block.declarations[i], indent + 1);
