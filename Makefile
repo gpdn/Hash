@@ -37,4 +37,4 @@ ${OBJ}/%.o: ${SRC}/*/%.c
 	${CC} ${INCLUDES} ${FLAGS} -c $< -o $@
 
 clear:
-	rm -r ${OBJ}/* 
+	rm -r ${OBJ}/*

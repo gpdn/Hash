@@ -140,7 +140,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
-    [H_TOKEN_LEFT_CURLY]               = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
@@ -337,8 +337,8 @@ static value_t parser_get_value(parser_t* parser) {
             return VALUE_DATA(NULL);
             break;
         case H_TOKEN_IDENTIFIER:
-            h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
-            return (value_t){.type = H_VALUE_TYPE, .string = type_name};
+        h_string_t* type_name = h_string_init_hash(parser->current->start, parser->current->length);
+        return (value_t){.type = H_VALUE_TYPE, .string = type_name};
             break;
         default: 
             emit_error(parser, "Undefined type.");
@@ -717,7 +717,7 @@ static ast_node_t* parse_data_initialisation(parser_t* parser, operator_preceden
         node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
     } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
     h_data_t* data = h_data_init(node->block.declarations_size);
-    node->value = VALUE_TYPE(data); 
+    node->value = VALUE_TYPE(data);
     assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected }.");
     return node;
 }
@@ -773,7 +773,7 @@ static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t
     ++parser->current;
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected = before data initialisation");
     left->expression.right = parse_expression(parser, OP_PREC_LOWEST);
-    left->expression.right->value.data_type->type_name = left->value.string;
+    if(left->expression.right->type == AST_NODE_DATA_INITIALISATION) left->expression.right->value.data_type->type_name = left->value.string;
     return left;
 }
 

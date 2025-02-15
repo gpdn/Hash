@@ -65,11 +65,11 @@ static inline void assert_returns_type(semantic_analyser_t* analyser, value_t ty
     for(size_t i = 0; i < analyser->returns_list.size; ++i) {
         if(analyser->returns_list.types[i].type != type.type) emit_error(analyser, "Invalid return type");
         if(analyser->returns_list.types[i].type == H_VALUE_TYPE) {            
-            if(analyser->returns_list.types[i].string->hash != type.string->hash 
-                || analyser->returns_list.types[i].string->length != type.string->length 
-                || strcmp(analyser->returns_list.types[i].string->string, type.string->string) != 0) {
+            if(analyser->returns_list.types[i].data_type->type_name->hash != type.string->hash 
+                || analyser->returns_list.types[i].data_type->type_name->length != type.string->length 
+                || strcmp(analyser->returns_list.types[i].data_type->type_name->string, type.string->string) != 0) {
                     emit_error(analyser, "Invalid return type");
-                }  
+                }
         }
     }
     analyser->returns_list.size = 0;
@@ -123,9 +123,9 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
         value_t parameter_value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
         if(function->parameters_list_values[i].type != parameter_value.type) emit_error(analyser, "Invalid argument type");
         if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
-            if(analyser->returns_list.types[i].string->hash != parameter_value.data_type->type_name->hash 
-                || analyser->returns_list.types[i].string->length != parameter_value.data_type->type_name->length 
-                || strcmp(analyser->returns_list.types[i].string->string, parameter_value.data_type->type_name->string) != 0) {
+            if(function->parameters_list_values[i].string->hash != parameter_value.data_type->type_name->hash 
+                || function->parameters_list_values[i].string->length != parameter_value.data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].string->string, parameter_value.data_type->type_name->string) != 0) {
                     emit_error(analyser, "Invalid argument type");
                 }
         }
@@ -483,11 +483,16 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             DEBUG_LOG("Identifier type called\n");
             ht_type_t type = h_ht_types_get(analyser->types_table, node->value.string);
             if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
-            if(type.value.data->size != node->expression.right->block.declarations_size) {
-                emit_error(analyser, "Not all fields in data declared");
-                return NULL_VALUE();
+            if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
+                if(type.value.data->size != node->expression.right->block.declarations_size) {
+                    emit_error(analyser, "Not all fields in data declared");
+                    return NULL_VALUE();
+                }
+                resolve_expression_data_initialisation(analyser, node->expression.right, type.value);
+                h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->expression.right->value, analyser->scope);
+                return node->value;
             }
-            resolve_expression_data_initialisation(analyser, node->expression.right, type.value);
+            resolve_expression(analyser, node->expression.right);
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, node->expression.right->value, analyser->scope);
             return node->value;
         case AST_NODE_IDENTIFIER_FUNCTION:

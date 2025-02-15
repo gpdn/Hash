@@ -13,6 +13,7 @@ typedef struct call_frame_t {
   h_function_t* function;
   value_t* frame_stack;
   uint8_t* return_instruction;
+  h_locals_stack_t* locals_stack;
 } call_frame_t;
 
 typedef struct virtual_machine_t {
@@ -24,6 +25,7 @@ typedef struct virtual_machine_t {
     value_t* stack_base;
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals_stack;
+    h_locals_stack_t* initial_locals_stack;
     size_t calls_stack_size;
     call_frame_t calls_stack[H_MAX_CALLS_STACK_SIZE];
     value_t* array_initialisation_ptr;

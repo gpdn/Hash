@@ -89,6 +89,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     vm->instruction_pointer = store->code;
     vm->globals_table = globals_table;
     vm->locals_stack = locals_stack;
+    vm->initial_locals_stack = locals_stack;
     vm->array_initialisation_ptr = vm->stack;
     vm->stack_base = vm->stack;
     vm->calls_stack_size = 0;
@@ -205,11 +206,12 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 size_t arguments_count = ADVANCE_INSTRUCTION_POINTER();
                 h_function_t* function = (vm->stack_top - arguments_count - 1)->function;
                 value_t* frame_stack_start = vm->stack_top - arguments_count;
-                call_frame_t frame = {function, frame_stack_start, vm->instruction_pointer};                
+                call_frame_t frame = {function, frame_stack_start, vm->instruction_pointer, vm->locals_stack};                
                 vm->calls_stack[vm->calls_stack_size++] = frame;
                 vm->instruction_pointer = frame.function->store->code;
                 vm->stack_base = frame_stack_start;
                 vm->store = frame.function->store;
+                vm->locals_stack = frame.function->locals_stack;
                 //call_frame_print(vm->calls_stack + vm->calls_stack_size);
                 break;
             case OP_CALL_NATIVE:
@@ -227,6 +229,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
                 vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack;
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
+                vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                 if(vm->calls_stack_size > 0) {
                     vm->store = vm->calls_stack[vm->calls_stack_size].function->store;
                     break;
@@ -241,10 +244,12 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
                 if(vm->calls_stack_size > 0) {
                     vm->store = vm->calls_stack[vm->calls_stack_size].function->store;
+                    vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                     vm_stack_push(vm, return_value);
                     break;
                 }
                 vm->store = vm->initial_store;
+                vm->locals_stack = vm->initial_locals_stack;
                 vm->stack_base = vm->stack;
                 vm_stack_push(vm, return_value);
                 break;
@@ -264,21 +269,17 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
             case OP_SET_LOCAL:
                 vm_stack_set(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_peek(vm));
                 break;
-            case OP_DEFINE_LOCAL_ARRAY:
-                vm_stack_push(vm, h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER()));
-                break;
             case OP_START_ARRAY_INITIALISATION:
                 vm->array_initialisation_ptr = vm->stack_top;
                 break;
             case OP_SET_LOCAL_ARRAY:
-                value_t local_array = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());
+                value_t local_array = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
                 print_value(&local_array);
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 break;
             case OP_SET_LOCAL_DATA:
-                value_t local_data = h_locals_array_get(vm->locals_stack, ADVANCE_INSTRUCTION_POINTER());
-                print_value(&local_data);
+                value_t local_data = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_data_push(local_data.data_type, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 vm_stack_push(vm, NULL_VALUE());

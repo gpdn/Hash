@@ -91,8 +91,8 @@ size_t token_write_print_string(FILE *file, token_t *token);
 const char* resolve_token_type(token_type_t type);
 
 #if DEBUG_ALL
-    #define DEBUG_TRACE_VM_BYTECODE 0
-    #define DEBUG_TRACE_VM_STACK 0
+    #define DEBUG_TRACE_VM_BYTECODE 1
+    #define DEBUG_TRACE_VM_STACK 1
     #define DEBUG_TRACE_LEXER_TOKEN 1
     #define DEBUG_TRACE_LEXER_CURRENT_CHAR 1
     #define DEBUG_TRACE_LOG_FILE 1

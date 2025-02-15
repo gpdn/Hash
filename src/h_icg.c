@@ -224,7 +224,7 @@ static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
 
 static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) {
     size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
-    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL_ARRAY);
+    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
     bs_write(icg->bytecode_store, index);
     if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
         //size_t current_index = icg->bytecode_store->constants->size;
@@ -242,7 +242,7 @@ static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node
 
 static void icg_generate_declaration_data(icg_t* icg, ast_node_t* node) {
     size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
-    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL_ARRAY);
+    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
     bs_write(icg->bytecode_store, index);
     if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
         bs_write(icg->bytecode_store, OP_START_ARRAY_INITIALISATION);
