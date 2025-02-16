@@ -372,6 +372,22 @@ token_t lexer_get_token(lexer_t* lexer) {
             default:\
                 return token_create(lexer, TYPE_MISMATCH);\
         }\
+    
+    #define LEXER_CHECK_MANY(C1, FIRST_TYPE, C2, SECOND_TYPE, C3, THIRD_TYPE, TYPE_MISMATCH)\
+        if(*lexer->current == '\0') return token_create(lexer, TYPE_MISMATCH);\
+        switch(*lexer->current) {\
+            case C1:\
+                ++lexer->current;\
+                return token_create(lexer, FIRST_TYPE);\
+            case C2:\
+                ++lexer->current;\
+                return token_create(lexer, SECOND_TYPE);\
+            case C3:\
+                ++lexer->current;\
+                return token_create(lexer, THIRD_TYPE);\
+            default:\
+                return token_create(lexer, TYPE_MISMATCH);\
+        }\
 
     char c = *lexer->current++;
 
@@ -397,7 +413,7 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '>': LEXER_CHECK_MULTIPLE('=', H_TOKEN_GREATER_EQUAL, '>', H_TOKEN_BITWISE_SHIFT_RIGHT, H_TOKEN_GREATER);
         case '<': LEXER_CHECK_MULTIPLE('=', H_TOKEN_LESS_EQUAL, '<', H_TOKEN_BITWISE_SHIFT_LEFT, H_TOKEN_LESS);
         case '+': LEXER_CHECK_MULTIPLE('+', H_TOKEN_PLUS_PLUS, '=', H_TOKEN_PLUS_EQUAL, H_TOKEN_PLUS);
-        case '-': LEXER_CHECK_MULTIPLE('-', H_TOKEN_MINUS_MINUS, '=', H_TOKEN_MINUS_EQUAL, H_TOKEN_MINUS);
+        case '-': LEXER_CHECK_MANY('-', H_TOKEN_MINUS_MINUS, '=', H_TOKEN_MINUS_EQUAL, '>', H_TOKEN_ARROW, H_TOKEN_MINUS);
         case '*': LEXER_CHECK_MULTIPLE('*', H_TOKEN_POW, '=', H_TOKEN_STAR_EQUAL, H_TOKEN_STAR);
         case '!': LEXER_CHECK_MULTIPLE('!', H_TOKEN_DOUBLE_BANG, '=', H_TOKEN_BANG_EQUAL, H_TOKEN_BANG);
         case ':': return lexer_check_next(lexer, ':', H_TOKEN_DOUBLE_COLON, H_TOKEN_COLON);
@@ -421,6 +437,7 @@ token_t lexer_get_token(lexer_t* lexer) {
     return token_create(lexer, H_TOKEN_EOF);
 
     #undef LEXER_CHECK_MULTIPLE
+    #undef LEXER_CHECK_MANY
 }
 
 size_t lexer_get_tokens_count(lexer_t* lexer) {

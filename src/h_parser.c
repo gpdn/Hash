@@ -22,6 +22,9 @@ static ast_node_t* parse_unary_expression(parser_t* parser, operator_precedence_
 static ast_node_t* parse_unary_identifier_expression(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_post_unary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static inline ast_node_t* parse_expression_statement(parser_t* parser);
+static inline ast_node_t* parse_arrow_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
+static inline ast_node_t* parse_function_arguments_list_arrow(parser_t* parser, ast_node_t* first_arg);
+static inline ast_node_t* parse_function_call_arrow(parser_t* parser, ast_node_t* left, ast_node_t* first_arg);
 static inline ast_node_t* expression_statement(parser_t* parser);
 static ast_node_t* parse_variable_declaration(parser_t* parser, value_type_t type);
 static ast_node_t* parse_variable_declaration_global(parser_t* parser);
@@ -70,12 +73,13 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
-    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_LOWEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
     [H_TOKEN_MINUS_MINUS]               = {parse_unary_identifier_expression, NULL, OP_PREC_UNARY},
+    [H_TOKEN_ARROW]                     = {NULL, parse_arrow_expression, OP_PREC_CALL},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
@@ -111,6 +115,7 @@ static parse_rule_t parse_table_array_initialisation[] = {
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
     [H_TOKEN_MINUS_MINUS]               = {parse_unary_identifier_expression, NULL, OP_PREC_UNARY},
+    [H_TOKEN_ARROW]                     = {NULL, parse_arrow_expression, OP_PREC_CALL},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
@@ -132,6 +137,7 @@ static parse_rule_t parse_table_array_initialisation[] = {
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -141,12 +147,13 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_STRING_LITERAL]            = {parse_string, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
-    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_LOWEST},
     [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
     [H_TOKEN_MINUS_MINUS]               = {parse_unary_identifier_expression, NULL, OP_PREC_UNARY},
+    [H_TOKEN_ARROW]                     = {NULL, parse_arrow_expression, OP_PREC_CALL},
     [H_TOKEN_PLUS]                      = {NULL, parse_binary_expression, OP_PREC_TERM},
     [H_TOKEN_MINUS]                     = {parse_unary_expression, parse_binary_expression, OP_PREC_UNARY},
     [H_TOKEN_STAR]                      = {NULL, parse_binary_expression, OP_PREC_FACTOR},
@@ -168,6 +175,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
+    [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -823,6 +831,30 @@ static ast_node_t* parse_post_unary_expression(parser_t* parser, operator_preced
     return node;
 }
 
+static ast_node_t* parse_function_arguments_list_arrow(parser_t* parser, ast_node_t* first_arg) {
+    ast_node_t* node = ast_node_create_statement_block(AST_NODE_FUNCTION_ARGUMENTS);
+    node->operator = parser->current;
+    node->block.declarations_capacity = H_PARAMETERS_LIST_CAPACITY;
+    node->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * node->block.declarations_capacity);
+    node->block.declarations[node->block.declarations_size++] = first_arg;
+    if(parser->current->type == H_TOKEN_RIGHT_PAR) return node;
+    do {
+        if(node->block.declarations_size >= node->block.declarations_capacity) {
+            node->block.declarations_capacity *= 2;
+            node->block.declarations = (ast_node_t**)realloc(node->block.declarations, sizeof(ast_node_t*) * node->block.declarations_capacity);
+        }
+        node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
+    } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
+    return node;
+}
+
+static ast_node_t* parse_arrow_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+    ++parser->current;
+    ast_node_t* identifier_node = parse_identifier(parser, OP_PREC_HIGHEST);
+    ast_node_t* call_node = parse_function_call_arrow(parser, identifier_node, left);
+    return call_node;
+}
+
 static ast_node_t* parse_indexing(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
     ast_node_t* node = ast_node_create(AST_NODE_INDEXING);
     node->operator = parser->current;
@@ -862,6 +894,16 @@ static ast_node_t* parse_function_parameters_list(parser_t* parser) {
         }
         node->block.declarations[node->block.declarations_size++] = parse_expression(parser, OP_PREC_LOWEST);
     } while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
+    return node;
+}
+
+static ast_node_t* parse_function_call_arrow(parser_t* parser, ast_node_t* left, ast_node_t* first_arg) {
+    ast_node_t* node = ast_node_create(AST_NODE_FUNCTION_CALL);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = left;
+    node->expression.right = parse_function_arguments_list_arrow(parser, first_arg);
+    assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected )");
     return node;
 }
 

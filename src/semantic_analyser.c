@@ -99,7 +99,7 @@ static inline void resolve_returns_list(semantic_analyser_t* analyser, value_t v
 }
 
 static void emit_error(semantic_analyser_t* analyser, const char* error) {
-    DEBUG_LOG("Semantic Analyser Error: %s.", error);
+    DEBUG_LOG("Semantic Analyser Error: %s.\n", error);
     ++analyser->errors_count;
     analyser->current = analyser->ast_nodes_list[analyser->ast_nodes_list_count - 1];
 }
@@ -123,9 +123,9 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
         value_t parameter_value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
         if(function->parameters_list_values[i].type != parameter_value.type) emit_error(analyser, "Invalid argument type");
         if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
-            if(function->parameters_list_values[i].string->hash != parameter_value.data_type->type_name->hash 
-                || function->parameters_list_values[i].string->length != parameter_value.data_type->type_name->length 
-                || strcmp(function->parameters_list_values[i].string->string, parameter_value.data_type->type_name->string) != 0) {
+            if(function->parameters_list_values[i].data_type->type_name->hash != parameter_value.data_type->type_name->hash 
+                || function->parameters_list_values[i].data_type->type_name->length != parameter_value.data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].data_type->type_name->string, parameter_value.data_type->type_name->string) != 0) {
                     emit_error(analyser, "Invalid argument type");
                 }
         }
@@ -224,7 +224,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                     ht_type_t type = h_ht_types_get(analyser->types_table, it->string);
                     if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
                     h_data_t* data = h_data_init(type.value.data->size);
-                    h_string_free(it->string);
+                    //h_string_free(it->string);
                     data->type_name = type.name; 
                     it->data_type = data;
                 }

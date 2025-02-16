@@ -642,8 +642,6 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
             ++count;
         }
 
-        DEBUG_LOG("Count %lld\n", count);
-
         if(count == 1) {
             bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX);
             bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));

@@ -329,6 +329,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_LOOP: return "H_TOKEN_LOOP";
         case H_TOKEN_TO: return "H_TOKEN_TO";
         case H_TOKEN_DATA: return "H_TOKEN_DATA";
+        case H_TOKEN_ARROW: return "H_TOKEN_ARROW";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";
