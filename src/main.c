@@ -138,6 +138,6 @@ int main(int argc, char** argv) {
 
     free((void*)preprocessed_file_content);
     free((void*)file_content);
-    return 0;
+    return result;
 
 }

@@ -117,7 +117,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
     #endif
 
     uint8_t instruction;
-    while((instruction = ADVANCE_INSTRUCTION_POINTER()) != OP_STOP) {
+    while(instruction = ADVANCE_INSTRUCTION_POINTER()) {
 
         #if DEBUG_TRACE_VM_BYTECODE
             disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
@@ -126,6 +126,8 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
         switch(instruction) {
             case OP_STOP:
                 return VM_SUCCESS;
+            case OP_STOP_VALUE:
+                return (int)(vm_stack_pop(vm).number);
             case OP_START:
                 DEBUG_ERROR("Already Started");
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
@@ -361,7 +363,6 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
                 DEBUG_ERROR("Unimplemented instruction: "); 
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
                 return VM_ERROR;
-
         }
 
         #if DEBUG_TRACE_VM_STACK

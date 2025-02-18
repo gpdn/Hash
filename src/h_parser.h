@@ -58,7 +58,9 @@ typedef enum ast_node_type_t{
     AST_NODE_DATA_INITIALISATION,
     AST_NODE_DOT,
     AST_NODE_IDENTIFIER_NATIVE,
-    AST_NODE_NATIVE_CALL
+    AST_NODE_NATIVE_CALL,
+    AST_NODE_STATEMENT_STOP,
+    AST_NODE_STATEMENT_STOP_VALUE,
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

@@ -52,8 +52,6 @@ typedef enum token_type_t {
     H_TOKEN_MODULO,
     H_TOKEN_STRING_LITERAL,
     H_TOKEN_NUMBER_LITERAL,
-    H_TOKEN_CLASS,
-    H_TOKEN_SUPER,
     H_TOKEN_FUNCTION,
     H_TOKEN_BITWISE_SHIFT_LEFT,
     H_TOKEN_BITWISE_SHIFT_RIGHT,
@@ -81,6 +79,7 @@ typedef enum token_type_t {
     H_TOKEN_TO,
     H_TOKEN_DATA,
     H_TOKEN_ARROW,
+    H_TOKEN_STOP,
     H_TOKEN_LAST
 } token_type_t;
 

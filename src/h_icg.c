@@ -166,6 +166,13 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             icg_generate_expression(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_RETURN_VALUE);
             break;
+        case AST_NODE_STATEMENT_STOP:
+            bs_write(icg->bytecode_store, OP_STOP);
+            break;
+        case AST_NODE_STATEMENT_STOP_VALUE:
+            icg_generate_expression(icg, node->expression.left);
+            bs_write(icg->bytecode_store, OP_STOP_VALUE);
+            break;
         case AST_NODE_STATEMENT_EXPRESSION:
             icg_generate_statement_expression(icg, node);
             break;

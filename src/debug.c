@@ -102,6 +102,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_STOP:
             return basic_instruction("OP_STOP", offset, file);
             break;
+        case OP_STOP_VALUE:
+            return basic_instruction("OP_STOP_VALUE", offset, file);
+            break;
         case OP_NEGATE:
             return basic_instruction("OP_NEGATE", offset, file);
             break;
@@ -301,8 +304,6 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_MODULO: return "H_TOKEN_MODULO";
         case H_TOKEN_STRING_LITERAL: return "H_TOKEN_STRING_LITERAL";
         case H_TOKEN_NUMBER_LITERAL: return "H_TOKEN_NUMBER_LITERAL";
-        case H_TOKEN_CLASS: return "H_TOKEN_CLASS";
-        case H_TOKEN_SUPER: return "H_TOKEN_SUPER";
         case H_TOKEN_FUNCTION: return "H_TOKEN_FUNCTION";
         case H_TOKEN_BITWISE_SHIFT_LEFT: return "H_TOKEN_BITWISE_SHIFT_LEFT";
         case H_TOKEN_BITWISE_SHIFT_RIGHT: return "H_TOKEN_BITWISE_SHIFT_RIGHT";
@@ -330,6 +331,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_TO: return "H_TOKEN_TO";
         case H_TOKEN_DATA: return "H_TOKEN_DATA";
         case H_TOKEN_ARROW: return "H_TOKEN_ARROW";
+        case H_TOKEN_STOP: return "H_TOKEN_STOP";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

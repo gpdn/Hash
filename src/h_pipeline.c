@@ -167,5 +167,5 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags, h_s
 
     timer_stop_log("Pipeline", pipeline_timer, COLOR_GREEN);
 
-    return HASH_SUCCESS;
+    return result;
 }

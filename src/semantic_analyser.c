@@ -332,6 +332,11 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_EXPRESSION:
             resolve_expression(analyser, node->expression.left);
             return;
+        case AST_NODE_STATEMENT_STOP:
+            return;
+        case AST_NODE_STATEMENT_STOP_VALUE:
+            assert_value_type(analyser, resolve_expression(analyser, node->expression.left).type, H_VALUE_NUMBER);
+            return;
         default:
             resolve_expression(analyser, node);
     }

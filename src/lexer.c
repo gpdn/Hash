@@ -226,8 +226,13 @@ static token_t lexer_identifier(lexer_t* lexer) {
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
                     case 'k': return check_keyword(lexer, 2, 2, "ip", H_TOKEN_SKIP);
-                    case 't': return check_keyword(lexer, 2, 1, "r", H_TOKEN_STR);
-                    case 'u': return check_keyword(lexer, 2, 4, "uper", H_TOKEN_SUPER);
+                    case 't': 
+                        if(lexer->current - lexer->start > 2) {
+                            switch(lexer->start[2]) {
+                                case 'o': return check_keyword(lexer, 3, 1, "p", H_TOKEN_STOP);
+                                case 'r': return check_keyword(lexer, 3, 0, "", H_TOKEN_STR);
+                            }
+                        }
                 }
             }
             break;

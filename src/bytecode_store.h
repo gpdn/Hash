@@ -10,6 +10,7 @@ typedef enum opcode_t {
     OP_RETURN_VALUE,
     OP_CONSTANT,
     OP_STOP,
+    OP_STOP_VALUE,
     OP_START,
     OP_NEGATE,
     OP_ADD,
