@@ -56,6 +56,16 @@ h_string_t* h_string_concatenate(h_string_t* string_1, h_string_t* string_2) {
     return new_string;
 }
 
+void h_string_append_cstring(h_string_t* string_1, const char* string_2) {
+    size_t length = strlen(string_2);
+    if(string_1->length + length > string_1->capacity) {
+        string_1->capacity = string_1->capacity * 2;
+        string_1->string = (char*)malloc(sizeof(char) * string_1->capacity);
+    }
+    memcpy(string_1->string + string_1->length, string_2, length);
+    string_1->string[string_1->length] = '\0';
+}
+
 char h_string_get(h_string_t* string, size_t index) {
     return string->string[index];
 }

@@ -13,6 +13,6 @@
 #include "h_icg.h"
 #include "virtual_machine.h"
 
-interpreter_result_t pipeline_start(const char* source_path, uint8_t flags, h_std_t* std);
+int pipeline_start(const char* source_path, uint8_t flags, h_std_t* std);
 
 #endif

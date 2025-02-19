@@ -208,6 +208,10 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             return;
         case AST_NODE_DECLARATION_ENUM:
             ht_enum_t* values = h_ht_enums_set(analyser->enums_table, node->expression.left->value.string);
+            if(values == NULL) {
+                emit_error(analyser, "Enum already defined");
+                return;
+            }
             for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
                 h_ht_enum_value_set(values, node->expression.right->block.declarations[i]->value.string);
             } 

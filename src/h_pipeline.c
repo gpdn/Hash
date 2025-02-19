@@ -1,6 +1,6 @@
 #include "h_pipeline.h"
 
-interpreter_result_t pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
+int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
     
     clock_t pipeline_timer = timer_start_time("Pipeline");
     
@@ -114,7 +114,6 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags, h_s
         timer_stop_log("Semantic Analyser", semantic_analyser_timer, COLOR_CYAN);
     #endif
     
-
     if(analyser->errors_count > 0) {
         DEBUG_LOG("Semantic analysis error");
         free(tokens_array);
@@ -135,7 +134,6 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags, h_s
         timer_stop_log("ICG", icg_timer, COLOR_CYAN);
     #endif
 
-
     #if DEBUG_TRACE_ICG_BYTECODE
         DEBUG_PRINT_LINE();
         disassemble_bytecode_store(store, "Bytecode Store", NULL);
@@ -147,7 +145,7 @@ interpreter_result_t pipeline_start(const char* file_content, uint8_t flags, h_s
     #endif
    
     virtual_machine_t* vm = vm_init(store, globals_table, locals_stack);
-    interpreter_result_t result = vm_run(vm);
+    int result = vm_run(vm);
 
     #if DEBUG_TIMERS
         timer_stop_log("VM", vm_timer, COLOR_CYAN);

@@ -23,9 +23,9 @@
 
 #define DEBUG_MIN(X, Y) ((X < Y) ? (X) : (Y))
 
-#define DEBUG 0
-#define DEBUG_ALL 0
-#define DEBUG_TIMERS 0
+#define DEBUG 1
+#define DEBUG_ALL 1
+#define DEBUG_TIMERS 1
 
 #if DEBUG
 #define DEBUG_LOG(...) printf(__VA_ARGS__)

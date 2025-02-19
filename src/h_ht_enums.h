@@ -7,12 +7,6 @@
 #include "h_values.h"
 #include "string.h"
 
-/* typedef struct ht_enum_values_t {
-    h_string_t** names;
-    size_t size;
-    size_t capacity;
-} ht_enum_values_t; */
-
 typedef struct ht_enum_t {
     h_string_t* name;
     h_string_t** names;

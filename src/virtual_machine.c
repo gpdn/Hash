@@ -97,7 +97,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     return vm;
 }
 
-interpreter_result_t vm_run(virtual_machine_t* vm) {
+int vm_run(virtual_machine_t* vm) {
     
     for(h_local_t* it = vm->locals_stack->locals_array; it != vm->locals_stack->locals_stack_top; ++it) {
         if(it->value.type != H_VALUE_NATIVE) break;
@@ -124,7 +124,7 @@ interpreter_result_t vm_run(virtual_machine_t* vm) {
         #endif
 
         switch(instruction) {
-            case OP_STOP:
+            case OP_STOP: 
                 return VM_SUCCESS;
             case OP_STOP_VALUE:
                 return (int)(vm_stack_pop(vm).number);

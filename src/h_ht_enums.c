@@ -2,16 +2,6 @@
 
 #define H_ENUM_ARRAY_INITIAL_SIZE 20
 
-/* static ht_enum_values_t* h_ht_enum_values_init(size_t capacity);
-
-static ht_enum_values_t* h_ht_enum_values_init(size_t capacity) {
-    ht_enum_values_t* new_enum = (ht_enum_values_t*)malloc(sizeof(ht_enum_values_t));
-    new_enum->capacity = capacity;
-    new_enum->size = 0;
-    new_enum->names = (h_string_t**)calloc(capacity, sizeof(h_string_t*));
-    return new_enum;
-} */
-
 h_ht_enums_t* h_ht_enums_init(size_t capacity, float load_factor) {
     h_ht_enums_t* table = (h_ht_enums_t*)malloc(sizeof(h_ht_enums_t));
     table->capacity = capacity;
@@ -40,6 +30,7 @@ ht_enum_t* h_ht_enums_get(h_ht_enums_t* table, h_string_t* key) {
 
 ht_enum_t* h_ht_enums_set(h_ht_enums_t* table, h_string_t* key) {
     size_t index = key->hash % table->capacity; 
+    if(table->array[index].name) return NULL;
     table->array[index] = (ht_enum_t){.name=key, .size=0, .capacity=H_ENUM_ARRAY_INITIAL_SIZE, .names=(h_string_t**)calloc(H_ENUM_ARRAY_INITIAL_SIZE, sizeof(h_string_t*))};
     return table->array + index;
 }

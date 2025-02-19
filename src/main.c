@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
 
     const char* preprocessed_file_content = read_file("preprocessed");
 
-    interpreter_result_t result = pipeline_start(preprocessed_file_content, args_flags, std);
+    int result = pipeline_start(preprocessed_file_content, args_flags, std);
 
     h_std_free(std);
 
