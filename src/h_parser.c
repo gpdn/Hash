@@ -107,6 +107,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_GREATER_EQUAL]             = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS]                      = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
+    [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };

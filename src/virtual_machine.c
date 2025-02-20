@@ -1,6 +1,7 @@
 #include "virtual_machine.h"
 
 #define H_MAX_CALLS_STACK_SIZE 256
+#define H_VM_STACK_MIN_CAPACITY 500
 
 static void vm_stack_push(virtual_machine_t* vm, value_t value);
 static inline value_t vm_stack_pop(virtual_machine_t* vm);
@@ -82,7 +83,7 @@ static inline void vm_stack_set_index(virtual_machine_t* vm, size_t index, size_
 virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack)
 {
     virtual_machine_t* vm = (virtual_machine_t*)malloc(sizeof(virtual_machine_t));
-    vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity + sizeof(value_t) * locals_stack->size);
+    vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity + sizeof(value_t) * locals_stack->size + sizeof(value_t) * H_VM_STACK_MIN_CAPACITY);
     vm->stack_top = vm->stack;
     vm->store = store;
     vm->initial_store = store;
@@ -93,7 +94,6 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     vm->array_initialisation_ptr = vm->stack;
     vm->stack_base = vm->stack;
     vm->calls_stack_size = 0;
-    //vm_stack_push(vm, NULL_VALUE(0));
     return vm;
 }
 
@@ -198,11 +198,10 @@ int vm_run(virtual_machine_t* vm) {
                 BINARY_OP_ASSOC(less_equal_val, NUM_VALUE, <=);
                 break;
             case OP_GENERATE_INTERVAL:
-                value_t value_one = vm_stack_pop(vm); 
+                value_t value_one = vm_stack_pop(vm);
                 value_t value_two = vm_stack_pop(vm);
-                print_value(&value_one);
-                print_value(&value_two); 
-                for(size_t i = value_two.number; i <= value_one.number; ++i) vm_stack_push(vm, NUM_VALUE(i));
+                h_array_t* array = h_array_init(H_VALUE_NUMBER, value_two.number); 
+                for(int i = value_one.number; i < value_two.number; ++i) h_array_push(array, NUM_VALUE(i));
                 break;
             case OP_CALL:
                 size_t arguments_count = ADVANCE_INSTRUCTION_POINTER();
@@ -275,13 +274,12 @@ int vm_run(virtual_machine_t* vm) {
                 vm->array_initialisation_ptr = vm->stack_top;
                 break;
             case OP_SET_LOCAL_ARRAY:
-                value_t local_array = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
-                print_value(&local_array);
+                value_t local_array = *(vm->array_initialisation_ptr - 1);
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 break;
-            case OP_SET_LOCAL_DATA:
-                value_t local_data = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
+                case OP_SET_LOCAL_DATA:
+                value_t local_data = *(vm->array_initialisation_ptr - 1);
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_data_push(local_data.data_type, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 vm_stack_push(vm, NULL_VALUE());
@@ -422,3 +420,4 @@ void vm_free(virtual_machine_t* vm) {
 }
 
 #undef H_MAX_CALLS_STACK_SIZE
+#undef H_VM_STACK_MIN_CAPACITY

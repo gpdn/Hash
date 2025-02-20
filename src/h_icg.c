@@ -2,8 +2,8 @@
 
 static void emit_error(icg_t* icg);
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
-static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node);
-static void icg_generate_declaration_data(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_declaration_data(icg_t* icg, ast_node_t* node);
 static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_declaration_label(icg_t* icg, ast_node_t* node);
 static void icg_generate_declaration_function(icg_t* icg, ast_node_t* node);
@@ -229,38 +229,12 @@ static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node) {
     if(node->expression.right) icg_generate_expression(icg, node->expression.right);
 }
 
-static void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) {
-    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
-    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
-    bs_write(icg->bytecode_store, index);
-    if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
-        //size_t current_index = icg->bytecode_store->constants->size;
-        bs_write(icg->bytecode_store, OP_START_ARRAY_INITIALISATION);
-        icg_generate_expression(icg, node->expression.right);
-        //bs_write_constant(icg->bytecode_store, NUM_VALUE(icg->bytecode_store->constants->size - current_index));
-        bs_write(icg->bytecode_store, OP_SET_LOCAL_ARRAY);
-        bs_write(icg->bytecode_store, index);
-        return;
-    }
+static inline void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node) { 
     icg_generate_expression(icg, node->expression.right);
-    bs_write(icg->bytecode_store, OP_SET_LOCAL);
-    bs_write(icg->bytecode_store, index);
 }
 
-static void icg_generate_declaration_data(icg_t* icg, ast_node_t* node) {
-    size_t index = h_locals_stack_get_index(icg->locals_stack, node->expression.left->value.string, icg->scope);
-    bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
-    bs_write(icg->bytecode_store, index);
-    if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
-        bs_write(icg->bytecode_store, OP_START_ARRAY_INITIALISATION);
-        icg_generate_expression(icg, node->expression.right);
-        bs_write(icg->bytecode_store, OP_SET_LOCAL_DATA);
-        bs_write(icg->bytecode_store, index);
-        return;
-    }
+static inline void icg_generate_declaration_data(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.right);
-    bs_write(icg->bytecode_store, OP_SET_LOCAL);
-    bs_write(icg->bytecode_store, index);
 }
 
 static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node) {
@@ -441,15 +415,21 @@ static inline void icg_generate_statement_skip(icg_t* icg) {
 }
 
 static inline void icg_generate_array_initialisation(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+    bs_write(icg->bytecode_store, OP_START_ARRAY_INITIALISATION);
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
     }
+    bs_write(icg->bytecode_store, OP_SET_LOCAL_ARRAY);
 }
 
 static inline void icg_generate_data_initialisation(icg_t* icg, ast_node_t* node) {
+    bs_write_constant(icg->bytecode_store, node->value);
+    bs_write(icg->bytecode_store, OP_START_ARRAY_INITIALISATION);
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
     }
+    bs_write(icg->bytecode_store, OP_SET_LOCAL_DATA);
 }
 
 static inline void icg_generate_statement_expression(icg_t* icg, ast_node_t* node) {

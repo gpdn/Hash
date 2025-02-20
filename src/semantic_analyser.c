@@ -399,8 +399,9 @@ static inline value_t resolve_expression_array_initialisation(semantic_analyser_
         value_t value = resolve_expression(analyser, node->block.declarations[0]);
         assert_value_type(analyser, value.type, initial_value.type);
     }
+    node->value = VALUE_ARRAY(array); 
     array->type = initial_value.type;
-    return VALUE_ARRAY(array);
+    return node->value;
 }
 
 static inline value_t resolve_expression_data_initialisation(semantic_analyser_t* analyser, ast_node_t* node) {
@@ -412,6 +413,7 @@ static inline value_t resolve_expression_data_initialisation(semantic_analyser_t
         value_t value = resolve_expression(analyser, node->block.declarations[i]);
         h_data_push(data, value);
     }
+    node->value = VALUE_TYPE(data);
     return VALUE_TYPE(data);
 }
 
@@ -521,8 +523,12 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
         case AST_NODE_BINARY:
         case AST_NODE_ASSIGNMENT:
         case AST_NODE_ASSIGNMENT_COMPOUND:
-        case AST_NODE_TO:
             return resolve_expression_binary(analyser, node);
+        case AST_NODE_TO:
+            value_t rvalue = resolve_expression_binary(analyser, node);
+            h_array_t* array = h_array_init(rvalue.type, 5);
+            node->value = VALUE_ARRAY(array);
+            return node->value;
         case AST_NODE_LITERAL:
             return node->value;
         case AST_NODE_IDENTIFIER:
