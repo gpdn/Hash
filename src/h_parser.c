@@ -635,7 +635,6 @@ static ast_node_t* parse_if_statement(parser_t* parser) {
     ++parser->current;
     node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     if(parser->current->type == H_TOKEN_LEFT_CURLY) {
-        ++parser->current;
         node->expression.right = parse_block_statement(parser);
         if(parser->current->type == H_TOKEN_ELSE) {
             ++parser->current;
@@ -644,7 +643,6 @@ static ast_node_t* parse_if_statement(parser_t* parser) {
         }
         return node;
     }
-    token_print(parser->current);
     node->expression.right = parse_block_expression(parser);
     return node;
 }
@@ -655,7 +653,6 @@ static ast_node_t* parse_while_statement(parser_t* parser) {
     ++parser->current;
     node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     if(parser->current->type == H_TOKEN_LEFT_CURLY) {
-        ++parser->current;
         node->expression.right = parse_block_statement(parser);
         return node;
     }

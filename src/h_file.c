@@ -56,6 +56,13 @@ inline int close_file(FILE* file) {
     return fclose(file);
 }
 
-size_t append_file(FILE* file, const char* content, size_t element_size, size_t elements_count) {
+inline size_t append_file(FILE* file, const char* content, size_t element_size, size_t elements_count) {
     return fwrite(content, element_size, elements_count, file);
+}
+
+inline size_t append_file_str(const char* path, const char* content, size_t element_size, size_t elements_count) {
+    FILE* file = fopen(path, "a+");
+    size_t written_count = fwrite(content, element_size, elements_count, file);
+    fclose(file);
+    return written_count;
 }

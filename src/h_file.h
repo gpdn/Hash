@@ -11,5 +11,6 @@ size_t write_file(const char* path, const char* content, size_t element_size, si
 FILE* create_file(const char* path, const char* mode);
 int close_file(FILE* file);
 size_t append_file(FILE* path, const char* content, size_t element_size, size_t elements_count);
+size_t append_file_str(const char* path, const char* content, size_t element_size, size_t elements_count);
 
 #endif

@@ -2,6 +2,7 @@
 #define HASH_PIPELINE_H
 
 #include "debug.h"
+#include "h_args_flags.h"
 #include "h_file.h"
 #include "h_timer.h"
 #include "h_ht_types.h"
@@ -10,6 +11,7 @@
 #include "lexer.h"
 #include "h_parser.h"
 #include "semantic_analyser.h"
+#include "h_compiler.h"
 #include "h_icg.h"
 #include "virtual_machine.h"
 
@@ -25,6 +27,7 @@ typedef struct pipeline_t {
     h_ht_enums_t* enums_table;
     h_ht_types_t* types_table;
     semantic_analyser_t* analyser;
+    h_compiler_t compiler;
     icg_t* bytecode_generator;
     bytecode_store_t* store;
     virtual_machine_t* vm;

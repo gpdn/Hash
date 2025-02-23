@@ -121,6 +121,28 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         return HASH_FAILURE;
     }
 
+    if((flags >> H_ARGS_FLAG_COMPILE) & 1) {
+    
+        #if DEBUG_TIMERS
+           clock_t compiler_timer = timer_start("Compiler");
+        #endif
+        
+        pipeline.compiler = h_compiler_init(pipeline.ast, pipeline.parser->ast_list_size, pipeline.types_table, pipeline.enums_table);
+        h_compiler_run(&pipeline.compiler);
+        
+        DEBUG_LOG("Running in Compile Mode\n");
+        #if DEBUG_TIMERS
+            timer_stop_log("Compiler", compiler_timer, COLOR_CYAN);
+        #endif
+
+        if((flags >> H_ARGS_FLAG_RUN) ^ 1) {
+            pipeline_free(&pipeline);
+            timer_stop_log("Pipeline", pipeline.timer, COLOR_GREEN);
+            return 0;
+        }
+
+    }
+
     #if DEBUG_TIMERS
         clock_t icg_timer = timer_start("ICG");
     #endif

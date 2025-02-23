@@ -5,12 +5,7 @@
 #include <stdlib.h>
 #include "debug.h"
 #include "h_error_codes.h"
-
-typedef enum args_flags_t {
-    H_ARGS_FLAG_COMPILE,
-    H_ARGS_FLAG_SAVE_FILE,
-    H_ARGS_FLAG_RUN,
-} args_flags_t;
+#include "h_args_flags.h"
 
 typedef enum execution_mode_t {
     MODE_FILE, 
