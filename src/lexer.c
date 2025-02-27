@@ -33,7 +33,6 @@ static token_t token_create_line(lexer_t* lexer, token_type_t type, size_t line)
     return token;
 }
 
-
 static token_t token_create_error(lexer_t* lexer, token_type_t type, const char* message) {
     token_t token;
     token.type = type;
