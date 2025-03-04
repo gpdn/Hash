@@ -3,12 +3,12 @@
 #define PREPROCESSOR_FILES_LIST_CAPACITY 5
 #define PREPROCESSOR_ENVIRONMENT_CAPACITY 100
 #define PREPROCESSOR_CONDITIONS_STACK_CAPACITY 10
+#define PREPROCESSOR_STRING_CAPACITY 100
 
 #define PREPROCESSOR_PRINT_ERROR(...) fprintf(stderr, "%s%s. File: %s at line %lld%s\n", COLOR_RED, __VA_ARGS__, preprocessor->files_list[preprocessor->files_list_size - 1], preprocessor->line, COLOR_RESET)
 #define PREPROCESSOR_CHECK_ERROR(X, ...) \
         (X == 1) ? 1 : ((PREPROCESSOR_PRINT_ERROR(__VA_ARGS__)) && 0)
 
-static int preprocessor_resolve(h_preprocessor_t* preprocessor, const char* file);
 static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor);
 static inline int preprocessor_file_push(h_preprocessor_t* preprocessor, const char* file);
 static inline void preprocessor_files_list_push(h_preprocessor_t* preprocessor, const char* file);
@@ -24,7 +24,12 @@ static inline int resolve_directive_endif(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_define(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_set(h_preprocessor_t* preprocessor);
 static inline int resolve_directive_unset(h_preprocessor_t* preprocessor);
+static inline int resolve_directive_print(h_preprocessor_t* preprocessor);
+static inline int resolve_directive_fn(h_preprocessor_t* preprocessor);
+static inline int resolve_directive_call(h_preprocessor_t* preprocessor);
+static inline int resolve_directive_for(h_preprocessor_t* preprocessor);
 static inline void preprocessor_read_string_inline(h_preprocessor_t* preprocessor);
+static inline int preprocessor_read_variable_inline(h_preprocessor_t* preprocessor);
 static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocessor_t* preprocessor);
 static int preprocessor_evaluate_value(h_preprocessor_t* preprocessor, h_preprocessor_value_t value);
 static inline void preprocessor_advance_new_line(h_preprocessor_t* preprocessor);
@@ -62,6 +67,14 @@ static inline void preprocessor_read_string_inline(h_preprocessor_t* preprocesso
     while(isalnum(*preprocessor->current) || *preprocessor->current == '_' || *preprocessor->current == '.') ++preprocessor->current;
 }
 
+static inline int preprocessor_read_variable_inline(h_preprocessor_t* preprocessor) {    
+    while(*preprocessor->current == ' ') ++preprocessor->current;
+    preprocessor->start = preprocessor->current;
+    if(*preprocessor->current++ != '@') return 0;
+    while(isalnum(*preprocessor->current) || *preprocessor->current == '_' || *preprocessor->current == '.') ++preprocessor->current;
+    return 1;
+}
+
 static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocessor_t* preprocessor) {
     while(*preprocessor->current == ' ') ++preprocessor->current;
 
@@ -81,12 +94,38 @@ static inline h_preprocessor_value_t preprocessor_read_value_inline(h_preprocess
     }
     
     if(isalnum(*preprocessor->current) || *preprocessor->current == '_') {
-       while(isalnum(*preprocessor->current) || *preprocessor->current == '_') ++preprocessor->current;
-       h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
-       return PREPROCESSOR_VALUE_IDENTIFIER(name);
+        while(isalnum(*preprocessor->current) || *preprocessor->current == '_') ++preprocessor->current;
+        h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+        return PREPROCESSOR_VALUE_IDENTIFIER(name);
     }
 
     return PREPROCESSOR_VALUE_UNDEFINED();
+}
+
+static inline h_preprocessor_value_t preprocessor_read_function_declaration(h_preprocessor_t* preprocessor) {
+    while(*preprocessor->current == ' ') ++preprocessor->current;
+    preprocessor->start = preprocessor->current;
+    while(isalnum(*preprocessor->current) || *preprocessor->current == '_') ++preprocessor->current;
+    h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+    h_preprocessor_function_t* function = h_preprocessor_function_init(name);
+    PREPROCESSOR_CHECK_ERROR(*preprocessor->current == '(', "Expected ( after function name");
+    ++preprocessor->current;
+    do {
+        while(*preprocessor->current == ' ') ++preprocessor->current;
+        preprocessor->start = preprocessor->current;
+        while(isalnum(*preprocessor->current) || *preprocessor->current == '_') ++preprocessor->current;
+        h_string_t* parameter_name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+        h_preprocessor_function_append(function, parameter_name);
+        while(*preprocessor->current == ' ') ++preprocessor->current;
+    } while(*preprocessor->current == ',' && ++preprocessor->current);
+    PREPROCESSOR_CHECK_ERROR(*preprocessor->current++ == ')', "Expected ) after function parameters");
+    while(*preprocessor->current == ' ') ++preprocessor->current;
+    preprocessor->start = preprocessor->current;
+    //preprocessor_advance_new_line(preprocessor);
+    while(*preprocessor->current != '\r' && *preprocessor->current != '\n') ++preprocessor->current;
+    h_string_t* body = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+    function->body = body;
+    return PREPROCESSOR_VALUE_FUNCTION(function);
 }
 
 static int preprocessor_evaluate_value(h_preprocessor_t* preprocessor, h_preprocessor_value_t value) {
@@ -100,10 +139,6 @@ static int preprocessor_evaluate_value(h_preprocessor_t* preprocessor, h_preproc
         default:
             return 0;
     }
-}
-
-static int preprocessor_resolve(h_preprocessor_t* preprocessor, const char* file) {
-    return 1;
 }
 
 static inline void preprocessor_files_list_push(h_preprocessor_t* preprocessor, const char* file) {
@@ -200,7 +235,6 @@ static inline int resolve_directive_else(h_preprocessor_t* preprocessor) {
 }
 
 static inline int resolve_directive_endif(h_preprocessor_t* preprocessor) {
-    //if(preprocessor->ignore_input == 1) return 1;
     DEBUG_LOG("Resolving endif\n");
     h_preprocessor_condition_t condition = h_preprocessor_conditions_stack_pop(preprocessor->conditions_stack);
     preprocessor->output_enabled = !condition.output;
@@ -237,6 +271,99 @@ static inline int resolve_directive_print(h_preprocessor_t* preprocessor) {
     h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
     preprocessor_print_value(h_preprocessor_env_get(preprocessor->environment, name));
     return 1;
+}
+
+static inline int resolve_directive_fn(h_preprocessor_t* preprocessor) {
+    DEBUG_LOG("Resolving fn\n");
+    h_preprocessor_value_t value = preprocessor_read_function_declaration(preprocessor);
+    return PREPROCESSOR_CHECK_ERROR(h_preprocessor_env_define(preprocessor->environment, value.function->name, value), "Variable", value.function->name, "already defined");
+}
+
+static int preprocessor_process_string(h_preprocessor_t* preprocessor, char* string) {
+    char* pre_start = preprocessor->start;
+    char* pre_current = preprocessor->current;
+    
+    preprocessor->start = string;
+    preprocessor->current = string;
+
+    while(*preprocessor->current != '\0') {
+        if(*preprocessor->current == '#') {
+            if(preprocessor_resolve_directive(preprocessor) == 0) {
+                DEBUG_LOG("Preprocessor failed");
+                return 0;
+            }
+            preprocessor_advance_new_line(preprocessor);
+            continue;
+        }
+
+        if(preprocessor->output_enabled) append_file(preprocessor->out_file, preprocessor->current, sizeof(char), 1);
+        ++preprocessor->current;
+    }
+
+    preprocessor->start = pre_start;
+    preprocessor->current = pre_current;
+    return 1;
+}
+
+static inline int resolve_directive_for(h_preprocessor_t* preprocessor) {
+    preprocessor_read_variable_inline(preprocessor);
+    h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+    if(*preprocessor->current++ != '(') return 0;
+    h_preprocessor_value_t init = preprocessor_read_value_inline(preprocessor);
+    preprocessor_print_value(init);
+    if(*preprocessor->current++ != ',') return 0;
+    h_preprocessor_value_t termination = preprocessor_read_value_inline(preprocessor);
+    preprocessor_print_value(termination);
+    if(*preprocessor->current++ != ',') return 0;
+    h_preprocessor_value_t increment = preprocessor_read_value_inline(preprocessor);
+    preprocessor_print_value(increment);
+    if(*preprocessor->current++ != ')') return 0;
+    preprocessor_advance_new_line(preprocessor);
+    
+    return 1;
+}
+
+static inline int resolve_directive_call(h_preprocessor_t* preprocessor) {
+    DEBUG_LOG("Resolving call\n");
+    preprocessor_read_string_inline(preprocessor);
+    h_string_t* name = h_string_init_hash(preprocessor->start, (size_t)(preprocessor->current - preprocessor->start));
+    h_preprocessor_value_t value = h_preprocessor_env_get(preprocessor->environment, name);
+    if(value.type != H_PREPROCESSOR_VALUE_FUNCTION) return 0;
+    if(*preprocessor->current++ != '(') return 0;
+    if(*preprocessor->current == ')' && value.function->params_count != 0) return 0;
+    h_string_t* body = value.function->body;
+    char* new_string = (char*)malloc(sizeof(char) * (body->length + 1));
+    memcpy(new_string, body->string, body->length);
+    new_string[body->length] = '\0';
+    size_t counter = 0;
+    size_t current_string_size = body->length;
+    size_t new_string_capacity = value.function->body->length * 5 + 1;
+    do {        
+        size_t found_index = 0;
+        preprocessor->start = preprocessor->current;
+        preprocessor_read_string_inline(preprocessor);
+        size_t temp_string_size = preprocessor->current - preprocessor->start;
+        char* temp_string = (char*)malloc(sizeof(char) * temp_string_size + 1);
+        memcpy(temp_string, preprocessor->start, temp_string_size);
+        temp_string[temp_string_size] = '\0';
+        char* found = new_string;
+        while((found = strstr(found, value.function->parameters_list[counter]->string))) {
+            found_index = found - new_string;
+            if(found_index + temp_string_size >= new_string_capacity) {
+                new_string_capacity = new_string_capacity * 2;
+                new_string = (char*)realloc(new_string, sizeof(char) * new_string_capacity);
+            }
+            memcpy(found + temp_string_size - value.function->parameters_list[counter]->length, found, current_string_size - found_index);
+            memcpy(found, temp_string, temp_string_size);
+            found += temp_string_size;
+            current_string_size += temp_string_size - value.function->parameters_list[counter]->length;
+        }
+        free(temp_string);
+    } while(*preprocessor->current == ',' && ++preprocessor->current && counter++ < value.function->params_count);
+    if(*preprocessor->current++ != ')') return 0;
+    int result = preprocessor_process_string(preprocessor, new_string);
+    free(new_string);
+    return result;
 }
 
 static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
@@ -288,7 +415,7 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
             return 0;
     }
     return 0;
-} 
+}
 
 static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
     ++preprocessor->current;
@@ -300,6 +427,9 @@ static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
     DEBUG_LOG("Directive: %.*s\n", (int)(preprocessor->current - preprocessor->start), preprocessor->start);
 
     switch(*preprocessor->start) {
+        case 'c':
+            return preprocessor_check_directive(preprocessor, 1, 3, "all") && resolve_directive_call(preprocessor);
+            break;
         case 'd':
             return preprocessor_check_directive(preprocessor, 1, 5, "efine") && resolve_directive_define(preprocessor);
             break;
@@ -325,6 +455,18 @@ static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
                 }
             }
             break;
+        case 'f':
+            if(preprocessor->current - preprocessor->start > 1) {
+                switch(preprocessor->start[1]) {
+                    case 'n':
+                        return preprocessor_check_directive(preprocessor, 2, 0, "") && resolve_directive_fn(preprocessor);
+                    case 'o':  
+                        return preprocessor_check_directive(preprocessor, 2, 1, "r") && resolve_directive_for(preprocessor);
+                    default:
+                        return 0;
+                }
+            }
+            return 0;
         case 'i':
             if(preprocessor->current - preprocessor->start > 1) {
                 switch(preprocessor->start[1]) {
@@ -446,5 +588,6 @@ void preprocessor_destroy(h_preprocessor_t* preprocessor) {
 #undef PREPROCESSOR_FILES_LIST_CAPACITY
 #undef PREPROCESSOR_ENVIRONMENT_CAPACITY
 #undef PREPROCESSOR_CONDITIONS_STACK_CAPACITY
+#undef PREPROCESSOR_STRING_CAPACITY
 #undef PREPROCESSOR_PRINT_ERROR
 #undef PREPROCESSOR_CHECK_ERROR
