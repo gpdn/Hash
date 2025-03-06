@@ -432,10 +432,8 @@ static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_
     }
 
     node->value = type.value.data->field_values[property_index];
-    node->type = AST_NODE_INDEXING;
     node->expression.right->type = AST_NODE_LITERAL;
     node->expression.right->value = NUM_VALUE(property_index);
-    //return lvalue.data_type->data[property_index];
     return type.value.data->field_values[property_index];
 }
 
@@ -548,7 +546,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
                 for(size_t i = 0; i < rvalue_data.data_type->size; ++i) {
                     assert_value_type(analyser, rvalue_data.data_type->data[i].type, type.value.data->field_values[i].type);
                 }
-                //this is so that the values used for semantic analysis don't get used byt VM
+                //this is so that the values used for semantic analysis don't get used by VM
                 //otherwise VM would push other values, so size would be doubled
                 //ex. {1, 2} -> {1, 2, 1, 2}. This basically resets the pointer to the start of the array
                 rvalue_data.data_type->size = 0;
@@ -581,6 +579,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return resolve_expression_array_initialisation(analyser, node);
         case AST_NODE_DATA_INITIALISATION:
             return resolve_expression_data_initialisation(analyser, node);
+        case AST_NODE_GROUPING:
+            return resolve_expression(analyser, node->expression.left);
         default:
             emit_error(analyser, "Undefined node");
             return UNDEFINED_VALUE(0);

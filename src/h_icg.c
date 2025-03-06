@@ -205,6 +205,7 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             icg_generate_binary(icg, node);
             break;
         case AST_NODE_INDEXING:
+        case AST_NODE_DOT:
             icg_generate_indexing(icg, node);
             break;
         case AST_NODE_ASSIGNMENT:
@@ -218,6 +219,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_POST_UNARY:
             icg_generate_post_unary(icg, node);
+            break;
+        case AST_NODE_GROUPING:
+            icg_generate_expression(icg, node->expression.left);
             break;
         default:
             emit_error(icg);
@@ -338,6 +342,7 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+    bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     --icg->scope;
 }

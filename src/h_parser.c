@@ -715,8 +715,11 @@ static ast_node_t* parse_for_statement(parser_t* parser) {
     assert_token_type_no_advance(parser, H_TOKEN_LEFT_PAR, "Expected ( after for statement.");
     node->expression.left = parse_for_statement_condition(parser);
     assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected ) after for statement.");
-    assert_token_type_no_advance(parser, H_TOKEN_LEFT_CURLY, "Expected {.");
-    node->expression.right = parse_block_statement(parser);
+    if(parser->current->type == H_TOKEN_LEFT_CURLY) {
+        node->expression.right = parse_block_statement(parser);
+        return node;
+    }
+    node->expression.right = parse_block_expression(parser);
     return node;
 }
 
@@ -1017,7 +1020,8 @@ static ast_node_t* parse_function_call(parser_t* parser, operator_precedence_t p
 
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence) {
     ++parser->current;
-    ast_node_t* node = parse_expression(parser, OP_PREC_LOWEST);
+    ast_node_t* node = ast_node_create(AST_NODE_GROUPING);
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected )");
     return node;
 } 
