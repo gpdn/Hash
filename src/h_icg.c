@@ -342,7 +342,7 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
-    bs_write(icg->bytecode_store, OP_POP);
+    if(condition->expression.left) bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     --icg->scope;
 }
@@ -616,6 +616,12 @@ static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
             break;
         case H_TOKEN_TO:
             bs_write(icg->bytecode_store, OP_GENERATE_INTERVAL);
+            break;
+        case H_TOKEN_AND:
+            bs_write(icg->bytecode_store, OP_AND);
+            break;
+        case H_TOKEN_OR:
+            bs_write(icg->bytecode_store, OP_OR);
             break;
         default:
             return;

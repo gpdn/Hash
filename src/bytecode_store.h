@@ -9,6 +9,8 @@ typedef enum opcode_t {
     OP_RETURN,
     OP_RETURN_VALUE,
     OP_CONSTANT,
+    OP_PUSH_CONSTANT,
+    OP_SET_PUSH_CONSTANT,
     OP_STOP,
     OP_STOP_VALUE,
     OP_START,
@@ -58,7 +60,9 @@ typedef enum opcode_t {
     OP_GET_LOCAL_INDEX_COMPOUND,
     OP_SET_LOCAL_INDEX_COMPOUND,
     OP_GET_LOCAL_NATIVE,
-    OP_CALL_NATIVE
+    OP_CALL_NATIVE,
+    OP_AND,
+    OP_OR
 } opcode_t;
 
 typedef struct bytecode_store_t {

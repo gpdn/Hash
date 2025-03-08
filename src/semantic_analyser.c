@@ -394,9 +394,9 @@ static inline value_t resolve_expression_function_call(semantic_analyser_t* anal
 static inline value_t resolve_expression_array_initialisation(semantic_analyser_t* analyser, ast_node_t* node) {
     if(node->block.declarations_size == 0) emit_error(analyser, "Empty array not allowed");
     value_t initial_value = resolve_expression(analyser, node->block.declarations[0]);        
-    h_array_t* array = h_array_init(initial_value.type, node->block.declarations_size);
+    h_array_t* array = h_array_init(node->value.type, node->block.declarations_size);
     for(size_t i = 1; i < node->block.declarations_size; ++i) {
-        value_t value = resolve_expression(analyser, node->block.declarations[0]);
+        value_t value = resolve_expression(analyser, node->block.declarations[i]);
         assert_value_type(analyser, value.type, initial_value.type);
     }
     node->value = VALUE_ARRAY(array); 
@@ -406,15 +406,13 @@ static inline value_t resolve_expression_array_initialisation(semantic_analyser_
 
 static inline value_t resolve_expression_data_initialisation(semantic_analyser_t* analyser, ast_node_t* node) {
     if(node->block.declarations_size == 0) emit_error(analyser, "Empty data not allowed");
-    value_t initial_value = resolve_expression(analyser, node->block.declarations[0]);        
     h_data_t* data = h_data_init(node->block.declarations_size);
-    h_data_push(data, initial_value);
-    for(size_t i = 1; i < node->block.declarations_size; ++i) {
+    for(size_t i = 0; i < node->block.declarations_size; ++i) {
         value_t value = resolve_expression(analyser, node->block.declarations[i]);
         h_data_push(data, value);
     }
     node->value = VALUE_TYPE(data);
-    return VALUE_TYPE(data);
+    return node->value;
 }
 
 static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_node_t* node) {
@@ -466,6 +464,8 @@ static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node
         case H_TOKEN_GREATER_EQUAL:
         case H_TOKEN_LESS:
         case H_TOKEN_LESS_EQUAL:
+        case H_TOKEN_AND:
+        case H_TOKEN_OR:
             assert_value_type(analyser, value_left.type, value_right.type);
             node->value.type = H_VALUE_NUMBER;
             return node->value;

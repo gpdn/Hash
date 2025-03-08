@@ -150,14 +150,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
     while(isalnum(*lexer->current) || *lexer->current == '_') ++lexer->current;
 
     switch(lexer->start[0]) {
-        case 'a': 
-            if(lexer->current - lexer->start > 1) {
-                switch(lexer->start[1]) {
-                    case 'n': return check_keyword(lexer, 2, 1, "d", H_TOKEN_AND);
-                    case 'r': return check_keyword(lexer, 2, 1, "r", H_TOKEN_ARR);
-                }
-            }
-            break;
+        case 'a': return check_keyword(lexer, 1, 2, "rr", H_TOKEN_ARR);
         case 'b': return check_keyword(lexer, 1, 4, "reak", H_TOKEN_BREAK);
         case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
         case 'd': 
@@ -211,7 +204,6 @@ static token_t lexer_identifier(lexer_t* lexer) {
                 }
             }
             break;
-        case 'o': return check_keyword(lexer, 1, 1, "r", H_TOKEN_OR);
         case 'p': return check_keyword(lexer, 1, 4, "rint", H_TOKEN_PRINT);
         case 'r':
             if(lexer->current - lexer->start > 2 && lexer->start[1] == 'e') {
@@ -410,8 +402,8 @@ token_t lexer_get_token(lexer_t* lexer) {
         case ',': return token_create(lexer, H_TOKEN_COMMA);
         case '.': return token_create(lexer, H_TOKEN_DOT);
         case '%': return token_create(lexer, H_TOKEN_MODULO);
-        case '&': return token_create(lexer, H_TOKEN_BITWISE_AND);
-        case '|': return token_create(lexer, H_TOKEN_BITWISE_OR);
+        case '&': return lexer_check_next(lexer, '&', H_TOKEN_AND, H_TOKEN_BITWISE_AND);
+        case '|': return lexer_check_next(lexer, '|', H_TOKEN_OR, H_TOKEN_BITWISE_OR);
         case '^': return token_create(lexer, H_TOKEN_BITWISE_XOR);
         case '~': return token_create(lexer, H_TOKEN_BITWISE_NOT);
         case '>': LEXER_CHECK_MULTIPLE('=', H_TOKEN_GREATER_EQUAL, '>', H_TOKEN_BITWISE_SHIFT_RIGHT, H_TOKEN_GREATER);

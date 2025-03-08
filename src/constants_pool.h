@@ -9,6 +9,7 @@ typedef struct constants_pool_t {
     value_t* constants;
     size_t size;
     size_t capacity;
+    value_t* current;
 } constants_pool_t;
 
 constants_pool_t* cp_init(size_t capacity);

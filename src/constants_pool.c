@@ -7,6 +7,7 @@ constants_pool_t* cp_init(size_t capacity) {
     cp->constants = (value_t*)malloc(sizeof(value_t) * capacity);
     cp->size = 0;
     cp->capacity = capacity;
+    cp->current = cp->constants;
     return cp;
 }
 

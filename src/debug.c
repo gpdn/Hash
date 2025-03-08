@@ -132,6 +132,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_CONSTANT:
             return constant_instruction("OP_CONSTANT", store, offset, file);
             break;
+        case OP_SET_PUSH_CONSTANT:
+            return basic_instruction("OP_SET_PUSH_CONSTANT", offset, file);
+            break;
+        case OP_PUSH_CONSTANT:
+            return basic_instruction("OP_PUSH_CONSTANT", offset, file);
+            break;
         case OP_SHIFT_LEFT:
             return basic_instruction("OP_SHIFT_LEFT", offset, file);
             break;
@@ -170,6 +176,12 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             break;
         case OP_GENERATE_INTERVAL:
             return basic_instruction("OP_GENERATE_INTERVAL", offset, file);
+            break;
+        case OP_AND:
+            return basic_instruction("OP_AND", offset, file);
+            break;
+        case OP_OR:
+            return basic_instruction("OP_OR", offset, file);
             break;
         case OP_PRINT:
             return basic_instruction("OP_PRINT", offset, file);

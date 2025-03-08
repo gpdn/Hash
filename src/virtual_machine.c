@@ -106,6 +106,7 @@ int vm_run(virtual_machine_t* vm) {
 
     #define ADVANCE_INSTRUCTION_POINTER() (*vm->instruction_pointer++) 
     #define READ_CONSTANT() vm->store->constants->constants[ADVANCE_INSTRUCTION_POINTER()] 
+    #define READ_PUSH_CONSTANT() (*vm->store->constants->current++)
     #define BINARY_OP(type, op) vm_stack_push(vm, type(vm_stack_pop(vm).number op vm_stack_pop(vm).number))
     #define BINARY_OP_ASSOC(name, type, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, type(vm_stack_pop(vm).number op name.number));
     #define BITWISE_OP_ASSOC(name, op) value_t name = vm_stack_pop(vm); vm_stack_push(vm, NUM_VALUE(((unsigned int)(vm_stack_pop(vm).number)) op ((unsigned int)(name.number))));
@@ -135,6 +136,12 @@ int vm_run(virtual_machine_t* vm) {
             case OP_CONSTANT:
                 value_t value = READ_CONSTANT();
                 vm_stack_push(vm, value);
+                break;
+            case OP_PUSH_CONSTANT:
+                vm_stack_push(vm, READ_PUSH_CONSTANT());
+                break;
+            case OP_SET_PUSH_CONSTANT:
+                vm_stack_push(vm, READ_PUSH_CONSTANT());
                 break;
             case OP_NEGATE:
                 vm_stack_push(vm, NUM_VALUE(-vm_stack_pop(vm).number));
@@ -184,6 +191,12 @@ int vm_run(virtual_machine_t* vm) {
                 break;
             case OP_NOT_EQUAL:
                 BINARY_OP(NUM_VALUE, !=);
+                break;
+            case OP_AND:
+                BINARY_OP_ASSOC(and_val, NUM_VALUE, &&);
+                break;
+            case OP_OR:
+                BINARY_OP_ASSOC(or_val, NUM_VALUE, ||);
                 break;
             case OP_GREATER:
                 BINARY_OP_ASSOC(greater_val, NUM_VALUE, >);
