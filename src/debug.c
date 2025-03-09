@@ -28,6 +28,9 @@ static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_
         case H_VALUE_STRING:
             DEBUG_LOG("%s\n", value.string->string);
             break;
+        case H_VALUE_CHAR:
+            DEBUG_LOG("%c\n", value.character);
+            break;
         case H_VALUE_ARRAY:
             print_value(&value);
             break;
@@ -35,6 +38,7 @@ static inline void bs_print_value(bytecode_store_t* store, size_t offset, value_
             print_value(&value);
             break;
         default: 
+            printf("%s\n", "Unimplemented value");
             break;
     }
 } 
@@ -222,9 +226,6 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_START_ARRAY_INITIALISATION:
             return basic_instruction("OP_START_ARRAY_INITIALISATION", offset, file);
             break;
-        case OP_SET_LOCAL_INDEX:
-            return index_instruction("OP_SET_LOCAL_INDEX", store, offset, file);
-            break;
         case OP_GET_LOCAL:
             return index_instruction("OP_GET_LOCAL", store, offset, file);
             break;
@@ -237,6 +238,15 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_GET_LOCAL_INDEX:
             return index_instruction("OP_GET_LOCAL_INDEX", store, offset, file);
             break;
+        case OP_SET_LOCAL_INDEX:
+            return index_instruction("OP_SET_LOCAL_INDEX", store, offset, file);
+            break;
+        case OP_GET_LOCAL_INDEX_STRING:
+            return index_instruction("OP_GET_LOCAL_INDEX_STRING", store, offset, file);
+            break;
+        case OP_SET_LOCAL_INDEX_STRING:
+            return index_instruction("OP_SET_LOCAL_INDEX_STRING", store, offset, file);
+            break;
         case OP_GET_LOCAL_INDEX_COMPOUND:
             return double_index_instruction("OP_GET_LOCAL_INDEX_COMPOUND", store, offset, file);
             break;
@@ -244,6 +254,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
             return double_index_instruction("OP_SET_LOCAL_INDEX_COMPOUND", store, offset, file);
             break;
         case OP_GET_LOCAL_SIZE:
+            return index_instruction("OP_GET_LOCAL_SIZE", store, offset, file);
+            break;
+        case OP_GET_LOCAL_SIZE_STRING:
             return index_instruction("OP_GET_LOCAL_SIZE", store, offset, file);
             break;
         case OP_CALL:
@@ -325,6 +338,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_MODULO: return "H_TOKEN_MODULO";
         case H_TOKEN_STRING_LITERAL: return "H_TOKEN_STRING_LITERAL";
         case H_TOKEN_NUMBER_LITERAL: return "H_TOKEN_NUMBER_LITERAL";
+        case H_TOKEN_CHAR_LITERAL: return "H_TOKEN_CHAR_LITERAL";
         case H_TOKEN_FUNCTION: return "H_TOKEN_FUNCTION";
         case H_TOKEN_BITWISE_SHIFT_LEFT: return "H_TOKEN_BITWISE_SHIFT_LEFT";
         case H_TOKEN_BITWISE_SHIFT_RIGHT: return "H_TOKEN_BITWISE_SHIFT_RIGHT";
@@ -337,7 +351,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_DOUBLE_QUESTION_MARK: return "H_TOKEN_DOUBLE_QUESTION_MARK";
         case H_TOKEN_NUM: return "H_TOKEN_NUM";
         case H_TOKEN_STR: return "H_TOKEN_STR";
-        case H_TOKEN_CONST: return "H_TOKEN_CONST";
+        case H_TOKEN_CHAR: return "H_TOKEN_CHAR";
         case H_TOKEN_GLOB: return "H_TOKEN_GLOB";
         case H_TOKEN_LABEL: return "H_TOKEN_LABEL";
         case H_TOKEN_GOTO: return "H_TOKEN_GOTO";

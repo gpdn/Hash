@@ -56,6 +56,36 @@ h_string_t* h_string_concatenate(h_string_t* string_1, h_string_t* string_2) {
     return new_string;
 }
 
+h_string_t* h_string_concatenate_char(h_string_t* string_1, char character) {
+    h_string_t* new_string = (h_string_t*)malloc(sizeof(h_string_t));
+    new_string->length = string_1->length + 1;
+    new_string->string = (char*)malloc(sizeof(char) * new_string->length);
+    memcpy(new_string->string, string_1->string, string_1->length);
+    new_string->string[new_string->length - 1] = character;
+    new_string->string[new_string->length] = '\0';
+    return new_string;
+}
+
+h_string_t* h_string_concatenate_pre_char(h_string_t* string_1, char character) {
+    h_string_t* new_string = (h_string_t*)malloc(sizeof(h_string_t));
+    new_string->length = string_1->length + 1;
+    new_string->string = (char*)malloc(sizeof(char) * new_string->length);
+    new_string->string[0] = character;
+    memcpy(new_string->string + 1, string_1->string, string_1->length);
+    new_string->string[new_string->length] = '\0';
+    return new_string;
+}
+
+h_string_t* h_string_from_chars(char character_1, char character_2) {
+    h_string_t* new_string = (h_string_t*)malloc(sizeof(h_string_t));
+    new_string->length = 3;
+    new_string->string = (char*)malloc(sizeof(char) * new_string->length);
+    new_string->string[0] = character_1;
+    new_string->string[1] = character_2;
+    new_string->string[2] = '\0';
+    return new_string;
+}
+
 void h_string_append(h_string_t* string_1, h_string_t* string_2) {
     if(string_1->length + string_2->length >= string_1->capacity) {
         string_1->capacity *= 2; 

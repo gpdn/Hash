@@ -130,7 +130,7 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         pipeline.compiler = h_compiler_init(pipeline.ast, pipeline.parser->ast_list_size, pipeline.locals_stack, pipeline.types_table, pipeline.enums_table);
         int result = h_compiler_run(&pipeline.compiler);
         
-        if(result != 0) DEBUG_LOG("Compilation failed");
+        if(result != 0) {DEBUG_LOG("Compilation failed");}
 
         DEBUG_LOG("Running in Compile Mode\n");
         #if DEBUG_TIMERS

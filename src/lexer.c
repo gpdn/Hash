@@ -8,6 +8,7 @@ static token_t lexer_check_next(lexer_t* lexer, char c, token_type_t token_match
 static token_t lexer_check_next_multiple(lexer_t* lexer, char c1, token_type_t first_token_match, char c2, token_type_t second_token_match, token_type_t token_mismatch);
 static int lexer_skip(lexer_t* lexer);
 static token_t lexer_string(lexer_t* lexer);
+static token_t lexer_char(lexer_t* lexer);
 static token_t lexer_number(lexer_t* lexer);
 static token_t lexer_identifier(lexer_t* lexer);
 static inline token_t check_keyword(lexer_t* lexer, size_t start, size_t length, const char* string_to_match, token_type_t type);
@@ -136,6 +137,27 @@ static token_t lexer_string(lexer_t* lexer) {
     return token;
 }
 
+static token_t lexer_char(lexer_t* lexer) {
+    lexer->start = lexer->current;
+    size_t start_line = lexer->line;
+    while(*lexer->current != '\'' && *lexer->current != '\0') {
+        if(*lexer->current == '\n') {++lexer->line;}
+        ++lexer->current;
+    }
+
+    if(lexer->current - lexer->start > 1) {
+        return token_create_error(lexer, H_TOKEN_ERROR, "Char too long");
+    }
+
+    if(*lexer->current == '\0') return token_create_error(lexer, H_TOKEN_ERROR, "Unterminated char");
+
+    token_t token = token_create_line(lexer, H_TOKEN_CHAR_LITERAL, start_line);
+
+    ++lexer->current;
+
+    return token;
+}
+
 static token_t lexer_number(lexer_t* lexer) {
     while(isdigit(*lexer->current)) ++lexer->current;
     if(*lexer->current == '.') {
@@ -152,7 +174,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
     switch(lexer->start[0]) {
         case 'a': return check_keyword(lexer, 1, 2, "rr", H_TOKEN_ARR);
         case 'b': return check_keyword(lexer, 1, 4, "reak", H_TOKEN_BREAK);
-        case 'c': return check_keyword(lexer, 1, 4, "onst", H_TOKEN_CONST);
+        case 'c': return check_keyword(lexer, 1, 3, "har", H_TOKEN_CHAR);
         case 'd': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
@@ -417,6 +439,7 @@ token_t lexer_get_token(lexer_t* lexer) {
         case '=': return lexer_check_next(lexer, '=', H_TOKEN_DOUBLE_EQUAL, H_TOKEN_EQUAL);
         case '?': return lexer_check_next(lexer, '?', H_TOKEN_DOUBLE_QUESTION_MARK, H_TOKEN_QUESTION_MARK);
         case '"': return lexer_string(lexer);
+        case '\'': return lexer_char(lexer);
     }
 
     if(isdigit(c)) return lexer_number(lexer);

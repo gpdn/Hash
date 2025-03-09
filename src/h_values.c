@@ -8,6 +8,9 @@ void print_value(value_t* value) {
         case H_VALUE_STRING:
             printf("%s\n", value->string->string);
             break;
+        case H_VALUE_CHAR:
+            printf("%c\n", value->character);
+            break;
         case H_VALUE_NULL:
             printf("Null\n");
             break;
@@ -28,6 +31,9 @@ void print_value(value_t* value) {
         case H_VALUE_NATIVE:
             h_native_print(value->native_fn);
             break;
+        default:
+            printf("%s\n", "Unimplemented value");
+            break;
     }
 }
 
@@ -38,6 +44,9 @@ void print_value_no_newline(value_t* value) {
             break;
         case H_VALUE_STRING:
             printf("%s", value->string->string);
+            break;
+        case H_VALUE_CHAR:
+            printf("%c\n", value->character);
             break;
         case H_VALUE_NULL:
             printf("Null");
@@ -57,6 +66,9 @@ void print_value_no_newline(value_t* value) {
         case H_VALUE_NATIVE:
             h_native_print_no_newline(value->native_fn);
             break;
+        default:
+            printf("%s\n", "Unimplemented value");
+            break;
     }
 }
 
@@ -66,6 +78,8 @@ const char* resolve_type(value_t* value) {
             return "Num";
         case H_VALUE_STRING:
             return "Str";
+        case H_VALUE_CHAR:
+            return "Char";
         case H_VALUE_ARRAY:
             return "Arr";
         case H_VALUE_FUNCTION:

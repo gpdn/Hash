@@ -31,7 +31,7 @@ typedef struct value_t {
 
 #define NUM_VALUE(value) ((value_t){H_VALUE_NUMBER, {.number = value}})
 #define STR_VALUE(value) ((value_t){H_VALUE_STRING, {.string = value}})
-#define CHAR_VALUE(value) ((value_t){H_VALUE_CHAR, {.char = value}})
+#define CHAR_VALUE(value) ((value_t){H_VALUE_CHAR, {.character = value}})
 #define NULL_VALUE(value) ((value_t){H_VALUE_NULL, {.number = 0}})
 #define UNDEFINED_VALUE(value) ((value_t){H_VALUE_UNDEFINED, {.number = 0}})
 #define VALUE_ARRAY(value) ((value_t){H_VALUE_ARRAY, {.array = value}})

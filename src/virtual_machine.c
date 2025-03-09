@@ -15,6 +15,8 @@ static inline value_t vm_stack_post_increase(virtual_machine_t* vm, size_t index
 static inline value_t vm_stack_post_decrease(virtual_machine_t* vm, size_t index);
 static inline value_t vm_stack_get_index(virtual_machine_t* vm, size_t index, size_t element_index);
 static inline void vm_stack_set_index(virtual_machine_t* vm, size_t index, size_t element_index, value_t value);
+static inline value_t vm_stack_get_index_string(virtual_machine_t* vm, size_t index, size_t element_index);
+static inline void vm_stack_set_index_string(virtual_machine_t* vm, size_t index, size_t element_index, value_t value);
 static inline void resolve_value(value_t* value);
 static inline void call_frame_print(call_frame_t* frame);
 
@@ -78,6 +80,14 @@ static inline value_t vm_stack_get_index(virtual_machine_t* vm, size_t index, si
 
 static inline void vm_stack_set_index(virtual_machine_t* vm, size_t index, size_t element_index, value_t value) {
     (*(vm->stack_base + index)).array->data[element_index] = value;
+}
+
+static inline value_t vm_stack_get_index_string(virtual_machine_t* vm, size_t index, size_t element_index) {
+    return CHAR_VALUE((*(vm->stack_base + index)).string->string[element_index]);
+}
+
+static inline void vm_stack_set_index_string(virtual_machine_t* vm, size_t index, size_t element_index, value_t value) {
+    (*(vm->stack_base + index)).string->string[element_index] = value.character;
 }
 
 virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack)
@@ -148,12 +158,24 @@ int vm_run(virtual_machine_t* vm) {
                 break;
             case OP_ADD:
                 value_t add_val = vm_stack_pop(vm);
+                value_t add_val_1 = vm_stack_pop(vm);
                 switch(add_val.type) {
                     case H_VALUE_NUMBER:
-                        vm_stack_push(vm, NUM_VALUE(vm_stack_pop(vm).number + add_val.number));
+                        vm_stack_push(vm, NUM_VALUE(add_val_1.number + add_val.number));
                         break;
                     case H_VALUE_STRING:
-                        vm_stack_push(vm, STR_VALUE(h_string_concatenate(vm_stack_pop(vm).string, add_val.string)));
+                        if(add_val_1.type == H_VALUE_STRING) {
+                            vm_stack_push(vm, STR_VALUE(h_string_concatenate(add_val_1.string, add_val.string)));
+                            break;
+                        }
+                        vm_stack_push(vm, STR_VALUE(h_string_concatenate_char(add_val.string, add_val_1.character)));
+                        break;
+                    case H_VALUE_CHAR:
+                        if(add_val_1.type == H_VALUE_STRING) {
+                            vm_stack_push(vm, STR_VALUE(h_string_concatenate_pre_char(add_val_1.string, add_val.character)));
+                            break;
+                        }
+                        vm_stack_push(vm, STR_VALUE(h_string_from_chars(add_val_1.character, add_val.character)));
                         break;
                     default:
                         return VM_ERROR;
@@ -301,6 +323,10 @@ int vm_run(virtual_machine_t* vm) {
                 size_t index = vm_stack_pop(vm).number;
                 vm_stack_set_index(vm, ADVANCE_INSTRUCTION_POINTER(), index, vm_stack_peek(vm));
                 break;
+            case OP_SET_LOCAL_INDEX_STRING:
+                size_t string_index = vm_stack_pop(vm).number;
+                vm_stack_set_index_string(vm, ADVANCE_INSTRUCTION_POINTER(), string_index, vm_stack_peek(vm));
+                break;
             case OP_SET_LOCAL_INDEX_COMPOUND:
                 size_t iterable_set_index = ADVANCE_INSTRUCTION_POINTER();
                 size_t index_set_loop_count = ADVANCE_INSTRUCTION_POINTER();
@@ -327,6 +353,9 @@ int vm_run(virtual_machine_t* vm) {
             case OP_GET_LOCAL_INDEX:
                 vm_stack_push(vm, vm_stack_get_index(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number));
                 break;
+            case OP_GET_LOCAL_INDEX_STRING:
+                vm_stack_push(vm, vm_stack_get_index_string(vm, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm).number));
+                break;
             case OP_GET_LOCAL_INDEX_COMPOUND:
                 size_t iterable_index = ADVANCE_INSTRUCTION_POINTER();
                 size_t index_loop_count = ADVANCE_INSTRUCTION_POINTER();
@@ -339,6 +368,10 @@ int vm_run(virtual_machine_t* vm) {
             case OP_GET_LOCAL_SIZE:
                 value_t array_value = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
                 vm_stack_push(vm, NUM_VALUE(array_value.array->size - 1));
+                break;
+            case OP_GET_LOCAL_SIZE_STRING:
+                value_t string_value = vm_stack_get(vm, ADVANCE_INSTRUCTION_POINTER());
+                vm_stack_push(vm, NUM_VALUE(string_value.string->length - 1));
                 break;
             case OP_PRE_INCREMENT:
                 vm_stack_push(vm, vm_stack_pre_increase(vm, ADVANCE_INSTRUCTION_POINTER()));
@@ -397,6 +430,9 @@ static inline void resolve_value(value_t* value) {
             break;
         case H_VALUE_STRING:
             DEBUG_LOG("[%s, %s]\n", "Str", value->string->string);
+            break;
+        case H_VALUE_CHAR:
+            DEBUG_LOG("[%s, %c]\n", "Char", value->character);
             break;
         case H_VALUE_ARRAY:
             DEBUG_LOG("[%s<%s>, [", resolve_type(value), resolve_value_type(value->array->type));
