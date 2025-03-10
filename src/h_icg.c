@@ -98,7 +98,7 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_DECLARATION_VARIABLE:
             icg_generate_declaration_variable(icg, node);
             break;
-        case AST_NODE_IDENTIFIER_TYPE:
+        case AST_NODE_DECLARATION_VARIABLE_TYPE:
             icg_generate_declaration_data(icg, node);
             break;
         case AST_NODE_DECLARATION_VARIABLE_ARRAY:
@@ -237,6 +237,7 @@ static inline void icg_generate_declaration_variable_array(icg_t* icg, ast_node_
 }
 
 static inline void icg_generate_declaration_data(icg_t* icg, ast_node_t* node) {
+    ast_print(node, 0);
     icg_generate_expression(icg, node->expression.right);
 }
 

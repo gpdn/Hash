@@ -53,6 +53,9 @@ static inline void ast_compile_type_token(h_compiler_t* compiler, token_type_t t
         case H_TOKEN_STR:
             h_string_append_cstring(compiler->current_buffer, "char* ");
             break;
+        case H_TOKEN_CHAR:
+            h_string_append_cstring(compiler->current_buffer, "char ");
+            break;
         default:
             DEBUG_LOG("Unrecognised type in ast_compile_type at line %d\n", __LINE__);
             break;
@@ -66,6 +69,9 @@ static inline void ast_compile_type_value(h_compiler_t* compiler, value_t* value
             break;
         case H_VALUE_STRING:
             h_string_append_cstring(compiler->current_buffer, "char* ");
+            break;
+        case H_VALUE_CHAR:
+            h_string_append_cstring(compiler->current_buffer, "char ");
             break;
         default:
             DEBUG_LOG("Unrecognised type in ast_compile_type at line %d\n", __LINE__);
@@ -87,13 +93,20 @@ static inline void ast_compile_identifier_type(h_compiler_t* compiler, ast_node_
 }
 
 static inline void ast_compile_literal(h_compiler_t* compiler, ast_node_t* current) {
-    if(current->value.type == H_VALUE_STRING) {
-        h_string_append_cstring(compiler->current_buffer, "\"");
-        h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
-        h_string_append_cstring(compiler->current_buffer, "\"");
-        return;
+    switch(current->value.type) {
+        case H_VALUE_STRING: 
+            h_string_append_cstring(compiler->current_buffer, "\"");
+            h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
+            h_string_append_cstring(compiler->current_buffer, "\"");
+            break;
+        case H_VALUE_CHAR: 
+            h_string_append_cstring(compiler->current_buffer, "'");
+            h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
+            h_string_append_cstring(compiler->current_buffer, "'");
+            break;
+        default:
+            h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
     }
-    h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
 }
 
 static inline void ast_compile_declaration_variable(h_compiler_t* compiler, ast_node_t* current) {
@@ -102,12 +115,6 @@ static inline void ast_compile_declaration_variable(h_compiler_t* compiler, ast_
     ast_compile_identifier(compiler, current->expression.left);
     if(!current->expression.right) return;
     h_string_append_cstring(compiler->current_buffer, " = ");
-    if(current->expression.right->value.type == H_VALUE_STRING) {
-        h_string_append_cstring(compiler->current_buffer, "\"");
-        ast_compile_expression(compiler, current->expression.right);
-        h_string_append_cstring(compiler->current_buffer, "\";\n");
-        return;
-    }
     ast_compile_expression(compiler, current->expression.right);
     h_string_append_cstring(compiler->current_buffer, ";\n");
 }
@@ -577,7 +584,7 @@ static inline void compiler_decrease_indent(h_compiler_t* compiler) {
 }
 
 int h_compiler_run(h_compiler_t* compiler) {
-    h_string_append_cstring(&compiler->h_buffer, "#ifndef H_COMPILED\n#define H_COMPILED\n\n#include <stdio.h>\n#include <stdlib.h>\n\n");
+    h_string_append_cstring(&compiler->h_buffer, "#ifndef H_COMPILED\n#define H_COMPILED\n\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\n");
     h_string_append_cstring(&compiler->c_buffer, "#include \"compiled.h\"\n\n");
     h_string_append_cstring(&compiler->main_buffer, "int main() {\n");
     memset(compiler->indent.string, '\t', compiler->indent.capacity);

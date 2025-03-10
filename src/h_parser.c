@@ -32,6 +32,7 @@ static ast_node_t* parse_variable_declaration_global(parser_t* parser);
 static ast_node_t* parse_variable_declaration_enum(parser_t* parser);
 static ast_node_t* parse_variable_declaration_label(parser_t* parser);
 static ast_node_t* parse_variable_declaration_array(parser_t* parser);
+static ast_node_t* parse_variable_declaration_type(parser_t* parser);
 static ast_node_t* parse_function_declaration(parser_t* parser);
 static ast_node_t* parse_data_declaration(parser_t* parser);
 static ast_node_t* parse_statement(parser_t* parser);
@@ -82,7 +83,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_LOWEST},
-    [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
+    [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
@@ -163,7 +164,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_LEFT_PAR]                  = {parse_grouping, parse_function_call, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_SQUARE]               = {parse_array_initialisation, parse_indexing, OP_PREC_HIGHEST},
     [H_TOKEN_LEFT_CURLY]                = {parse_data_initialisation, NULL, OP_PREC_LOWEST},
-    [H_TOKEN_IDENTIFIER]                = {parse_identifier, parse_identifier_type, OP_PREC_HIGHEST},
+    [H_TOKEN_IDENTIFIER]                = {parse_identifier, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_GLOB]                      = {parse_identifier_global, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_DOUBLE_COLON]              = {NULL, parse_enum_expression, OP_PREC_HIGHEST},
     [H_TOKEN_PLUS_PLUS]                 = {parse_unary_identifier_expression, parse_post_unary_expression, OP_PREC_HIGHEST},
@@ -317,6 +318,9 @@ static ast_node_t* parse_declaration(parser_t* parser) {
             break;
         case H_TOKEN_DATA:
             return parse_data_declaration(parser);
+            break;
+        case H_TOKEN_TYPE:
+            return parse_variable_declaration_type(parser);
             break;
         default: 
             return parse_statement(parser);
@@ -481,6 +485,39 @@ static ast_node_t* parse_variable_declaration_array(parser_t* parser) {
     return node;
 }
 
+static ast_node_t* parse_variable_declaration_type(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_VARIABLE_TYPE);
+    node->operator = parser->current;
+    ++parser->current;
+    h_string_t* value = h_string_init_hash(parser->current->start, parser->current->length);
+    node->value = STR_VALUE(value);
+    ++parser->current;
+    h_generic_arguments_list_t* generics_arguments = NULL;
+    if(parser->current->type == H_TOKEN_LESS) {
+        ++parser->current;
+        if(parser->current->type == H_TOKEN_GREATER) {
+            emit_error(parser, "Expected generic parameters list in data declaration. Empty parameters list not allowed for generics.");
+            return ast_node_create(AST_NODE_ERROR);
+        }
+        generics_arguments = h_generic_arguments_list_init(); 
+        do {
+            value_t value = parser_get_value(parser);
+            h_generic_arguments_list_add(generics_arguments, value);
+            ++parser->current;
+        }
+        while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
+        assert_token_type(parser, H_TOKEN_GREATER, "Expected > after generic parameters list in data declaration.");
+        //h_generic_arguments_list_print(generics_arguments);
+    }
+    node->expression.other = generics_arguments;
+    node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
+    assert_token_type(parser, H_TOKEN_EQUAL, "Expected =");
+    node->expression.right = parse_expression(parser, OP_PREC_OR);
+    assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected ;");
+    node->value.type = H_VALUE_TYPE;
+    return node;
+}
+
 static ast_node_t* parse_function_declaration(parser_t* parser) {
     ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_FUNCTION);
     node->operator = parser->current;
@@ -521,9 +558,32 @@ static ast_node_t* parse_data_declaration(parser_t* parser) {
     ast_node_t* node = ast_node_create(AST_NODE_DECLARATION_DATA);
     node->operator = parser->current;
     ++parser->current;
+    h_generic_parameters_list_t* generics = NULL;
+    if(parser->current->type == H_TOKEN_LESS) {
+        ++parser->current;
+        if(parser->current->type == H_TOKEN_GREATER) {
+            emit_error(parser, "Expected generic parameters list in data declaration. Empty parameters list not allowed for generics.");
+            return ast_node_create(AST_NODE_ERROR);
+        }
+        generics = h_generic_parameters_list_init(); 
+        do {
+            assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected generic name.");
+            if(parser->current->length > 1) {
+                emit_error(parser, "Expected character for generic parameter in data declaration.");
+                return ast_node_create(AST_NODE_ERROR);
+            }
+            char c = *parser->current->start;
+            h_generic_parameters_list_add(generics, c);
+            ++parser->current;
+        }
+        while(parser->current->type == H_TOKEN_COMMA && ++parser->current);
+        assert_token_type(parser, H_TOKEN_GREATER, "Expected > after generic parameters list in data declaration.");
+        h_generic_parameters_list_print(generics);
+    }
     assert_token_type_no_advance(parser, H_TOKEN_IDENTIFIER, "Expected name after data definition.");
     node->expression.left = parse_identifier(parser, OP_PREC_HIGHEST);
     h_struct_t* data = h_struct_init(node->expression.left->value.string);
+    data->generics = generics;
     assert_token_type(parser, H_TOKEN_COLON, "Expected : after data name.");
     if(parser->current->type != H_TOKEN_COLON) {
         do {
@@ -879,7 +939,7 @@ static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t prec
     return node;
 }
 
-static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+/* static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
     ast_node_t* node = ast_node_create(AST_NODE_IDENTIFIER);
     left->type = AST_NODE_IDENTIFIER_TYPE;
     left->expression.left = node;
@@ -891,7 +951,7 @@ static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t
     assert_token_type(parser, H_TOKEN_EQUAL, "Expected = before data initialisation");
     left->expression.right = parse_expression(parser, OP_PREC_LOWEST);
     return left;
-}
+} */
 
 static ast_node_t* parse_identifier_function(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_IDENTIFIER_FUNCTION);
@@ -1301,6 +1361,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_DECLARATION_VARIABLE_ARRAY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE_ARRAY %.*s\n", indent, 0, "");
             break;
+        case AST_NODE_DECLARATION_VARIABLE_TYPE:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_VARIABLE_TYPE %.*s\n", indent, 0, "");
+            break;
         case AST_NODE_DECLARATION_FUNCTION:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DECLARATION_FUNCTION %.*s\n", indent, 0, "");
             break;
@@ -1371,6 +1434,12 @@ void ast_print(ast_node_t* node, int indent) {
         case AST_NODE_FUNCTION_PARAMETERS:
             if(node->block.declarations) {
                 for(size_t i = 0; i < node->block.declarations_size; ++i) ast_print(node->block.declarations[i], indent + 1);
+            }
+            break;
+        case AST_NODE_DECLARATION_VARIABLE_TYPE:
+            ast_print(node->expression.left, indent + 1);
+            if(node->expression.right) {
+                ast_print(node->expression.right, indent + 1);
             }
             break;
         default:

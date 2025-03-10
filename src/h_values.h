@@ -39,6 +39,7 @@ typedef struct value_t {
 #define VALUE_DATA(value) ((value_t){H_VALUE_DATA, {.data = value}})
 #define VALUE_TYPE(value) ((value_t){H_VALUE_TYPE, {.data_type = value}})
 #define VALUE_NATIVE(value) ((value_t){H_VALUE_NATIVE, {.native_fn = value}})
+#define VALUE_GENERIC(value) ((value_t){H_VALUE_GENERIC, {.number = value}})
 
 #define IS_NUM(value) ((value).type == H_VALUE_NUMBER);
 #define IS_STR(value) ((value).type == H_VALUE_STRING);
@@ -48,8 +49,9 @@ typedef struct value_t {
 #define IS_ARRAY(value) ((value).type == H_VALUE_ARRAY);
 #define IS_FUNCTION(value) ((value).type == H_VALUE_FUNCTION);
 #define IS_DATA(value) ((value).type == H_VALUE_DATA);
-#define IS_TYPE(value) ((value).data_type == H_VALUE_TYPE);
-#define IS_NATIVE(value) ((value).native_fn == H_VALUE_NATIVE);
+#define IS_TYPE(value) ((value).type == H_VALUE_TYPE);
+#define IS_NATIVE(value) ((value).type == H_VALUE_NATIVE);
+#define IS_GENERIC(value) ((value).type == H_VALUE_GENERIC);
 
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);

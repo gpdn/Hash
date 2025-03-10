@@ -9,6 +9,7 @@ h_struct_t* h_struct_init(h_string_t* name) {
     new_struct->field_values = (value_t*)calloc(H_DEFAULT_STRUCT_FIELDS_COUNT, sizeof(value_t));
     new_struct->size = 0;
     new_struct->capacity = H_DEFAULT_STRUCT_FIELDS_COUNT;
+    new_struct->generics = NULL;
     return new_struct;
 }
 

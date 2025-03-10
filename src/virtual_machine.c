@@ -313,11 +313,11 @@ int vm_run(virtual_machine_t* vm) {
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_array_push(local_array.array, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 break;
-                case OP_SET_LOCAL_DATA:
+            case OP_SET_LOCAL_DATA:
                 value_t local_data = *(vm->array_initialisation_ptr - 1);
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_data_push(local_data.data_type, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
-                vm_stack_push(vm, NULL_VALUE());
+                //vm_stack_push(vm, NULL_VALUE());
                 break;
             case OP_SET_LOCAL_INDEX:
                 size_t index = vm_stack_pop(vm).number;

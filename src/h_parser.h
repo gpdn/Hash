@@ -5,6 +5,8 @@
 #include "debug.h"
 #include "h_token.h"
 #include "h_values.h"
+#include "h_generic_parameters_list.h"
+#include "h_generic_arguments_list.h"
 
 typedef enum ast_node_type_t{
     AST_NODE_BINARY,
@@ -37,6 +39,7 @@ typedef enum ast_node_type_t{
     AST_NODE_ENUM_RESOLUTION,
     AST_NODE_INDEXING,
     AST_NODE_DECLARATION_VARIABLE_ARRAY,
+    AST_NODE_DECLARATION_VARIABLE_TYPE,
     AST_NODE_ARRAY_INITIALISATION,
     AST_NODE_STATEMENT_REPEAT,
     AST_NODE_IDENTIFIER_TEMP,

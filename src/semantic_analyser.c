@@ -33,6 +33,7 @@ static inline void assert_returns_type(semantic_analyser_t* analyser, value_t ty
 static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type);
 static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type);
+static inline int check_type_defined(semantic_analyser_t* analyser, h_string_t* type);
 
 static value_type_t iterables[] = {
     [H_VALUE_UNDEFINED] = 0,
@@ -89,6 +90,19 @@ static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string
 
 static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type) {
     if(h_ht_types_check_defined(analyser->types_table, type) != 1) emit_error(analyser, "Type undefined");
+}
+
+static inline int check_type_defined(semantic_analyser_t* analyser, h_string_t* type) {
+    return h_ht_types_check_defined(analyser->types_table, type);
+}
+
+static inline int check_generic_defined(semantic_analyser_t* analyser, h_generic_parameters_list_t* generics, char type) {
+    for(size_t i = 0; i < generics->size; ++i) {
+        if(type == generics->names[i]) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 static inline void resolve_returns_list(semantic_analyser_t* analyser, value_t value) {
@@ -206,6 +220,35 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_array, analyser->scope);
             //h_locals_stack_print(analyser->locals);
             return;
+        case AST_NODE_DECLARATION_VARIABLE_TYPE:
+            DEBUG_LOG("Declaration type\n");
+            ht_type_t type = h_ht_types_get(analyser->types_table, node->value.string);
+            h_generic_arguments_list_t* generics_arguments = (h_generic_arguments_list_t*)node->expression.other;
+            if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
+            if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
+                value_t rvalue_data = resolve_expression_data_initialisation(analyser, node->expression.right);
+                assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
+                rvalue_data.data_type->type_name = type.name;
+                if(rvalue_data.data_type->size != type.value.data->size) emit_error(analyser, "Not all field in data populated");
+                for(size_t i = 0; i < rvalue_data.data_type->size; ++i) {
+                    if(type.value.data->field_values[i].type == H_VALUE_GENERIC) {
+                        assert_value_type(analyser, rvalue_data.data_type->data[i].type, generics_arguments->arguments[(int)type.value.data->field_values[i].number].type);
+                        continue;
+                    }
+                    assert_value_type(analyser, rvalue_data.data_type->data[i].type, type.value.data->field_values[i].type);
+                }
+                //this is so that the values used for semantic analysis don't get used by VM
+                //otherwise VM would push other values, so size would be doubled
+                //ex. {1, 2} -> {1, 2, 1, 2}. This basically resets the pointer to the start of the array
+                rvalue_data.data_type->size = 0;
+                h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_data, analyser->scope);
+                return;
+            }
+            value_t rvalue_data = resolve_expression(analyser, node->expression.right);
+            assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
+            if(rvalue_data.data_type->type_name != type.value.data->name) emit_error(analyser, "Not all field in data populated");
+            h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_data, analyser->scope);
+            return;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
             value_t rvalue_global = resolve_expression(analyser, node->expression.right); 
             if(node->value.type != rvalue_global.type) emit_error(analyser, "Variable already defined");
@@ -264,9 +307,27 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             return;
         case AST_NODE_DECLARATION_DATA:
             assert_type_undefined(analyser, node->expression.left->value.string);
+            if(!node->value.data->generics) {
+                for(size_t i = 0; i < node->value.data->size; ++i) {
+                    if(node->value.data->field_values[i].type == H_VALUE_TYPE) {
+                        assert_type_defined(analyser, node->value.data->field_values[i].string);
+                    }
+                }
+                h_ht_types_set(analyser->types_table, node->expression.left->value.string, node->value, H_TYPE_INFO_DATA);
+                return;
+            }
             for(size_t i = 0; i < node->value.data->size; ++i) {
                 if(node->value.data->field_values[i].type == H_VALUE_TYPE) {
-                    assert_type_defined(analyser, node->value.data->field_values[i].string);
+                    if(check_type_defined(analyser, node->value.data->field_values[i].string)) continue;
+                    int generic_index = -1;
+                    if(
+                        node->value.data->field_values[i].string->length == 1 && 
+                        (generic_index = check_generic_defined(analyser, node->value.data->generics, node->value.data->field_values[i].string->string[0])) != -1
+                    ) {
+                        node->value.data->field_values[i] = VALUE_GENERIC(generic_index);
+                        continue;
+                    }
+                    emit_error(analyser, "Undefined type");
                 }
             }
             h_ht_types_set(analyser->types_table, node->expression.left->value.string, node->value, H_TYPE_INFO_DATA);
@@ -543,7 +604,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return node->value;
         case AST_NODE_IDENTIFIER:
             return h_locals_stack_get(analyser->locals, node->value.string, analyser->scope);
-        case AST_NODE_IDENTIFIER_TYPE:
+        /* case AST_NODE_IDENTIFIER_TYPE:
             DEBUG_LOG("Identifier type called\n");
             ht_type_t type = h_ht_types_get(analyser->types_table, node->value.string);
             if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
@@ -569,7 +630,7 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
             if(rvalue_data.data_type->type_name != type.value.data->name) emit_error(analyser, "Not all field in data populated");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_data, analyser->scope);
-            return rvalue_data;
+            return rvalue_data; */
         case AST_NODE_IDENTIFIER_FUNCTION:
             return h_locals_stack_get(analyser->initial_locals, node->value.string, 0);
         case AST_NODE_IDENTIFIER_GLOBAL:

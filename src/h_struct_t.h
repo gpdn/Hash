@@ -3,6 +3,7 @@
 
 #include "h_value_types.h"
 #include "h_values.h"
+#include "h_generic_parameters_list.h"
 
 typedef struct h_struct_t {
     h_string_t* name;
@@ -10,6 +11,7 @@ typedef struct h_struct_t {
     struct value_t* field_values;
     size_t size;
     size_t capacity;
+    h_generic_parameters_list_t* generics;
 } h_struct_t;
 
 h_struct_t* h_struct_init(h_string_t* name);

@@ -81,6 +81,7 @@ typedef enum token_type_t {
     H_TOKEN_DATA,
     H_TOKEN_ARROW,
     H_TOKEN_STOP,
+    H_TOKEN_TYPE,
     H_TOKEN_LAST
 } token_type_t;
 
