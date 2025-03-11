@@ -420,8 +420,23 @@ static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser,
     value_t value_right = resolve_expression(analyser, node->expression.right);
     assert_iterable(analyser, value_left.type);
     assert_value_type(analyser, value_right.type, H_VALUE_NUMBER);
+    /* 
+        switch(value_left.type) {
+            case H_VALUE_STRING:
+                node->value.type = H_VALUE_CHAR;
+                return node->value;
+            case H_VALUE_ARRAY:
+                node->value.type = value_left.array->type;
+                break;
+            default:
+                DEBUG_LOG("Add type for indexing in semantic analyser at line %d", __LINE__);
+                break;
+        }
+    */
+    //node->expression.left->value = value_left;
     if(value_left.type != H_VALUE_STRING) {
-        node->value.type = value_left.type;
+        node->value.type = value_left.array->type;
+        //node->value.type = value_left.type;
         return node->value;
     }
     node->value.type = H_VALUE_CHAR;

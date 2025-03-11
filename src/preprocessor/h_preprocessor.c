@@ -392,8 +392,19 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
             return preprocessor_check_directive(preprocessor, 1, 1, "o") && h_std_set_flags(preprocessor->std, H_STD_FLAG_CMD | H_STD_FLAG_FILE | H_STD_FLAG_SYSTEM);
             break;
         case 's':
-            return preprocessor_check_directive(preprocessor, 1, 2, "tr") && h_std_set_flag(preprocessor->std, H_STD_FLAG_STR);
-            break;
+            if(preprocessor->current - preprocessor->start > 1) {
+                switch(preprocessor->start[1]) {
+                    case 't':
+                        return preprocessor_check_directive(preprocessor, 2, 1, "r") && h_std_set_flag(preprocessor->std, H_STD_FLAG_STR);
+                        break;
+                    case 'y':
+                        return preprocessor_check_directive(preprocessor, 2, 1, "s") && h_std_set_flag(preprocessor->std, H_STD_FLAG_SYSTEM);
+                        break;
+                    default:
+                        return 0;
+                }
+            }
+            return 0;
         case 't':
             if(preprocessor->current - preprocessor->start > 1) {
                 switch(preprocessor->start[1]) {

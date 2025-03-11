@@ -16,6 +16,8 @@ const char* h_std_resolve_import_flag(size_t flag) {
             return "H_STD_FLAG_TIME";
         case H_STD_FLAG_TIMER:
             return "H_STD_FLAG_TIMER";
+        case H_STD_FLAG_SYSTEM:
+            return "H_STD_FLAG_SYSTEM";
         default:
             return "Undefined flag";
     }

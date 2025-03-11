@@ -2,9 +2,9 @@
 
 void define_native(h_locals_stack_t* stack, const char* name, h_native_fn_t function, value_t* params, size_t params_count, value_t return_type) {
     h_string_t* string = h_string_init_hash(name, strlen(name));
-    for(size_t i = 0; i < params_count; ++i) {
+    /* for(size_t i = 0; i < params_count; ++i) {
         printf("%s\n", resolve_value_type(params[i].type));
-    }
+    } */
     h_native_t* native = h_native_init_set(string, function, params, params_count, return_type);    
     h_locals_stack_push(stack, string, VALUE_NATIVE(native), 0);
 }

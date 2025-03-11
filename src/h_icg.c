@@ -515,7 +515,7 @@ static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node) {
     }
 
     if(count == 1) {
-        if(left_child->value.type == H_VALUE_STRING) {
+        if(node->value.type == H_VALUE_CHAR) {
             bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX_STRING);
             bs_write(icg->bytecode_store, h_locals_stack_get_index(icg->locals_stack, left_child->value.string, icg->scope));
             return;
