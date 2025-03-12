@@ -17,6 +17,7 @@ static inline void assert_loop_count(semantic_analyser_t* analyser);
 static inline void assert_return_count(semantic_analyser_t* analyser);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node);
+static value_t resolve_expression_ternary(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_indexing(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_return_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static value_t resolve_expression_unary(semantic_analyser_t* analyser, ast_node_t* node);
@@ -570,6 +571,16 @@ static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node
     return node->value;
 }
 
+static value_t resolve_expression_ternary(semantic_analyser_t* analyser, ast_node_t* node) {
+    value_t value_left = resolve_expression(analyser, node->expression.left);
+    value_t value_right = resolve_expression(analyser, node->expression.right);
+    value_t value_other = resolve_expression(analyser, node->expression.other);
+    assert_value_type(analyser, value_left.type, H_VALUE_NUMBER);
+    if(value_right.type != value_other.type) emit_error(analyser, "Type mismatch in conditional expression");
+    node->value = value_right;
+    return node->value; 
+}
+
 static value_t resolve_expression_unary(semantic_analyser_t* analyser, ast_node_t* node) {
     value_t value = resolve_expression(analyser, node->expression.left);
 
@@ -610,6 +621,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
         case AST_NODE_ASSIGNMENT:
         case AST_NODE_ASSIGNMENT_COMPOUND:
             return resolve_expression_binary(analyser, node);
+        case AST_NODE_TERNARY:
+            return resolve_expression_ternary(analyser, node);
         case AST_NODE_TO:
             value_t rvalue = resolve_expression_binary(analyser, node);
             h_array_t* array = h_array_init(rvalue.type, 5);

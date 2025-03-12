@@ -13,6 +13,7 @@ typedef int (h_std_import_fn)(h_locals_stack_t* locals_stack, h_ht_enums_t* enum
 #include "h_std_io.h"
 #include "h_std_core.h"
 #include "h_std_utils.h"
+#include "h_std_math.h"
 
 typedef struct h_std_t {
     size_t import_flags;

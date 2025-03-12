@@ -232,6 +232,11 @@ int vm_run(virtual_machine_t* vm) {
             case OP_LESS_EQUAL:
                 BINARY_OP_ASSOC(less_equal_val, NUM_VALUE, <=);
                 break;
+            case OP_CONDITIONAL_EXPRESSION:
+                value_t conditional_else_value = vm_stack_pop(vm);
+                value_t conditional_if_value = vm_stack_pop(vm);
+                vm_stack_pop(vm).number != 0 ? vm_stack_push(vm, conditional_if_value) : vm_stack_push(vm, conditional_else_value);
+                break;
             case OP_GENERATE_INTERVAL:
                 value_t value_one = vm_stack_pop(vm);
                 value_t value_two = vm_stack_pop(vm);

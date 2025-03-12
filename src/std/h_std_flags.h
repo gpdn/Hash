@@ -12,6 +12,7 @@ typedef enum h_std_import_flag_t {
     H_STD_FLAG_TIME,
     H_STD_FLAG_TIMER,
     H_STD_FLAG_SYSTEM,
+    H_STD_FLAG_MATH,
 } h_std_import_flag_t;
 
 const char* h_std_resolve_import_flag(size_t flag);

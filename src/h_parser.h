@@ -10,6 +10,7 @@
 
 typedef enum ast_node_type_t{
     AST_NODE_BINARY,
+    AST_NODE_TERNARY,
     AST_NODE_LITERAL,
     AST_NODE_IDENTIFIER,
     AST_NODE_IDENTIFIER_TYPE,
@@ -67,6 +68,7 @@ typedef enum ast_node_type_t{
 
 typedef enum operator_precedence_t {
     OP_PREC_LOWEST,
+    OP_PREC_TERNARY,
     OP_PREC_ASSIGNMENT,
     OP_PREC_OR,
     OP_PREC_AND,

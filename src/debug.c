@@ -163,6 +163,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_EQUALITY:
             return basic_instruction("OP_EQUALITY", offset, file);
             break;
+        case OP_CONDITIONAL_EXPRESSION:
+            return basic_instruction("OP_CONDITIONAL_EXPRESSION", offset, file);
+            break;
         case OP_NOT_EQUAL:
             return basic_instruction("OP_NOT_EQUAL", offset, file);
             break;

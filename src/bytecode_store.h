@@ -65,7 +65,8 @@ typedef enum opcode_t {
     OP_GET_LOCAL_NATIVE,
     OP_CALL_NATIVE,
     OP_AND,
-    OP_OR
+    OP_OR,
+    OP_CONDITIONAL_EXPRESSION
 } opcode_t;
 
 typedef struct bytecode_store_t {

@@ -31,6 +31,7 @@ static inline void icg_generate_identifier_function(icg_t* icg, ast_node_t* node
 static inline void icg_generate_identifier_native(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
+static void icg_generate_ternary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
@@ -202,6 +203,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_BINARY:
         case AST_NODE_TO:
             icg_generate_binary(icg, node);
+            break;
+        case AST_NODE_TERNARY:
+            icg_generate_ternary(icg, node);
             break;
         case AST_NODE_INDEXING:
         case AST_NODE_DOT:
@@ -589,6 +593,13 @@ static void icg_generate_post_unary(icg_t* icg, ast_node_t* node) {
         default:
             return;
     }
+}
+
+static void icg_generate_ternary(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->expression.left);
+    icg_generate_expression(icg, node->expression.right);
+    icg_generate_expression(icg, node->expression.other);
+    bs_write(icg->bytecode_store, OP_CONDITIONAL_EXPRESSION);
 }
 
 static void icg_generate_binary(icg_t* icg, ast_node_t* node) {

@@ -367,6 +367,7 @@ static inline int resolve_directive_call(h_preprocessor_t* preprocessor) {
 }
 
 static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
+    DEBUG_LOG("Current directive: %.*s", preprocessor->current - preprocessor->start, preprocessor->start);
     switch(*preprocessor->start) {
         case 'a':
             return preprocessor_check_directive(preprocessor, 1, 2, "rr") && h_std_set_flag(preprocessor->std, H_STD_FLAG_ARR);
@@ -390,6 +391,9 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
             break;
         case 'i':
             return preprocessor_check_directive(preprocessor, 1, 1, "o") && h_std_set_flags(preprocessor->std, H_STD_FLAG_CMD | H_STD_FLAG_FILE | H_STD_FLAG_SYSTEM);
+            break;
+        case 'm':
+            return preprocessor_check_directive(preprocessor, 1, 3, "ath") && h_std_set_flag(preprocessor->std, H_STD_FLAG_MATH);
             break;
         case 's':
             if(preprocessor->current - preprocessor->start > 1) {

@@ -9,6 +9,7 @@ static inline ast_node_t* ast_node_create_temp(const char* string, size_t length
 static void ast_node_free(ast_node_t* node);
 static ast_node_t* parse_expression(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
+static ast_node_t* parse_ternary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_to_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
@@ -113,6 +114,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
+    [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -153,6 +155,7 @@ static parse_rule_t parse_table_array_initialisation[] = {
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
+    [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -194,6 +197,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_LESS_EQUAL]                = {NULL, parse_binary_expression, OP_PREC_COMPARISON},
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
+    [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -1153,6 +1157,17 @@ static ast_node_t* parse_binary_expression(parser_t* parser, operator_precedence
     return node;
 }
 
+static ast_node_t* parse_ternary_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
+    ast_node_t* node = ast_node_create(AST_NODE_TERNARY);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = left;
+    node->expression.right = parse_expression(parser, precedence);
+    assert_token_type(parser, H_TOKEN_COLON, "Expected : in ternary conditional expression");
+    node->expression.other = parse_expression(parser, precedence);
+    return node;
+}
+
 static ast_node_t* parse_dot_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left) {
     ast_node_t* node = ast_node_create(AST_NODE_DOT);
     node->operator = parser->current;
@@ -1258,6 +1273,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_BINARY:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_BINARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
+            break;
+        case AST_NODE_TERNARY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_TERNARY %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
         case AST_NODE_TO:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_TO %.*s\n", indent, (int)node->operator->length, node->operator->start);
