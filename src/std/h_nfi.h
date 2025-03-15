@@ -11,6 +11,8 @@
 #define H_NFI_STR_LEN(value) value.string->length
 #define H_NFI_ARR_LEN(value) value.array->size
 #define H_NFI_NUM_TO_CINT(value) (int)value.number
+#define H_NFI_NUM_TO_CLINT(value) (long long int)value.number
+#define H_NFI_NUM_TO_CUINT(value) (unsigned int)value.number
 #define H_NFI_NUM_TO_CDOUBLE(value) value.number
 #define H_NFI_NUM_TO_CSIZE(value) (size_t)value.number
 #define H_NFI_TYPE_TO_CTYPE(value) value.data_type->other

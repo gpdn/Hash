@@ -13,6 +13,7 @@ static inline void assert_value_type(semantic_analyser_t* analyser, value_type_t
 static inline value_type_t assert_get_value_type_plus(semantic_analyser_t* analyser, value_type_t value_type, value_type_t type);
 static inline void assert_iterable(semantic_analyser_t* analyser, value_type_t value_type);
 static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list);
+static inline void assert_parameters_arity_native(semantic_analyser_t* analyser, h_native_t* function, ast_node_t* parameters_list);
 static inline void assert_loop_count(semantic_analyser_t* analyser);
 static inline void assert_return_count(semantic_analyser_t* analyser);
 static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* node);
@@ -163,6 +164,22 @@ static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_func
     }
 }
 
+static inline void assert_parameters_arity_native(semantic_analyser_t* analyser, h_native_t* function, ast_node_t* parameters_list) {
+    if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser, "Invalid arguments count");
+
+    for(size_t i = 0; i < function->parameters_list_size; ++i) {
+        value_t parameter_value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
+        if(function->parameters_list_values[i].type != parameter_value.type) emit_error(analyser, "Invalid argument type");
+        if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
+            if(function->parameters_list_values[i].data_type->type_name->hash != parameter_value.data_type->type_name->hash 
+                || function->parameters_list_values[i].data_type->type_name->length != parameter_value.data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].data_type->type_name->string, parameter_value.data_type->type_name->string) != 0) {
+                    emit_error(analyser, "Invalid argument type");
+                }
+        }
+    }
+}
+
 static inline void assert_loop_count(semantic_analyser_t* analyser) {
     if(analyser->loop_count == 0) emit_error(analyser, "Cannot use statement outside of a loop");
 }
@@ -247,7 +264,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             }
             value_t rvalue_data = resolve_expression(analyser, node->expression.right);
             assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
-            if(rvalue_data.data_type->type_name != type.value.data->name) emit_error(analyser, "Not all field in data populated");
+            //if(rvalue_data.data_type->type_name->length != type.value.data->name->length) emit_error(analyser, "Not all field in data populated");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_data, analyser->scope);
             return;
         case AST_NODE_DECLARATION_VARIABLE_GLOBAL:
@@ -469,8 +486,9 @@ static inline value_t resolve_expression_function_call(semantic_analyser_t* anal
             break;
         case H_VALUE_NATIVE:
             node->expression.left->type = AST_NODE_IDENTIFIER_NATIVE;
-            //assert_parameters_arity(analyser, value_left.native_fn, node->expression.right);
-            node->value.type = value_left.native_fn->return_type->type;
+            //assert_parameters_arity_native(analyser, value_left.native_fn, node->expression.right);
+            //node->value.type = value_left.native_fn->return_type->type;
+            node->value = value_left.native_fn->return_type[0];
             node->type = AST_NODE_NATIVE_CALL;
             break;
         default:
