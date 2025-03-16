@@ -94,3 +94,25 @@ const char* resolve_type(value_t* value) {
             return "Unk";
     }
 }
+ 
+int compare_value(value_t value_1, value_t value_2) {
+    switch(value_1.type) {
+        case H_VALUE_NUMBER:
+            return value_1.number == value_2.number;
+        case H_VALUE_STRING:
+            return value_1.string->hash == value_2.string->hash && 
+                   value_1.string->length == value_2.string->length &&
+                   memcmp(value_1.string, value_2.string, value_1.string->length) == 0;
+        case H_VALUE_CHAR:
+            return value_1.character == value_2.character;
+        case H_VALUE_TYPE:
+            if(value_1.data_type->size != value_2.data_type->size) return 0;
+            return memcmp(value_1.data_type->data, value_2.data_type->data, value_1.data_type->size * sizeof(value_t*)) == 0;
+        case H_VALUE_ARRAY:
+            if(value_1.array->size != value_2.array->size) return 0;
+            return memcmp(value_1.array->data, value_2.array->data, value_1.array->size * sizeof(value_t*)) == 0;
+        default:
+            printf("Add value comparison in file %s, at line %d\n", __FILE__, __LINE__);
+            return 0;
+    }
+}
