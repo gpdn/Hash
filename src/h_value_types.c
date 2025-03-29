@@ -6,6 +6,8 @@ const char* resolve_value_type(value_type_t type) {
             return "Num";
         case H_VALUE_STRING:
             return "Str";
+        case H_VALUE_CHAR:
+            return "Char";
         case H_VALUE_ARRAY:
             return "Arr";
         case H_VALUE_FUNCTION:

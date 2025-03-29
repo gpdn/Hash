@@ -18,17 +18,21 @@ void h_ht_labels_print(h_ht_labels_t* table) {
 }
 
 size_t h_ht_labels_get(h_ht_labels_t* table, h_string_t* key) {
-    return table->array[key->hash % table->capacity].index;
+    return table->array[key->hash & (table->capacity - 1)].index;
+}
+
+int h_ht_labels_find(h_ht_labels_t* table, h_string_t* key) {
+    return table->array[key->hash & (table->capacity - 1)].name != NULL;
 }
 
 int h_ht_labels_set(h_ht_labels_t* table, h_string_t* key, size_t index) {
-    table->array[key->hash % table->capacity] = (ht_label_t){key, index};
+    table->array[key->hash & (table->capacity - 1)] = (ht_label_t){key, index};
     DEBUG_LOG("Label Index set to: %lld\n", index);
     return 1;
 }
 
 size_t h_ht_labels_get_index(h_ht_labels_t* table, h_string_t* key) {
-    return (size_t)key->hash % table->capacity;
+    return (size_t)(key->hash & (table->capacity - 1));
 }
 
 size_t h_ht_labels_array_get(h_ht_labels_t* table, size_t index) {

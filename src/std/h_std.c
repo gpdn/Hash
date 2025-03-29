@@ -12,6 +12,11 @@ static h_std_import_fn* imports[] = {
    [H_STD_FLAG_TIMER] = h_std_timer_import,
    [H_STD_FLAG_SYSTEM] = h_std_sys_import,
    [H_STD_FLAG_MATH] = h_std_math_import,
+   [H_STD_FLAG_DS_SLL] = h_std_sll_import,
+   [H_STD_FLAG_DS_DLL] = h_std_dll_import,
+   [H_STD_FLAG_DS_STACK] = h_std_stack_import,
+   [H_STD_FLAG_DS_MAP] = h_std_map_import,
+   [H_STD_FLAG_DS_QUEUE] = h_std_queue_import,
 };
 
 h_std_t* h_std_init() {

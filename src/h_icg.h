@@ -48,9 +48,13 @@ typedef struct icg_t {
     break_instructions_list_t breaks_list;
     skip_instructions_list_t skips_list;
     size_t scope;
+    size_t search_index;
+    size_t initial_search_index;
+    size_t scope_index;
+    size_t previous_scope_index;
 } icg_t;
 
-icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table);
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table, size_t initial_search_index);
 bytecode_store_t* icg_generate_bytecode(icg_t* icg);
 void assert_node_type(icg_t* icg, ast_node_type_t type);
 void icg_free(icg_t* icg);

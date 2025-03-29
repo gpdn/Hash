@@ -28,7 +28,6 @@ void h_function_parameter_add(h_function_t* function, h_string_t* name, value_t 
     }
     function->parameters_list_names[function->parameters_list_size] = name;
     function->parameters_list_values[function->parameters_list_size++] = value;
-    h_locals_stack_push(function->locals_stack, name, value, 0);
 }
 
 void h_function_print(h_function_t* function) {

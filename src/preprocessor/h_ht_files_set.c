@@ -22,7 +22,7 @@ h_files_set_t* h_files_set_init(size_t capacity, float load_factor) {
 }
 
 int h_files_set_push(h_files_set_t* table, const char* key) {
-    size_t index = h_files_set_hash(key) % table->capacity;
+    size_t index = h_files_set_hash(key) & (table->capacity - 1);
     if(table->array[index] == 1) return 0;
     table->array[index] = 1;
     ++table->elements_count;
@@ -30,7 +30,7 @@ int h_files_set_push(h_files_set_t* table, const char* key) {
 }
 
 int h_files_set_get(h_files_set_t* table, const char* key) {
-    size_t index = h_files_set_hash(key) % table->capacity;
+    size_t index = h_files_set_hash(key) & (table->capacity - 1);
     return table->array[index];
 }
 

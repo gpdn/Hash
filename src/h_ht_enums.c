@@ -1,6 +1,6 @@
 #include "h_ht_enums.h"
 
-#define H_ENUM_ARRAY_INITIAL_SIZE 20
+#define H_ENUM_ARRAY_INITIAL_SIZE 32
 
 h_ht_enums_t* h_ht_enums_init(size_t capacity, float load_factor) {
     h_ht_enums_t* table = (h_ht_enums_t*)malloc(sizeof(h_ht_enums_t));
@@ -24,7 +24,7 @@ void h_ht_enums_print(h_ht_enums_t* table) {
 }
 
 ht_enum_t* h_ht_enums_get(h_ht_enums_t* table, h_string_t* key) {
-    return &table->array[key->hash % table->capacity];
+    return &table->array[key->hash & (table->capacity - 1)];
 }
 
 
@@ -37,7 +37,7 @@ ht_enum_t* h_ht_enums_set(h_ht_enums_t* table, h_string_t* key) {
 
 void h_ht_enum_value_set(ht_enum_t* array, h_string_t* key) {
     if(array->size >= array->capacity) {
-        array->capacity *= 2;
+        array->capacity <<= 1;
         array->names = (h_string_t**)realloc(array->names, sizeof(h_string_t*) * array->capacity);
     }
     array->names[array->size++] = key;

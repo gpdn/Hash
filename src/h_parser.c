@@ -15,6 +15,7 @@ static ast_node_t* parse_assignment_expression(parser_t* parser, operator_preced
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_char(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_null(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence);
@@ -68,6 +69,7 @@ static ast_node_t* parse_function_parameters_list(parser_t* parser);
 static ast_node_t* parse_array_initialisation(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_data_initialisation(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_dot_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
+static ast_node_t* parse_copy_expression(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_compound_assignment_expression(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static void emit_error(parser_t* parser, const char* error_message);
 static inline void assert_token_type(parser_t* parser, token_type_t type, const char* error_message);
@@ -115,6 +117,8 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
+    [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -156,6 +160,8 @@ static parse_rule_t parse_table_array_initialisation[] = {
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
+    [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -198,6 +204,8 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_TO]                        = {NULL, parse_to_expression, OP_PREC_HIGHEST},
     [H_TOKEN_DOT]                       = {NULL, parse_dot_expression, OP_PREC_CALL},
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
+    [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -908,6 +916,14 @@ static inline ast_node_t* parse_expression_statement_do_while(parser_t* parser) 
     return node;
 }
 
+static ast_node_t* parse_null(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_LITERAL);
+    node->operator = parser->current;
+    node->value = NULL_VALUE(value);
+    ++parser->current;
+    return node;
+}
+
 static ast_node_t* parse_number(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_LITERAL);
     node->operator = parser->current;
@@ -915,7 +931,7 @@ static ast_node_t* parse_number(parser_t* parser, operator_precedence_t preceden
     node->value = NUM_VALUE(value);
     ++parser->current;
     return node;
-} 
+}
 
 static ast_node_t* parse_string(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create(AST_NODE_LITERAL);
@@ -973,6 +989,14 @@ static ast_node_t* parse_identifier_global(parser_t* parser, operator_precedence
     h_string_t* value = h_string_init_hash(node->operator->start, node->operator->length);
     node->value = STR_VALUE(value);
     ++parser->current;
+    return node;
+}
+
+static ast_node_t* parse_copy_expression(parser_t* parser, operator_precedence_t precedence) {
+    ast_node_t* node = ast_node_create(AST_NODE_COPY);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = parse_expression(parser, precedence);
     return node;
 }
 
@@ -1408,6 +1432,9 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_DOT:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_DOT %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_COPY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_COPY %.*s\n", indent, 0, "");
             break;
         case AST_NODE_EOF:
             DEBUG_LOG("%d AST_NODE_EOF\n", indent);

@@ -116,3 +116,28 @@ int compare_value(value_t value_1, value_t value_2) {
             return 0;
     }
 }
+
+value_t copy_value(value_t value) {
+    switch(value.type) {
+        case H_VALUE_NUMBER:
+        case H_VALUE_CHAR:
+        case H_VALUE_NULL:
+        case H_VALUE_STRING:
+            return value;
+        case H_VALUE_ARRAY:
+            /* h_array_t* new_array = (h_array_t*)malloc(sizeof(h_array_t));
+            memcpy(new_array, value.array, sizeof(h_array_t));
+            return (value_t){.type = H_VALUE_ARRAY, .array = new_array}; */
+            return value;
+        case H_VALUE_TYPE:
+            h_data_t* new_data = (h_data_t*)malloc(sizeof(h_data_t));
+            value_t* new_data_value = (value_t*)malloc(sizeof(value_t) * value.data_type->capacity);
+            memcpy(new_data, value.data_type, sizeof(h_data_t));
+            memcpy(new_data_value, new_data->data, sizeof(value_t) * new_data->capacity);
+            new_data->data = new_data_value;
+            //copy "other" field
+            return (value_t){.type = H_VALUE_TYPE, .data_type = new_data};
+        default:
+            return value;
+    }
+}

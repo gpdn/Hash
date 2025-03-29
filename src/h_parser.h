@@ -64,6 +64,7 @@ typedef enum ast_node_type_t{
     AST_NODE_NATIVE_CALL,
     AST_NODE_STATEMENT_STOP,
     AST_NODE_STATEMENT_STOP_VALUE,
+    AST_NODE_COPY,
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {

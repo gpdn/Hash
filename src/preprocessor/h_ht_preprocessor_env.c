@@ -10,7 +10,7 @@ h_preprocessor_env_t* h_preprocessor_env_init(size_t capacity, float load_factor
 }
 
 int h_preprocessor_env_define(h_preprocessor_env_t* table, h_string_t* key, h_preprocessor_value_t value) {
-    size_t index = key->hash % table->capacity;
+    size_t index = key->hash & (table->capacity - 1);
     if(table->array[index].value.type != H_PREPROCESSOR_VALUE_UNDEFINED) return 0;
     table->array[index] = (h_preprocessor_env_entry_t){.name = key, .value = value};
     ++table->elements_count;
@@ -18,7 +18,7 @@ int h_preprocessor_env_define(h_preprocessor_env_t* table, h_string_t* key, h_pr
 }
 
 int h_preprocessor_env_set(h_preprocessor_env_t* table, h_string_t* key, h_preprocessor_value_t value) {
-    size_t index = key->hash % table->capacity;
+    size_t index = key->hash & (table->capacity - 1);
     if(table->array[index].value.type == H_PREPROCESSOR_VALUE_UNDEFINED) return 0;
     table->array[index] = (h_preprocessor_env_entry_t){.name = key, .value = value};
     ++table->elements_count;
@@ -26,7 +26,7 @@ int h_preprocessor_env_set(h_preprocessor_env_t* table, h_string_t* key, h_prepr
 }
 
 int h_preprocessor_env_unset(h_preprocessor_env_t* table, h_string_t* key) {
-    size_t index = key->hash % table->capacity;
+    size_t index = key->hash & (table->capacity - 1);
     if(table->array[index].value.type == H_PREPROCESSOR_VALUE_UNDEFINED) return 0;
     table->array[index] = (h_preprocessor_env_entry_t){.name = key, .value = PREPROCESSOR_VALUE_UNDEFINED()};
     --table->elements_count;
@@ -34,7 +34,7 @@ int h_preprocessor_env_unset(h_preprocessor_env_t* table, h_string_t* key) {
 }
 
 h_preprocessor_value_t h_preprocessor_env_get(h_preprocessor_env_t* table, h_string_t* key) {
-    size_t index = key->hash % table->capacity;
+    size_t index = key->hash & (table->capacity - 1);
     return table->array[index].value;
 }
 

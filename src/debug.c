@@ -166,6 +166,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_CONDITIONAL_EXPRESSION:
             return basic_instruction("OP_CONDITIONAL_EXPRESSION", offset, file);
             break;
+        case OP_COPY:
+            return basic_instruction("OP_COPY", offset, file);
+            break;
         case OP_NOT_EQUAL:
             return basic_instruction("OP_NOT_EQUAL", offset, file);
             break;
@@ -283,6 +286,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_GOTO:
             return index_instruction("OP_GOTO", store, offset, file);
             break;
+        case OP_REWIND:
+            return index_instruction("OP_REWIND", store, offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
@@ -371,6 +377,7 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_DATA: return "H_TOKEN_DATA";
         case H_TOKEN_ARROW: return "H_TOKEN_ARROW";
         case H_TOKEN_STOP: return "H_TOKEN_STOP";
+        case H_TOKEN_COPY: return "H_TOKEN_COPY";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

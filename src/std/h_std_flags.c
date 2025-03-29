@@ -20,6 +20,16 @@ const char* h_std_resolve_import_flag(size_t flag) {
             return "H_STD_FLAG_SYSTEM";
         case H_STD_FLAG_MATH:
             return "H_STD_FLAG_MATH";
+        case H_STD_FLAG_DS_SLL:
+            return "H_STD_FLAG_DS_SLL";
+        case H_STD_FLAG_DS_DLL:
+            return "H_STD_FLAG_DS_DLL";
+        case H_STD_FLAG_DS_STACK:
+            return "H_STD_FLAG_DS_STACK";
+        case H_STD_FLAG_DS_MAP:
+            return "H_STD_FLAG_DS_MAP";
+        case H_STD_FLAG_DS_QUEUE:
+            return "H_STD_FLAG_DS_QUEUE";
         default:
             return "Undefined flag";
     }

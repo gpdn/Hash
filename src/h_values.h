@@ -56,6 +56,7 @@ typedef struct value_t {
 void print_value(value_t* value);
 void print_value_no_newline(value_t* value);
 const char* resolve_type(value_t* value);
-int h_std_value_compare(value_t value_1, value_t value_2);
+int compare_value(value_t value_1, value_t value_2);
+value_t copy_value(value_t value_1);
 
 #endif

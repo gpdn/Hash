@@ -1,8 +1,9 @@
 #include "h_preprocessor.h"
 
 #define PREPROCESSOR_FILES_LIST_CAPACITY 5
-#define PREPROCESSOR_ENVIRONMENT_CAPACITY 100
-#define PREPROCESSOR_CONDITIONS_STACK_CAPACITY 10
+#define PREPROCESSOR_FILES_SET_CAPACITY 64
+#define PREPROCESSOR_ENVIRONMENT_CAPACITY 64
+#define PREPROCESSOR_CONDITIONS_STACK_CAPACITY 8
 #define PREPROCESSOR_STRING_CAPACITY 100
 
 #define PREPROCESSOR_PRINT_ERROR(...) fprintf(stderr, "%s%s. File: %s at line %lld%s\n", COLOR_RED, __VA_ARGS__, preprocessor->files_list[preprocessor->files_list_size - 1], preprocessor->line, COLOR_RESET)
@@ -371,39 +372,49 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
     switch(*preprocessor->start) {
         case 'a':
             return preprocessor_check_directive(preprocessor, 1, 2, "rr") && h_std_set_flag(preprocessor->std, H_STD_FLAG_ARR);
-            break;
         case 'c':
             if(preprocessor->current - preprocessor->start > 1) {
                 switch(preprocessor->start[1]) {
                     case 'm':
                         return preprocessor_check_directive(preprocessor, 2, 1, "d") && h_std_set_flag(preprocessor->std, H_STD_FLAG_CMD);
-                        break;
                     case 'o':
                         return preprocessor_check_directive(preprocessor, 2, 2, "re") && h_std_set_flags(preprocessor->std, H_STD_FLAG_ARR | H_STD_FLAG_STR | H_STD_FLAG_TYPE);
-                        break;
                     default:
                         return 0;
                 }
             }
             return 0;
+        case 'd':
+            return preprocessor_check_directive(preprocessor, 1, 2, "ll") && h_std_set_flag(preprocessor->std, H_STD_FLAG_DS_DLL);
         case 'f':
             return preprocessor_check_directive(preprocessor, 1, 3, "ile") && h_std_set_flag(preprocessor->std, H_STD_FLAG_FILE);
-            break;
         case 'i':
             return preprocessor_check_directive(preprocessor, 1, 1, "o") && h_std_set_flags(preprocessor->std, H_STD_FLAG_CMD | H_STD_FLAG_FILE | H_STD_FLAG_SYSTEM);
-            break;
         case 'm':
-            return preprocessor_check_directive(preprocessor, 1, 3, "ath") && h_std_set_flag(preprocessor->std, H_STD_FLAG_MATH);
-            break;
+            if(preprocessor->current - preprocessor->start > 2) {
+                switch(preprocessor->start[2]) {
+                    case 'p': return preprocessor_check_directive(preprocessor, 3, 0, "") && h_std_set_flag(preprocessor->std, H_STD_FLAG_DS_MAP);
+                    case 't': return preprocessor_check_directive(preprocessor, 3, 1, "h") && h_std_set_flag(preprocessor->std, H_STD_FLAG_MATH);
+                }
+            }
+            return 0;
+        case 'q':
+            return preprocessor_check_directive(preprocessor, 1, 4, "ueue") && h_std_set_flag(preprocessor->std, H_STD_FLAG_DS_QUEUE);
         case 's':
             if(preprocessor->current - preprocessor->start > 1) {
                 switch(preprocessor->start[1]) {
+                    case 'l':
+                        return preprocessor_check_directive(preprocessor, 2, 1, "l") && h_std_set_flag(preprocessor->std, H_STD_FLAG_DS_SLL);
                     case 't':
-                        return preprocessor_check_directive(preprocessor, 2, 1, "r") && h_std_set_flag(preprocessor->std, H_STD_FLAG_STR);
-                        break;
+                        if(preprocessor->current - preprocessor->start > 2) {
+                            switch(preprocessor->start[2]) {
+                                case 'r': return preprocessor_check_directive(preprocessor, 3, 0, "") && h_std_set_flag(preprocessor->std, H_STD_FLAG_STR);
+                                case 'a': return preprocessor_check_directive(preprocessor, 3, 2, "ck") && h_std_set_flag(preprocessor->std, H_STD_FLAG_DS_STACK);
+                            }
+                        } 
+                        return 0;
                     case 'y':
                         return preprocessor_check_directive(preprocessor, 2, 1, "s") && h_std_set_flag(preprocessor->std, H_STD_FLAG_SYSTEM);
-                        break;
                     default:
                         return 0;
                 }
@@ -414,10 +425,8 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
                 switch(preprocessor->start[1]) {
                     case 'i':
                         return preprocessor_check_directive(preprocessor, 2, 2, "me") && h_std_set_flag(preprocessor->std, H_STD_FLAG_TIME);
-                        break;
                     case 'y':
                         return preprocessor_check_directive(preprocessor, 2, 2, "pe") && h_std_set_flag(preprocessor->std, H_STD_FLAG_TYPE);
-                        break;
                     default:
                         return 0;
                 }
@@ -425,7 +434,6 @@ static int preprocessor_resolve_directive_std(h_preprocessor_t* preprocessor) {
             return 0;
         case 'u':
             return preprocessor_check_directive(preprocessor, 1, 4, "tils") && h_std_set_flag(preprocessor->std, H_STD_FLAG_TIMER);
-            break;
         default:
             return 0;
     }
@@ -523,7 +531,7 @@ static int preprocessor_resolve_directive(h_preprocessor_t* preprocessor) {
 
 h_preprocessor_t* preprocessor_init(const char* source_path, h_std_t* std) {
     h_preprocessor_t* preprocessor = (h_preprocessor_t*)malloc(sizeof(h_preprocessor_t));
-    preprocessor->files_set = h_files_set_init(50, 0.75);
+    preprocessor->files_set = h_files_set_init(PREPROCESSOR_FILES_SET_CAPACITY, 0.75);
     preprocessor->files_list_size = 0;
     preprocessor->files_list_capacity = PREPROCESSOR_FILES_LIST_CAPACITY;
     preprocessor->files_list = (const char**)malloc(sizeof(const char*) * PREPROCESSOR_FILES_LIST_CAPACITY);
@@ -601,6 +609,7 @@ void preprocessor_destroy(h_preprocessor_t* preprocessor) {
 }
 
 #undef PREPROCESSOR_FILES_LIST_CAPACITY
+#undef PREPROCESSOR_FILES_SET_CAPACITY
 #undef PREPROCESSOR_ENVIRONMENT_CAPACITY
 #undef PREPROCESSOR_CONDITIONS_STACK_CAPACITY
 #undef PREPROCESSOR_STRING_CAPACITY

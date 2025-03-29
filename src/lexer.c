@@ -174,7 +174,13 @@ static token_t lexer_identifier(lexer_t* lexer) {
     switch(lexer->start[0]) {
         case 'a': return check_keyword(lexer, 1, 2, "rr", H_TOKEN_ARR);
         case 'b': return check_keyword(lexer, 1, 4, "reak", H_TOKEN_BREAK);
-        case 'c': return check_keyword(lexer, 1, 3, "har", H_TOKEN_CHAR);
+        case 'c':
+            if(lexer->current - lexer->start > 1) {
+                switch(lexer->start[1]) {
+                    case 'h': return check_keyword(lexer, 2, 2, "ar", H_TOKEN_CHAR);
+                    case 'o': return check_keyword(lexer, 2, 2, "py", H_TOKEN_COPY);
+                }
+            }
         case 'd': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {

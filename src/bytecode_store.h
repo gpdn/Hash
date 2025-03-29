@@ -6,6 +6,7 @@
 #include "constants_pool.h"
 
 typedef enum opcode_t {
+    OP_NULL,
     OP_RETURN,
     OP_RETURN_VALUE,
     OP_CONSTANT,
@@ -66,7 +67,9 @@ typedef enum opcode_t {
     OP_CALL_NATIVE,
     OP_AND,
     OP_OR,
-    OP_CONDITIONAL_EXPRESSION
+    OP_CONDITIONAL_EXPRESSION,
+    OP_REWIND,
+    OP_COPY
 } opcode_t;
 
 typedef struct bytecode_store_t {

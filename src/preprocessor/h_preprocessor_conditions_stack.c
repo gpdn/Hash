@@ -11,7 +11,7 @@ h_preprocessor_conditions_stack_t* h_preprocessor_conditions_stack_init(size_t c
 
 int h_preprocessor_conditions_stack_push(h_preprocessor_conditions_stack_t* conditions_stack, h_preprocessor_directive_t directive, int input_enabled, int output_enabled) {
     if(conditions_stack->size >= conditions_stack->capacity) {
-        conditions_stack->capacity *= 2;
+        conditions_stack->capacity <<= 1;
         conditions_stack->stack = (h_preprocessor_condition_t*)realloc(conditions_stack->stack, sizeof(h_preprocessor_condition_t) * conditions_stack->capacity);
     }
     *conditions_stack->stack_top++ = (h_preprocessor_condition_t){.directive = directive, .input = input_enabled, .output = output_enabled};

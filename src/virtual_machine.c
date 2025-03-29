@@ -243,6 +243,9 @@ int vm_run(virtual_machine_t* vm) {
                 h_array_t* array = h_array_init(H_VALUE_NUMBER, value_two.number); 
                 for(int i = value_one.number; i < value_two.number; ++i) h_array_push(array, NUM_VALUE(i));
                 break;
+            case OP_COPY:
+                vm_stack_push(vm, copy_value(vm_stack_pop(vm)));
+                break;
             case OP_CALL:
                 size_t arguments_count = ADVANCE_INSTRUCTION_POINTER();
                 h_function_t* function = (vm->stack_top - arguments_count - 1)->function;
@@ -273,13 +276,15 @@ int vm_run(virtual_machine_t* vm) {
                 vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                 if(vm->calls_stack_size > 0) {
                     vm->store = vm->calls_stack[vm->calls_stack_size].function->store;
+                    vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                     break;
                 }
                 vm->store = vm->initial_store;
+                vm->locals_stack = vm->initial_locals_stack;
                 vm->stack_base = vm->stack;
                 break;
             case OP_RETURN_VALUE:
-                value_t return_value = vm_stack_pop(vm);
+                value_t return_value = copy_value(vm_stack_pop(vm));
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
                 vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack - 1;
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
@@ -320,6 +325,7 @@ int vm_run(virtual_machine_t* vm) {
                 break;
             case OP_SET_LOCAL_DATA:
                 value_t local_data = *(vm->array_initialisation_ptr - 1);
+                local_data.data_type->size = 0;
                 for(size_t i = vm->stack_top - vm->array_initialisation_ptr; vm->stack_top != vm->stack_top - i; --i) h_data_push(local_data.data_type, *(vm->stack_top - i));
                 vm->stack_top = vm->array_initialisation_ptr;
                 //vm_stack_push(vm, NULL_VALUE());
@@ -408,6 +414,10 @@ int vm_run(virtual_machine_t* vm) {
                 size_t ht_goto = ADVANCE_INSTRUCTION_POINTER();
                 vm->instruction_pointer = vm->store->code + ht_goto;
                 break;
+            /* case OP_REWIND:
+                size_t ht_rewind = ADVANCE_INSTRUCTION_POINTER();
+                vm->stack -= ht_rewind;
+                break; */
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
