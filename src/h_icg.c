@@ -1,5 +1,7 @@
 #include "h_icg.h"
 
+#define H_SWITCH_TABLE_DEFAULT_CAPACITY 64
+
 static void emit_error(icg_t* icg);
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node);
@@ -16,6 +18,7 @@ static inline void icg_generate_statement_assertion(icg_t* icg, ast_node_t* node
 static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_statement_switch(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_block_no_scope(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_break(icg_t* icg);
@@ -38,6 +41,7 @@ static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_copy(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_select(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_function_call(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_native_call(icg_t* icg, ast_node_t* node);
 static void gotos_instructions_list_push(goto_instructions_list_t* gotos_list, uint8_t* instruction);
@@ -106,13 +110,16 @@ static inline void icg_increase_scope(icg_t* icg) {
 
 static inline void icg_decrease_scope(icg_t* icg) {
     --icg->scope;
-    icg->scope_index += icg->search_index - icg->previous_scope_index;
+    size_t scope_difference = icg->search_index - icg->previous_scope_index;
+    if(scope_difference > 0) {
+        bs_write(icg->bytecode_store, OP_REWIND);
+        bs_write(icg->bytecode_store, scope_difference);
+        icg->scope_index += scope_difference;
+    }
 }
 
 static inline size_t icg_find(icg_t* icg, h_string_t* name) {
-    DEBUG_LOG("Search index %lld\n", icg->search_index);
     size_t index = h_locals_stack_get_index(icg->locals_stack, name, icg->scope, icg->search_index);
-    DEBUG_LOG("Find index %lld\n", index);
     return index > icg->scope_index ? index - icg->scope_index : index;
 }
 
@@ -175,6 +182,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_STATEMENT_LOOP:
             icg_generate_statement_loop(icg, node);
+            break;
+        case AST_NODE_STATEMENT_SWITCH:
+            icg_generate_statement_switch(icg, node);
             break;
         case AST_NODE_STATEMENT_PRINT:
             icg_generate_statement_print(icg, node);
@@ -257,6 +267,9 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_COPY:
             icg_generate_copy(icg, node);
+            break;
+        case AST_NODE_SELECT:
+            icg_generate_select(icg, node);
             break;
         default:
             emit_error(icg);
@@ -386,13 +399,14 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
-    if(condition->expression.left) bs_write(icg->bytecode_store, OP_POP);
+    //if(condition->expression.left) bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     icg_decrease_scope(icg);
 }
 
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     icg_increase_scope(icg);
+    ++icg->search_index;
     size_t temp_index = icg_find(icg, node->expression.other->value.string);
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_PRE_INCREMENT);
@@ -402,14 +416,45 @@ static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_NOT_EQUAL);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
-    bs_write(icg->bytecode_store, OP_POP);
+    //bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     icg_resolve_skips(icg, jump_index);
     icg_decrease_scope(icg);
 }
 
+static inline void icg_generate_statement_switch(icg_t* icg, ast_node_t* node) {
+    ast_print(node->expression.left, 0);
+    icg_generate_expression(icg, node->expression.left);
+    bs_write(icg->bytecode_store, OP_SWITCH);
+    bs_write(icg->bytecode_store, icg->switch_tables_list->switch_table_size);
+    h_switch_table_t* switch_table = h_switch_table_init(H_SWITCH_TABLE_DEFAULT_CAPACITY);
+    for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
+        h_switch_table_set(switch_table, node->expression.right->block.declarations[i]->expression.left->value, icg->bytecode_store->size);
+        icg_generate_statement_block(icg, node->expression.right->block.declarations[i]->expression.right);
+        if(node->expression.right->block.declarations[i]->operator->type == H_TOKEN_GREATER) icg_generate_statement_break(icg);
+    }
+    switch_table->default_index = icg->bytecode_store->size;
+    if(node->expression.other) icg_generate_statement_block(icg, node->expression.other);
+    icg_resolve_breaks(icg);
+    h_switch_tables_list_add(icg->switch_tables_list, switch_table);
+}
+
+static inline void icg_generate_select(icg_t* icg, ast_node_t* node) {
+    for(size_t i = 0; i < node->expression.left->block.declarations_size; ++i) {
+        icg_generate_expression(icg, node->expression.left->block.declarations[i]->expression.left);
+        bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
+        size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
+        icg_generate_expression(icg, node->expression.left->block.declarations[i]->expression.right);
+        icg_generate_statement_break(icg);
+        icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
+    }
+    if(node->expression.right) icg_generate_expression(icg, node->expression.right);
+    icg_resolve_breaks(icg);
+}
+
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     icg_increase_scope(icg);
+    icg->search_index += 2;
     size_t temp_index = icg_find(icg, node->expression.other->expression.left->value.string);
     size_t count_index = icg_find(icg, node->expression.other->expression.right->value.string);
     size_t array_index = icg_find(icg, node->expression.left->value.string);
@@ -432,8 +477,8 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
         bs_write(icg->bytecode_store, OP_NOT_EQUAL);
         bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
         bs_write(icg->bytecode_store, jump_index);
-        bs_write(icg->bytecode_store, OP_POP);
-        bs_write(icg->bytecode_store, OP_POP);
+        //bs_write(icg->bytecode_store, OP_POP);
+        //bs_write(icg->bytecode_store, OP_POP);
         icg_resolve_breaks(icg);
         icg_resolve_skips(icg, jump_index);
         icg_decrease_scope(icg);
@@ -457,8 +502,8 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_NOT_EQUAL);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
-    bs_write(icg->bytecode_store, OP_POP);
-    bs_write(icg->bytecode_store, OP_POP);
+    //bs_write(icg->bytecode_store, OP_POP);
+    //bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg);
     icg_resolve_skips(icg, jump_index);
     icg_decrease_scope(icg);
@@ -807,7 +852,7 @@ static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node) {
     #undef H_ICG_RESOLVE_COMPOUND_OPERATOR_TYPE
 }
 
-icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table, size_t initial_search_index) {
+icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table, h_switch_tables_list_t* switch_tables_list, size_t initial_search_index) {
     icg_t* icg = (icg_t*)malloc(sizeof(icg_t));
     bytecode_store_t* bytecode_store = bs_init(ast_nodes_list_count);
     icg->bytecode_store = bytecode_store;
@@ -820,6 +865,7 @@ icg_t* icg_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash
     icg->labels_table = labels_table;
     icg->enums_table = enums_table;
     icg->types_table = types_table;
+    icg->switch_tables_list = switch_tables_list;
     icg->gotos_list.capacity = 50;
     icg->gotos_list.size = 0;
     icg->gotos_list.instructions_list = (uint8_t**)malloc(sizeof(uint8_t*) * icg->gotos_list.capacity);
@@ -870,3 +916,5 @@ bytecode_store_t* icg_generate_bytecode(icg_t* icg) {
 
     return icg->bytecode_store;
 }
+
+#undef H_SWITCH_TABLE_DEFAULT_CAPACITY

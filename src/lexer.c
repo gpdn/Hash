@@ -181,6 +181,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
                     case 'o': return check_keyword(lexer, 2, 2, "py", H_TOKEN_COPY);
                 }
             }
+            break;
         case 'd': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
@@ -244,6 +245,7 @@ static token_t lexer_identifier(lexer_t* lexer) {
         case 's': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
+                    case 'e': return check_keyword(lexer, 2, 4, "lect", H_TOKEN_SELECT);
                     case 'k': return check_keyword(lexer, 2, 2, "ip", H_TOKEN_SKIP);
                     case 't': 
                         if(lexer->current - lexer->start > 2) {
@@ -252,12 +254,15 @@ static token_t lexer_identifier(lexer_t* lexer) {
                                 case 'r': return check_keyword(lexer, 3, 0, "", H_TOKEN_STR);
                             }
                         }
+                        break;
+                    case 'w': return check_keyword(lexer, 2, 4, "itch", H_TOKEN_SWITCH);
                 }
             }
             break;
         case 't': 
             if(lexer->current - lexer->start > 1) {
                 switch(lexer->start[1]) {
+                    case 'h': return check_keyword(lexer, 2, 2, "en", H_TOKEN_THEN);
                     case 'o': return check_keyword(lexer, 2, 0, "", H_TOKEN_TO);
                     case 'y': 
                         return check_keyword(lexer, 2, 2, "pe", H_TOKEN_TYPE);

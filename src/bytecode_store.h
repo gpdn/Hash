@@ -69,7 +69,8 @@ typedef enum opcode_t {
     OP_OR,
     OP_CONDITIONAL_EXPRESSION,
     OP_REWIND,
-    OP_COPY
+    OP_COPY,
+    OP_SWITCH
 } opcode_t;
 
 typedef struct bytecode_store_t {

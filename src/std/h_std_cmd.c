@@ -27,8 +27,7 @@ static const char* enum_cmd_color[] = {
 value_t h_std_cmd_read_char(struct value_t* parameters, size_t args_count) {
     printf("%s", H_NFI_STR_TO_CSTRING(parameters[0]));
     char c = (char)fgetchar();
-    h_string_t* string = h_string_init(&c, 1);
-    return STR_VALUE(string);
+    return CHAR_VALUE(c);
 }
 
 value_t h_std_cmd_read_line(struct value_t* parameters, size_t args_count) {
@@ -53,7 +52,7 @@ value_t h_std_cmd_color_set(struct value_t* parameters, size_t args_count) {
 
 int h_std_cmd_import(h_locals_stack_t* stack, h_ht_enums_t* enums_table, h_ht_types_t* types_table) {
     define_native_enum(enums_table, types_table, "CmdColor", enum_cmd_color, sizeof(enum_cmd_color)/sizeof(enum_cmd_color[0]));
-    define_native(stack, "cmd_read_char", h_std_cmd_read_char, (value_t[]){(value_t){.type = H_VALUE_STRING}}, 1, (value_t){.type = H_VALUE_STRING});
+    define_native(stack, "cmd_read_char", h_std_cmd_read_char, (value_t[]){(value_t){.type = H_VALUE_STRING}}, 1, (value_t){.type = H_VALUE_CHAR});
     define_native(stack, "cmd_read_line", h_std_cmd_read_line, (value_t[]){(value_t){.type = H_VALUE_STRING}}, 1, (value_t){.type = H_VALUE_STRING});
     define_native(stack, "cmd_confirm", h_std_cmd_confirm, (value_t[]){(value_t){.type = H_VALUE_STRING}}, 1, (value_t){.type = H_VALUE_STRING});
     define_native(stack, "cmd_color_set", h_std_cmd_color_set, (value_t[]){(value_t){.type = H_VALUE_NUMBER}}, 1, (value_t){.type = H_VALUE_NULL});

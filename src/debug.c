@@ -289,6 +289,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_REWIND:
             return index_instruction("OP_REWIND", store, offset, file);
             break;
+        case OP_SWITCH:
+            return index_instruction("OP_SWITCH", store, offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
@@ -378,6 +381,9 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_ARROW: return "H_TOKEN_ARROW";
         case H_TOKEN_STOP: return "H_TOKEN_STOP";
         case H_TOKEN_COPY: return "H_TOKEN_COPY";
+        case H_TOKEN_SWITCH: return "H_TOKEN_SWITCH";
+        case H_TOKEN_SELECT: return "H_TOKEN_SELECT";
+        case H_TOKEN_THEN: return "H_TOKEN_THEN";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

@@ -17,6 +17,8 @@ static ast_node_t* parse_string(parser_t* parser, operator_precedence_t preceden
 static ast_node_t* parse_char(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_null(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_select_expression(parser_t* parser, operator_precedence_t precedence);
+static ast_node_t* parse_select_expression_block(parser_t* parser);
 static ast_node_t* parse_identifier_type(parser_t* parser, operator_precedence_t precedence, ast_node_t* left);
 static ast_node_t* parse_identifier(parser_t* parser, operator_precedence_t precedence);
 static ast_node_t* parse_identifier_function(parser_t* parser, operator_precedence_t precedence);
@@ -55,6 +57,8 @@ static ast_node_t* parse_return_statement(parser_t* parser);
 static ast_node_t* parse_repeat_statement(parser_t* parser);
 static ast_node_t* parse_stop_statement(parser_t* parser);
 static ast_node_t* parse_loop_statement(parser_t* parser);
+static ast_node_t* parse_switch_statement(parser_t* parser);
+static ast_node_t* parse_switch_statement_block(parser_t* parser);
 static ast_node_t* parse_block_statement(parser_t* parser);
 static ast_node_t* parse_block_statement_enum(parser_t* parser);
 static ast_node_t* parse_block_expression(parser_t* parser);
@@ -119,6 +123,7 @@ static parse_rule_t parse_table[] = {
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_SELECT]                    = {parse_select_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -162,6 +167,7 @@ static parse_rule_t parse_table_array_initialisation[] = {
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_SELECT]                    = {parse_select_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -206,6 +212,7 @@ static parse_rule_t parse_table_function[] = {
     [H_TOKEN_QUESTION_MARK]             = {NULL, parse_ternary_expression, OP_PREC_TERNARY},
     [H_TOKEN_NULL]                      = {parse_null, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_COPY]                      = {parse_copy_expression, NULL, OP_PREC_HIGHEST},
+    [H_TOKEN_SELECT]                    = {parse_select_expression, NULL, OP_PREC_HIGHEST},
     [H_TOKEN_LAST]                      = {NULL, NULL, OP_PREC_HIGHEST}
 };
 
@@ -370,6 +377,9 @@ static value_t parser_get_value(parser_t* parser) {
         case H_TOKEN_NUM:
             return NUM_VALUE(0);
             break;
+        case H_TOKEN_CHAR:
+            return CHAR_VALUE(NULL);
+            break;
         case H_TOKEN_STR:
             return STR_VALUE(NULL);
             break;
@@ -448,6 +458,8 @@ static ast_node_t* parse_statement(parser_t* parser) {
             return parse_assertion_statement(parser);
         case H_TOKEN_LOOP:
             return parse_loop_statement(parser);
+        case H_TOKEN_SWITCH:
+            return parse_switch_statement(parser);
         case H_TOKEN_LEFT_CURLY:
             return parse_block_statement(parser);
         case H_TOKEN_STOP:
@@ -867,6 +879,95 @@ static ast_node_t* parse_loop_statement(parser_t* parser) {
     return node;
 }
 
+static ast_node_t* parse_switch_statement_block(parser_t* parser) {
+    ast_node_t* block = ast_node_create_statement_block(AST_NODE_STATEMENT_BLOCK);
+    block->block.declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
+    block->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * block->block.declarations_capacity);
+    while(parser->current->type == H_TOKEN_GREATER || parser->current->type == H_TOKEN_BITWISE_OR) {
+        ast_node_t* entry = ast_node_create(AST_NODE_STATEMENT_SWITCH_ENTRY);
+        entry->operator = parser->current;
+        ++parser->current;
+        token_print(parser->current);
+        entry->expression.left = parse_expression(parser, OP_PREC_HIGHEST);
+        assert_token_type(parser, H_TOKEN_ARROW, "Expected -> after switch statement entry");
+        if(parser->current->type == H_TOKEN_LEFT_CURLY) {
+            entry->expression.right = parse_block_statement(parser);
+        } else {
+            entry->expression.right = parse_block_expression(parser);
+        }
+
+        if(block->block.declarations_size >= block->block.declarations_capacity) {
+            block->block.declarations_capacity *= 2;
+            block->block.declarations = realloc(block->block.declarations, sizeof(ast_node_t*) * block->block.declarations_capacity);
+        }
+        block->block.declarations[block->block.declarations_size++] = entry;
+    }
+    return block;
+}
+
+static ast_node_t* parse_switch_statement(parser_t* parser) {
+    ast_node_t* node = ast_node_create(AST_NODE_STATEMENT_SWITCH);
+    node->operator = parser->current;
+    ++parser->current;
+    node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
+    assert_token_type(parser, H_TOKEN_LEFT_CURLY, "Expected { after switch statement condition.");
+    node->expression.right = parse_switch_statement_block(parser);
+    if(parser->current->type == H_TOKEN_COLON) {
+        ++parser->current;
+        if(parser->current->type == H_TOKEN_LEFT_CURLY) {
+            node->expression.other = parse_block_statement(parser);
+        } else {
+            node->expression.other = parse_block_expression(parser);
+        }
+    }
+    assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected } after switch statement");
+    return node;
+}
+
+static ast_node_t* parse_select_expression_block(parser_t* parser) {
+    ast_node_t* block = ast_node_create_statement_block(AST_NODE_STATEMENT_BLOCK);
+    block->block.declarations_capacity = H_BLOCK_DECLARATIONS_CAPACITY;
+    block->block.declarations = (ast_node_t**)malloc(sizeof(ast_node_t*) * block->block.declarations_capacity);
+    while(parser->current->type != H_TOKEN_COLON && parser->current->type != H_TOKEN_RIGHT_CURLY) {
+        ast_node_t* entry = ast_node_create(AST_NODE_SELECT_ENTRY);
+        entry->operator = parser->current;
+        entry->expression.left = parse_expression(parser, OP_PREC_ASSIGNMENT);
+        assert_token_type(parser, H_TOKEN_THEN, "Expected then after select statement entry");
+        /* if(parser->current->type == H_TOKEN_LEFT_CURLY) {
+            entry->expression.right = parse_block_statement(parser);
+        } else {
+            entry->expression.right = parse_block_expression(parser);
+        } */
+        entry->expression.right = parse_expression(parser, OP_PREC_LOWEST);
+        assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon after select statement entry");
+        if(block->block.declarations_size >= block->block.declarations_capacity) {
+            block->block.declarations_capacity *= 2;
+            block->block.declarations = realloc(block->block.declarations, sizeof(ast_node_t*) * block->block.declarations_capacity);
+        }
+        block->block.declarations[block->block.declarations_size++] = entry;
+    }
+    return block;
+}
+
+static ast_node_t* parse_select_expression(parser_t* parser, operator_precedence_t precedence) {
+    ++parser->current;
+    ast_node_t* node = ast_node_create(AST_NODE_SELECT);
+    assert_token_type(parser, H_TOKEN_LEFT_CURLY, "Expected { after select expression condition.");
+    node->expression.left = parse_select_expression_block(parser);
+    if(parser->current->type == H_TOKEN_COLON) {
+        ++parser->current;
+        /* if(parser->current->type == H_TOKEN_LEFT_CURLY) {
+            node->expression.right = parse_block_statement(parser);
+        } else {
+            node->expression.right = parse_block_expression(parser);
+        } */
+        node->expression.right = parse_expression(parser, OP_PREC_ASSIGNMENT);
+        assert_token_type(parser, H_TOKEN_SEMICOLON, "Expected semicolon after select default entry.");
+    }
+    assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected } after select expression condition.");
+    return node;
+}
+
 static ast_node_t* parse_block_statement(parser_t* parser) {
     ast_node_t* node = ast_node_create_statement_block(AST_NODE_STATEMENT_BLOCK);
     node->operator = parser->current;
@@ -878,7 +979,6 @@ static ast_node_t* parse_block_statement(parser_t* parser) {
             node->block.declarations_capacity *= 2;
             node->block.declarations = realloc(node->block.declarations, sizeof(ast_node_t*) * node->block.declarations_capacity);
         }
-       
         node->block.declarations[node->block.declarations_size++] = parse_declaration(parser);
     }
     assert_token_type(parser, H_TOKEN_RIGHT_CURLY, "Expected }.");
@@ -1117,7 +1217,7 @@ static ast_node_t* parse_grouping(parser_t* parser, operator_precedence_t preced
     node->expression.left = parse_expression(parser, OP_PREC_LOWEST);
     assert_token_type(parser, H_TOKEN_RIGHT_PAR, "Expected )");
     return node;
-} 
+}
 
 static ast_node_t* parse_array_initialisation(parser_t* parser, operator_precedence_t precedence) {
     ast_node_t* node = ast_node_create_statement_block(AST_NODE_ARRAY_INITIALISATION);
@@ -1325,6 +1425,15 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
         case AST_NODE_INDEXING:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_INDEXING %.*s\n", indent, (int)node->operator->length, node->operator->start);
             break;
+        case AST_NODE_GROUPING:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_GROUPING %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_SELECT:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_SELECT %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_SELECT_ENTRY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_SELECT_ENTRY %.*s\n", indent, 0, "");
+            break;
         case AST_NODE_FUNCTION_ARGUMENTS:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_FUNCTION_ARGUMENTS %.*s\n", indent, 0, "");
             break;
@@ -1381,6 +1490,12 @@ void disassemble_ast_node(ast_node_t* node, int indent) {
             break;
         case AST_NODE_STATEMENT_LOOP:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_LOOP %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_STATEMENT_SWITCH:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_SWITCH %.*s\n", indent, 0, "");
+            break;
+        case AST_NODE_STATEMENT_SWITCH_ENTRY:
+            DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_STATEMENT_SWITCH_ENTRY %.*s\n", indent, 0, "");
             break;
         case AST_NODE_IDENTIFIER_TEMP:
             DEBUG_NODE_COLOR(DEBUG_GET_NODE_COLOR(), "%d AST_NODE_IDENTIFIER_TEMP %s\n", indent, node->value.string->string);

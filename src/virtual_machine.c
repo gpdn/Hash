@@ -90,7 +90,7 @@ static inline void vm_stack_set_index_string(virtual_machine_t* vm, size_t index
     (*(vm->stack_base + index)).string->string[element_index] = value.character;
 }
 
-virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack)
+virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_switch_tables_list_t* switch_tables_list)
 {
     virtual_machine_t* vm = (virtual_machine_t*)malloc(sizeof(virtual_machine_t));
     vm->stack = (value_t*)malloc(sizeof(value_t) * store->constants->capacity + sizeof(value_t) * locals_stack->size + sizeof(value_t) * H_VM_STACK_MIN_CAPACITY);
@@ -101,6 +101,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     vm->globals_table = globals_table;
     vm->locals_stack = locals_stack;
     vm->initial_locals_stack = locals_stack;
+    vm->switch_tables_list = switch_tables_list;
     vm->array_initialisation_ptr = vm->stack;
     vm->stack_base = vm->stack;
     vm->calls_stack_size = 0;
@@ -414,10 +415,13 @@ int vm_run(virtual_machine_t* vm) {
                 size_t ht_goto = ADVANCE_INSTRUCTION_POINTER();
                 vm->instruction_pointer = vm->store->code + ht_goto;
                 break;
-            /* case OP_REWIND:
+            case OP_REWIND:
                 size_t ht_rewind = ADVANCE_INSTRUCTION_POINTER();
-                vm->stack -= ht_rewind;
-                break; */
+                vm->stack_top -= ht_rewind;
+                break;
+            case OP_SWITCH:
+                vm->instruction_pointer = vm->store->code + h_switch_tables_list_solve(vm->switch_tables_list, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
+                break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);

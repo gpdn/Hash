@@ -6,6 +6,7 @@
 #include "h_values.h"
 #include "h_hash_table_t.h"
 #include "h_locals_stack.h"
+#include "h_switch_table_t.h"
 
 #define H_MAX_CALLS_STACK_SIZE 256
 #define VM_SUCCESS 0
@@ -28,12 +29,13 @@ typedef struct virtual_machine_t {
     h_hash_table_t* globals_table;
     h_locals_stack_t* locals_stack;
     h_locals_stack_t* initial_locals_stack;
+    h_switch_tables_list_t* switch_tables_list;
     size_t calls_stack_size;
     call_frame_t calls_stack[H_MAX_CALLS_STACK_SIZE];
     value_t* array_initialisation_ptr;
 } virtual_machine_t;
 
-virtual_machine_t* vm_init(bytecode_store_t* store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack);
+virtual_machine_t* vm_init(bytecode_store_t* store, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_switch_tables_list_t* switch_tables_list);
 int vm_run(virtual_machine_t* vm);
 void vm_free(virtual_machine_t*);
 

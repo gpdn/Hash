@@ -100,7 +100,8 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
     pipeline.locals_stack = h_locals_stack_init(200);
     pipeline.labels_table = h_ht_labels_init(64, 0.75);
     pipeline.enums_table = h_ht_enums_init(64, 0.75);
-    pipeline.types_table = h_ht_types_init(200, 0.75);
+    pipeline.types_table = h_ht_types_init(128, 0.75);
+    pipeline.switch_tables_list = h_switch_tables_list_init(200);
 
     h_std_resolve_imports(std, pipeline.locals_stack, pipeline.enums_table, pipeline.types_table);
 
@@ -154,7 +155,7 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         clock_t icg_timer = timer_start("ICG");
     #endif
 
-    pipeline.bytecode_generator = icg_init(pipeline.ast, tokens_count, pipeline.globals_table, pipeline.locals_stack, pipeline.labels_table, pipeline.enums_table, pipeline.types_table, initial_search_index);
+    pipeline.bytecode_generator = icg_init(pipeline.ast, tokens_count, pipeline.globals_table, pipeline.locals_stack, pipeline.labels_table, pipeline.enums_table, pipeline.types_table, pipeline.switch_tables_list, initial_search_index);
     pipeline.store = icg_generate_bytecode(pipeline.bytecode_generator);
 
     #if DEBUG_TIMERS
@@ -173,7 +174,7 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
 
     //return 0;
    
-    virtual_machine_t* vm = vm_init(pipeline.store, pipeline.globals_table, pipeline.locals_stack);
+    virtual_machine_t* vm = vm_init(pipeline.store, pipeline.globals_table, pipeline.locals_stack, pipeline.switch_tables_list);
     int result = vm_run(vm);
 
     #if DEBUG_TIMERS
@@ -199,4 +200,5 @@ void pipeline_free(pipeline_t* pipeline) {
     if(pipeline->labels_table) h_ht_labels_free(pipeline->labels_table);
     if(pipeline->enums_table) h_ht_enums_free(pipeline->enums_table);
     if(pipeline->types_table) h_ht_types_free(pipeline->types_table);
+    if(pipeline->switch_tables_list) h_switch_tables_list_free(pipeline->switch_tables_list);
 }

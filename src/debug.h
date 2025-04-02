@@ -23,9 +23,9 @@
 
 #define DEBUG_MIN(X, Y) ((X < Y) ? (X) : (Y))
 
-#define DEBUG 0
-#define DEBUG_ALL 0
-#define DEBUG_TIMERS 0
+#define DEBUG 1
+#define DEBUG_ALL 1
+#define DEBUG_TIMERS 1
 
 #if DEBUG
 #define DEBUG_LOG(...) printf(__VA_ARGS__)
@@ -93,8 +93,8 @@ const char* resolve_token_type(token_type_t type);
 #if DEBUG_ALL
     #define DEBUG_TRACE_VM_BYTECODE 1
     #define DEBUG_TRACE_VM_STACK 1
-    #define DEBUG_TRACE_LEXER_TOKEN 0
-    #define DEBUG_TRACE_LEXER_CURRENT_CHAR 0
+    #define DEBUG_TRACE_LEXER_TOKEN 1
+    #define DEBUG_TRACE_LEXER_CURRENT_CHAR 1
     #define DEBUG_TRACE_LOG_FILE 1
     #define DEBUG_TRACE_LOG_COMMAND_LINE_ARGS 1
     #define DEBUG_TRACE_LOG_COMMAND_LINE_ARGS_OPTS 1

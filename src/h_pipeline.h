@@ -26,6 +26,7 @@ typedef struct pipeline_t {
     h_ht_labels_t* labels_table;
     h_ht_enums_t* enums_table;
     h_ht_types_t* types_table;
+    h_switch_tables_list_t* switch_tables_list;
     semantic_analyser_t* analyser;
     h_compiler_t compiler;
     icg_t* bytecode_generator;

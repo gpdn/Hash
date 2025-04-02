@@ -26,6 +26,7 @@ static value_t resolve_expression_post_unary(semantic_analyser_t* analyser, ast_
 static inline value_t resolve_expression_array_initialisation(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_data_initialisation(semantic_analyser_t* analyser, ast_node_t* node);
 static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_node_t* node);
+static value_t resolve_expression_select(semantic_analyser_t* analyser, ast_node_t* node);
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node);
 static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_node_t* node);
 static void ast_post_check_push(semantic_analyser_t* analyser, ast_node_t* node);
@@ -456,6 +457,15 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_STATEMENT_STOP_VALUE:
             assert_value_type(analyser, resolve_expression(analyser, node->expression.left).type, H_VALUE_NUMBER);
             return;
+        case AST_NODE_STATEMENT_SWITCH:
+            node->value = resolve_expression(analyser, node->expression.left);
+            if(node->value.type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
+            for(size_t i = 0; i < node->expression.right->block.declarations_size; ++i) {
+                value_t lvalue_entry = resolve_expression(analyser, node->expression.right->block.declarations[i]->expression.left);
+                assert_value_type(analyser, node->value.type, lvalue_entry.type);
+                resolve_block_statement(analyser, node->expression.right->block.declarations[i]->expression.right);
+            }
+            return;
         default:
             resolve_expression(analyser, node);
     }
@@ -572,6 +582,20 @@ static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_
     node->expression.right->type = AST_NODE_LITERAL;
     node->expression.right->value = NUM_VALUE(property_index);
     return type.value.data->field_values[property_index];
+}
+
+static value_t resolve_expression_select(semantic_analyser_t* analyser, ast_node_t* node) {
+    //value_t value = resolve_block_statement(analyser, node->expression.right->block.declarations[0]->expression.right);
+    resolve_expression(analyser, node->expression.left->block.declarations[0]->expression.left);        
+    value_t value = resolve_expression(analyser, node->expression.left->block.declarations[0]->expression.right);
+    for(size_t i = 1; i < node->expression.right->block.declarations_size; ++i) {
+        resolve_expression(analyser, node->expression.left->block.declarations[i]->expression.left);        
+        //resolve_block_statement(analyser, node->expression.right->block.declarations[i]->expression.right);
+        value_t current_value = resolve_expression(analyser, node->expression.left->block.declarations[i]->expression.right);
+        assert_value_type(analyser, value.type, current_value.type);
+    }
+    node->value = value;
+    return node->value;
 }
 
 static value_t resolve_expression_binary(semantic_analyser_t* analyser, ast_node_t* node) {
@@ -738,6 +762,8 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return resolve_expression(analyser, node->expression.left);
         case AST_NODE_COPY:
             return resolve_expression(analyser, node->expression.left);
+        case AST_NODE_SELECT:
+            return resolve_expression_select(analyser, node);
         default:
             emit_error(analyser, "Undefined node");
             return UNDEFINED_VALUE(0);

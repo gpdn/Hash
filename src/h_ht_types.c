@@ -24,15 +24,15 @@ int h_ht_types_check_defined(h_ht_types_t* table, h_string_t* key) {
     #if DEBUG_TRACE_TYPES_TABLE
         DEBUG_LOG("Checking %s defined\n", key->string);
     #endif
-    return table->array[key->hash % table->capacity].type != H_TYPE_INFO_UNDEFINED;
+    return table->array[key->hash & (table->capacity - 1)].type != H_TYPE_INFO_UNDEFINED;
 }
 
 ht_type_t h_ht_types_get(h_ht_types_t* table, h_string_t* key) {
-    return table->array[key->hash % table->capacity];
+    return table->array[key->hash & (table->capacity - 1)];
 }
 
 int h_ht_types_set(h_ht_types_t* table, h_string_t* key, value_t value, ht_type_info_t type) {
-    table->array[key->hash % table->capacity] = (ht_type_t){type, key, value};
+    table->array[key->hash & (table->capacity - 1)] = (ht_type_t){type, key, value};
     #if DEBUG_TRACE_TYPES_TABLE
         DEBUG_LOG("New type set: %s\n", key->string);
     #endif
@@ -40,7 +40,7 @@ int h_ht_types_set(h_ht_types_t* table, h_string_t* key, value_t value, ht_type_
 }
 
 size_t h_ht_types_get_index(h_ht_types_t* table, h_string_t* key) {
-    return (size_t)key->hash % table->capacity;
+    return (size_t)key->hash & (table->capacity - 1);
 }
 
 size_t h_ht_types_array_get(h_ht_types_t* table, size_t index) {
