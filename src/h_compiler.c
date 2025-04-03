@@ -33,8 +33,10 @@ static inline void ast_compile_statement_goto(h_compiler_t* compiler, ast_node_t
 static inline void ast_compile_statement_stop(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_statement_stop_value(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_statement_expression(h_compiler_t* compiler, ast_node_t* current);
+static inline void ast_compile_statement_switch(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_statement_block(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_statement_block_enum(h_compiler_t* compiler, ast_node_t* current);
+static inline void ast_compile_statement_block_switch(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_identifier(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_identifier_type(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_literal(h_compiler_t* compiler, ast_node_t* current);
@@ -43,6 +45,7 @@ static inline void ast_compile_expression_unary(h_compiler_t* compiler, ast_node
 static inline void ast_compile_expression_grouping(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_expression_dot(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_expression_data_initialisation(h_compiler_t* compiler, ast_node_t* current);
+static inline void ast_compile_expression_select(h_compiler_t* compiler, ast_node_t* current, ast_node_t* left);
 static inline void ast_compile_expression_function_call(h_compiler_t* compiler, ast_node_t* current);
 
 static inline void ast_compile_type_token(h_compiler_t* compiler, token_type_t type) {
@@ -57,7 +60,7 @@ static inline void ast_compile_type_token(h_compiler_t* compiler, token_type_t t
             h_string_append_cstring(compiler->current_buffer, "char ");
             break;
         default:
-            DEBUG_LOG("Unrecognised type in ast_compile_type at line %d\n", __LINE__);
+            DEBUG_LOG("Unrecognised type in ast_compile_type_token at line %d\n", __LINE__);
             break;
     }
 }
@@ -73,8 +76,11 @@ static inline void ast_compile_type_value(h_compiler_t* compiler, value_t* value
         case H_VALUE_CHAR:
             h_string_append_cstring(compiler->current_buffer, "char ");
             break;
+        case H_VALUE_UNDEFINED:
+            h_string_append_cstring(compiler->current_buffer, "void ");
+            break;
         default:
-            DEBUG_LOG("Unrecognised type in ast_compile_type at line %d\n", __LINE__);
+            DEBUG_LOG("Unrecognised type in ast_compile_type_value at line %d\n", __LINE__);
             break;
     }
 }
@@ -114,6 +120,11 @@ static inline void ast_compile_declaration_variable(h_compiler_t* compiler, ast_
     ast_compile_type_token(compiler, current->operator->type);
     ast_compile_identifier(compiler, current->expression.left);
     if(!current->expression.right) return;
+    if(current->expression.right->type == AST_NODE_SELECT) {
+        h_string_append_cstring(compiler->current_buffer, ";\n");
+        ast_compile_expression_select(compiler, current->expression.right, current->expression.left);
+        return;
+    }
     h_string_append_cstring(compiler->current_buffer, " = ");
     ast_compile_expression(compiler, current->expression.right);
     h_string_append_cstring(compiler->current_buffer, ";\n");
@@ -125,6 +136,22 @@ static inline void ast_compile_declaration_variable_no_newline(h_compiler_t* com
     if(!current->expression.left) return;
     h_string_append_cstring(compiler->current_buffer, " = ");
     ast_compile_expression(compiler, current->expression.right);
+}
+
+static inline void ast_compile_declaration_variable_type(h_compiler_t* compiler, ast_node_t* current) {
+    COMPILER_WRITE_INDENT();
+    h_string_append(compiler->current_buffer, current->value.string);
+    h_string_append_cstring(compiler->current_buffer, " ");
+    ast_compile_identifier(compiler, current->expression.left);
+    if(!current->expression.right) return;
+    if(current->expression.right->type == AST_NODE_SELECT) {
+        h_string_append_cstring(compiler->current_buffer, ";\n");
+        ast_compile_expression_select(compiler, current->expression.right, current->expression.left);
+        return;
+    }
+    h_string_append_cstring(compiler->current_buffer, " = ");
+    ast_compile_expression(compiler, current->expression.right);
+    h_string_append_cstring(compiler->current_buffer, ";\n");
 }
 
 static void ast_compile_declaration_data(h_compiler_t* compiler, ast_node_t* current) {
@@ -164,6 +191,11 @@ static void ast_compile_function_signature(h_compiler_t* compiler, h_function_t*
     ast_compile_type_value(compiler, &function->return_type[0]);
     h_string_append(compiler->current_buffer, function->name);
     h_string_append_cstring(compiler->current_buffer, "(");
+    if(function->parameters_list_size == 0) {
+        h_string_append_cstring(compiler->current_buffer, ")");
+        h_string_append_cstring(compiler->current_buffer, termination);
+        return;
+    }
     size_t i = 0;
     for(; i < function->parameters_list_size - 1; ++i) {
         ast_compile_type_value(compiler, function->parameters_list_values + i);
@@ -219,6 +251,9 @@ static inline void ast_compile_statement_print(h_compiler_t* compiler, ast_node_
             break;
         case H_VALUE_STRING:
             h_string_append_cstring(compiler->current_buffer, "\"\%s\\n\"");
+            break;
+        case H_VALUE_CHAR:
+            h_string_append_cstring(compiler->current_buffer, "\"\%c\\n\"");
             break;
         default:
             print_value(&current->expression.left->value);
@@ -364,6 +399,37 @@ static inline void ast_compile_statement_expression(h_compiler_t* compiler, ast_
     h_string_append_cstring(compiler->current_buffer, ";\n");
 }
 
+static inline void ast_compile_statement_switch(h_compiler_t* compiler, ast_node_t* current) {
+    COMPILER_WRITE_INDENT();
+    h_string_append_cstring(compiler->current_buffer, "switch");
+    ast_compile_expression(compiler, current->expression.left);
+    h_string_append_cstring(compiler->current_buffer, " {\n");
+    ast_compile_statement_block_switch(compiler, current->expression.right);
+    if(current->expression.other) {
+        COMPILER_WRITE_INDENT();
+        h_string_append_cstring(compiler->current_buffer, "default:\n");
+        ast_compile_statement_block(compiler, current->expression.other);
+    }
+    compiler_decrease_indent(compiler);
+    COMPILER_WRITE_INDENT();
+    h_string_append_cstring(compiler->current_buffer, "}\n");
+}
+
+static inline void ast_compile_statement_block_switch(h_compiler_t* compiler, ast_node_t* current) {
+    compiler_increase_indent(compiler);
+    for(size_t i = 0; i < current->block.declarations_size; ++i) {
+        COMPILER_WRITE_INDENT();
+        h_string_append_cstring(compiler->current_buffer, "case ");
+        ast_compile_expression(compiler, current->block.declarations[i]->expression.left);
+        h_string_append_cstring(compiler->current_buffer, ": \n");
+        ast_compile_statement_block(compiler, current->block.declarations[i]->expression.right);
+        if(current->block.declarations[i]->operator->type == H_TOKEN_GREATER) {
+            COMPILER_WRITE_INDENT();
+            h_string_append_cstring(compiler->current_buffer, "\tbreak;\n");
+        }
+    }
+}
+
 static inline void ast_compile_statement_block(h_compiler_t* compiler, ast_node_t* current) {
     compiler_increase_indent(compiler);
     COMPILER_INCREASE_SCOPE();
@@ -408,7 +474,6 @@ static inline void ast_compile_expression_dot(h_compiler_t* compiler, ast_node_t
 }
 
 static inline void ast_compile_expression_data_initialisation(h_compiler_t* compiler, ast_node_t* current) {
-    ast_print(current, 0);
     h_string_append_cstring(compiler->current_buffer, "{");
     size_t i = 0;
     for(; i < current->block.declarations_size - 1; ++i) {
@@ -419,9 +484,60 @@ static inline void ast_compile_expression_data_initialisation(h_compiler_t* comp
     h_string_append_cstring(compiler->current_buffer, "}");
 }
 
+static inline void ast_compile_expression_select(h_compiler_t* compiler, ast_node_t* current, ast_node_t* left) {
+    ast_node_t* block = current->expression.left;
+    ast_node_t* right = current->expression.right;
+    COMPILER_WRITE_INDENT();
+    h_string_append_cstring(compiler->current_buffer, "if");
+    ast_compile_expression(compiler, block->block.declarations[0]->expression.left);
+    h_string_append_cstring(compiler->current_buffer, " {\n");
+    compiler_increase_indent(compiler);
+    COMPILER_WRITE_INDENT();
+    ast_compile_identifier(compiler, left);
+    h_string_append_cstring(compiler->current_buffer, " = ");
+    ast_compile_expression(compiler, block->block.declarations[0]->expression.right);
+    compiler_decrease_indent(compiler);
+    h_string_append_cstring(compiler->current_buffer, ";\n");
+    COMPILER_WRITE_INDENT();
+    h_string_append_cstring(compiler->current_buffer, "} ");
+    for(size_t i = 1; i < block->block.declarations_size; ++i) {
+        h_string_append_cstring(compiler->current_buffer, "else if");
+        ast_compile_expression(compiler, block->block.declarations[i]->expression.left);
+        h_string_append_cstring(compiler->current_buffer, " {\n");
+        compiler_increase_indent(compiler);
+        COMPILER_WRITE_INDENT();
+        ast_compile_identifier(compiler, left);
+        h_string_append_cstring(compiler->current_buffer, " = ");
+        ast_compile_expression(compiler, block->block.declarations[i]->expression.right);
+        h_string_append_cstring(compiler->current_buffer, ";\n");
+        compiler_decrease_indent(compiler);
+        COMPILER_WRITE_INDENT();
+        h_string_append_cstring(compiler->current_buffer, "} ");
+    }
+    if(!right) {
+        h_string_append_cstring(compiler->current_buffer, "\n");
+        return;
+    }
+    h_string_append_cstring(compiler->current_buffer, "else {\n");
+    compiler_increase_indent(compiler);
+    COMPILER_WRITE_INDENT();
+    ast_compile_identifier(compiler, left);
+    h_string_append_cstring(compiler->current_buffer, " = ");
+    ast_compile_expression(compiler, right);
+    h_string_append_cstring(compiler->current_buffer, ";\n");
+    compiler_decrease_indent(compiler);
+    COMPILER_WRITE_INDENT();
+    h_string_append_cstring(compiler->current_buffer, "}\n");
+}
+
 static inline void ast_compile_expression_function_call(h_compiler_t* compiler, ast_node_t* current) {
     ast_compile_expression(compiler, current->expression.left);
     h_string_append_cstring(compiler->current_buffer, "(");
+    if(current->expression.right->block.declarations_size == 0) {
+        ast_compile_statement_block(compiler, current->expression.right);
+        h_string_append_cstring(compiler->current_buffer, ")");    
+        return;
+    }
     size_t i = 0;
     for(; i < current->expression.right->block.declarations_size - 1; ++i) {
         ast_compile_expression(compiler, current->expression.right->block.declarations[i]);
@@ -478,6 +594,9 @@ void ast_compile_node(h_compiler_t* compiler, ast_node_t* current) {
         case AST_NODE_DECLARATION_VARIABLE:
             ast_compile_declaration_variable(compiler, current);
             return;
+        case AST_NODE_DECLARATION_VARIABLE_TYPE:
+            ast_compile_declaration_variable_type(compiler, current);
+            break;
         case AST_NODE_DECLARATION_DATA:
             ast_compile_declaration_data(compiler, current);
             break;
@@ -529,6 +648,9 @@ void ast_compile_node(h_compiler_t* compiler, ast_node_t* current) {
         case AST_NODE_STATEMENT_GOTO:
             ast_compile_statement_goto(compiler, current);
             break;
+        case AST_NODE_STATEMENT_SWITCH:
+            ast_compile_statement_switch(compiler, current);
+            break;
         case AST_NODE_STATEMENT_STOP:
             ast_compile_statement_stop(compiler, current);
             break;
@@ -572,7 +694,7 @@ h_compiler_t h_compiler_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_
 
 static inline void compiler_increase_indent(h_compiler_t* compiler) {
     if(++compiler->indent.length >= compiler->indent.capacity) {
-        compiler->indent.capacity = compiler->indent.capacity << 2; 
+        compiler->indent.capacity <<= 1; 
         compiler->indent.string = (char*)realloc(compiler->indent.string, sizeof(char) * compiler->indent.capacity);
         //memset(compiler->indent.string, (int)('\t'), compiler->indent.capacity - compiler->indent.length);
         memset(compiler->indent.string, (int)('\t'), compiler->indent.length);

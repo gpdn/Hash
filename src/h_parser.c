@@ -887,7 +887,6 @@ static ast_node_t* parse_switch_statement_block(parser_t* parser) {
         ast_node_t* entry = ast_node_create(AST_NODE_STATEMENT_SWITCH_ENTRY);
         entry->operator = parser->current;
         ++parser->current;
-        token_print(parser->current);
         entry->expression.left = parse_expression(parser, OP_PREC_HIGHEST);
         assert_token_type(parser, H_TOKEN_ARROW, "Expected -> after switch statement entry");
         if(parser->current->type == H_TOKEN_LEFT_CURLY) {
