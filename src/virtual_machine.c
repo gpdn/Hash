@@ -183,7 +183,7 @@ int vm_run(virtual_machine_t* vm) {
                 }
                 break;
             case OP_SUB:
-                BINARY_OP(NUM_VALUE, -);
+                BINARY_OP_ASSOC(sub_val, NUM_VALUE, -);
                 break;
             case OP_MUL:
                 BINARY_OP(NUM_VALUE, *);

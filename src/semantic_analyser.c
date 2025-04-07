@@ -465,6 +465,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 assert_value_type(analyser, node->value.type, lvalue_entry.type);
                 resolve_block_statement(analyser, node->expression.right->block.declarations[i]->expression.right);
             }
+            if(node->expression.other) resolve_block_statement(analyser, node->expression.other);
             return;
         default:
             resolve_expression(analyser, node);

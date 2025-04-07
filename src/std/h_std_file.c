@@ -17,7 +17,7 @@ value_t h_std_file_read_str(struct value_t* parameters, size_t args_count) {
     }
     buffer[last_byte_read] = '\0';
     fclose(file);
-    h_string_t* string = h_string_init_hash(buffer, file_size + 1);
+    h_string_t* string = h_string_init_hash(buffer, file_size);
     return STR_VALUE(string);
 }
 

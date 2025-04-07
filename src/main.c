@@ -81,6 +81,38 @@ int main(int argc, char** argv) {
 
     PRINT_TITLE();
 
+    /* h_arena_manager_t* manager = h_arena_manager_init();
+    h_memory_register_arena(manager, 200, H_MEMORY_TAG_GENERIC);
+    h_memory_register_arena(manager, 50, H_MEMORY_TAG_STRING);
+    h_memory_register_arena(manager, 5000, H_MEMORY_TAG_ARRAY);
+
+    h_memory_report(manager);
+
+    char* test = h_memory_get_block(manager, H_MEMORY_TAG_STRING, 80);
+    char* test2 = h_memory_get_block(manager, H_MEMORY_TAG_STRING, 30);
+
+    int* arr = (int*)h_memory_get_block(manager, H_MEMORY_TAG_ARRAY, 20 * sizeof(int));
+    
+    for(int i = 0; i < 20; ++i) {
+        arr[i] = i;
+    }
+
+    arr = (int*)h_memory_reallocate_block(manager, H_MEMORY_TAG_ARRAY, arr, 20 * sizeof(int), 100 * sizeof(int));
+
+    for(int i = 0; i < 100; ++i) {
+        printf("%d\n", arr[i]);
+    }
+
+    test = "HelloHelloHelloHelloHello";
+    test2 = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    printf("%s\n", test);
+    printf("%s\n", test2);
+
+    h_memory_report(manager);
+
+    h_arena_manager_free(manager); */
+
     execution_mode_t run_mode = MODE_FILE;
     const char* source_file_path = NULL;
     const char* repl_save_file_path = NULL;

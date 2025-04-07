@@ -40,6 +40,7 @@ static inline void ast_compile_statement_block_switch(h_compiler_t* compiler, as
 static inline void ast_compile_identifier(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_identifier_type(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_literal(h_compiler_t* compiler, ast_node_t* current);
+static inline void ast_compile_enum_resolution(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_expression_binary(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_expression_unary(h_compiler_t* compiler, ast_node_t* current);
 static inline void ast_compile_expression_grouping(h_compiler_t* compiler, ast_node_t* current);
@@ -75,6 +76,10 @@ static inline void ast_compile_type_value(h_compiler_t* compiler, value_t* value
             break;
         case H_VALUE_CHAR:
             h_string_append_cstring(compiler->current_buffer, "char ");
+            break;
+        case H_VALUE_TYPE:
+            h_string_append_cstring(compiler->current_buffer, value->data_type->type_name->string);
+            h_string_append_cstring(compiler->current_buffer, " ");
             break;
         case H_VALUE_UNDEFINED:
             h_string_append_cstring(compiler->current_buffer, "void ");
@@ -113,6 +118,10 @@ static inline void ast_compile_literal(h_compiler_t* compiler, ast_node_t* curre
         default:
             h_string_append_cstring_n(compiler->current_buffer, current->operator->start, current->operator->length);
     }
+}
+
+static inline void ast_compile_enum_resolution(h_compiler_t* compiler, ast_node_t* current) {
+    ast_compile_identifier(compiler, current->expression.right);
 }
 
 static inline void ast_compile_declaration_variable(h_compiler_t* compiler, ast_node_t* current) {
@@ -541,7 +550,7 @@ static inline void ast_compile_expression_function_call(h_compiler_t* compiler, 
     size_t i = 0;
     for(; i < current->expression.right->block.declarations_size - 1; ++i) {
         ast_compile_expression(compiler, current->expression.right->block.declarations[i]);
-        h_string_append_cstring(compiler->current_buffer, ",");
+        h_string_append_cstring(compiler->current_buffer, ", ");
     }
     ast_compile_expression(compiler, current->expression.right->block.declarations[i]);
     ast_compile_statement_block(compiler, current->expression.right);
@@ -583,9 +592,12 @@ void ast_compile_expression(h_compiler_t* compiler, ast_node_t* current) {
             DEBUG_LOG("Data Called");
             ast_compile_expression_data_initialisation(compiler, current);
             break;
-        /* default:
+        case AST_NODE_ENUM_RESOLUTION:
+            ast_compile_enum_resolution(compiler, current);
+            break;
+        default:
             DEBUG_LOG("Unimplemented node %d in ast compile expression at line %d\n", current->type, __LINE__);
-            break; */
+            break;
     }
 }
 
