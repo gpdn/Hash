@@ -23,7 +23,7 @@ int h_preprocessor_conditions_stack_update(h_preprocessor_conditions_stack_t* co
     if(conditions_stack->size == 0) return -1;
     --conditions_stack->stack_top;
     conditions_stack->stack_top->directive = directive;
-    conditions_stack->stack_top->output = !conditions_stack->stack_top->output;
+    //conditions_stack->stack_top->output = !conditions_stack->stack_top->output;
     int enable_output = conditions_stack->stack_top->output;
     int ignore_input = conditions_stack->stack_top->input;
     ++conditions_stack->stack_top;

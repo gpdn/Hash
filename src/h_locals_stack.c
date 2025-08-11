@@ -57,6 +57,17 @@ int h_locals_stack_find(h_locals_stack_t* locals_stack, h_string_t* name, size_t
     return 0;
 }
 
+h_local_t* h_locals_stack_find_get(h_locals_stack_t* locals_stack, h_string_t* name, size_t scope) {
+    h_local_t* it = locals_stack->locals_stack_top - 1;
+    #if DEBUG_TRACE_LOCALS_STACK
+        DEBUG_LOG("Find: %s - %lld\n", name->string, it->scope);
+    #endif
+    for(; it->scope == scope && it != locals_stack->locals_array - 1; --it) {
+        if(it->name->hash == name->hash && it->name->length == name->length && memcmp(it->name->string, name->string, name->length) == 0) return it;
+    }
+    return NULL;
+}
+
 size_t h_locals_stack_get_index(h_locals_stack_t* locals_stack, h_string_t* name, size_t scope, size_t start_index) {
     h_local_t* it = locals_stack->locals_array + start_index - 1;
     for(; !(it->name->hash == name->hash && it->scope <= scope && it->name->length == name->length && memcmp(it->name->string, name->string, name->length) == 0) && it != locals_stack->locals_array; --it);

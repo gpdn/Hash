@@ -7,6 +7,7 @@
 #include "h_values.h"
 #include "h_generic_parameters_list.h"
 #include "h_generic_arguments_list.h"
+#include "h_counters_t.h"
 
 typedef enum ast_node_type_t{
     AST_NODE_BINARY,
@@ -47,6 +48,10 @@ typedef enum ast_node_type_t{
     AST_NODE_STATEMENT_LOOP,
     AST_NODE_ASSIGNMENT_COMPOUND,
     AST_NODE_DECLARATION_FUNCTION,
+    AST_NODE_DECLARATION_FWD,
+    AST_NODE_DECLARATION_FUNCTION_FWD,
+    AST_NODE_DECLARATION_FUNCTION_PTR,
+    AST_NODE_DECLARATION_FUNCTION_PTR_TYPE,
     AST_NODE_FUNCTION_RETURN,
     AST_NODE_FUNCTION_CALL,
     AST_NODE_FUNCTION_ARGUMENTS,
@@ -69,6 +74,10 @@ typedef enum ast_node_type_t{
     AST_NODE_SELECT,
     AST_NODE_SELECT_ENTRY,
     AST_NODE_COPY,
+    AST_NODE_RUN,
+    AST_NODE_GET,
+    AST_NODE_STATEMENT_TRACE,
+    AST_NODE_DECLARATION_ALIAS
 } ast_node_type_t;
 
 typedef enum operator_precedence_t {
@@ -122,6 +131,7 @@ typedef struct parser_t {
     unsigned int errors_count;
     ast_node_t* temp_one;
     ast_node_t* temp_two;
+    h_counters_t* counters;
 } parser_t;
 
 typedef ast_node_t* (nud_parse_function)(parser_t* parser, operator_precedence_t precedence);
@@ -133,7 +143,7 @@ typedef struct parse_rule_t {
     operator_precedence_t precedence;
 } parse_rule_t;
 
-parser_t* parser_init(token_t* tokens_list, size_t tokens_list_size);
+parser_t* parser_init(token_t* tokens_list, size_t tokens_list_size, h_counters_t* counters);
 ast_node_t** parser_generate_ast(parser_t* parser);
 void ast_print(ast_node_t* node, int indent);
 void disassemble_ast_node(ast_node_t* node, int indent);

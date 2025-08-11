@@ -12,7 +12,8 @@ typedef enum value_type_t {
     H_VALUE_DATA,
     H_VALUE_TYPE,
     H_VALUE_NATIVE,
-    H_VALUE_GENERIC
+    H_VALUE_GENERIC,
+    H_VALUE_FORWARD
 } value_type_t;
 
 const char* resolve_value_type(value_type_t type);

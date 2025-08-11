@@ -105,6 +105,7 @@ virtual_machine_t* vm_init(bytecode_store_t *store, h_hash_table_t* globals_tabl
     vm->array_initialisation_ptr = vm->stack;
     vm->stack_base = vm->stack;
     vm->calls_stack_size = 0;
+    vm->trace = h_internal_variables_resolve_get(H_INTERNAL_TRACE).string;
     return vm;
 }
 
@@ -215,6 +216,9 @@ int vm_run(virtual_machine_t* vm) {
             case OP_NOT_EQUAL:
                 BINARY_OP(NUM_VALUE, !=);
                 break;
+            case OP_NOT_EQUAL_MINUS_ONE:
+                vm_stack_push(vm, NUM_VALUE(vm_stack_pop(vm).number - 1 != vm_stack_pop(vm).number));
+                break;
             case OP_AND:
                 BINARY_OP_ASSOC(and_val, NUM_VALUE, &&);
                 break;
@@ -239,19 +243,27 @@ int vm_run(virtual_machine_t* vm) {
                 vm_stack_pop(vm).number != 0 ? vm_stack_push(vm, conditional_if_value) : vm_stack_push(vm, conditional_else_value);
                 break;
             case OP_GENERATE_INTERVAL:
-                value_t value_one = vm_stack_pop(vm);
                 value_t value_two = vm_stack_pop(vm);
-                h_array_t* array = h_array_init(H_VALUE_NUMBER, value_two.number); 
-                for(int i = value_one.number; i < value_two.number; ++i) h_array_push(array, NUM_VALUE(i));
+                value_t value_one = vm_stack_pop(vm);
+                value_t arr_value = *(vm->array_initialisation_ptr - 1);
+                for(int i = value_one.number; i < value_two.number; ++i) h_array_push(arr_value.array, NUM_VALUE(i));
                 break;
             case OP_COPY:
                 vm_stack_push(vm, copy_value(vm_stack_pop(vm)));
+                break;
+            case OP_RUN:
+                h_string_t* executable_path = h_string_init_hash("main.exe --file ", strlen("main.exe --file "));
+                h_string_append(executable_path, vm_stack_pop(vm).string);
+                vm_stack_push(vm, NUM_VALUE(system(executable_path->string)));
+                break;
+            case OP_GET:
+                vm_stack_push(vm, h_internal_variables_resolve_get(vm_stack_pop(vm).number));
                 break;
             case OP_CALL:
                 size_t arguments_count = ADVANCE_INSTRUCTION_POINTER();
                 h_function_t* function = (vm->stack_top - arguments_count - 1)->function;
                 value_t* frame_stack_start = vm->stack_top - arguments_count;
-                call_frame_t frame = {function, frame_stack_start, vm->instruction_pointer, vm->locals_stack};                
+                call_frame_t frame = {function, vm->stack_base, frame_stack_start, vm->instruction_pointer, vm->locals_stack};
                 vm->calls_stack[vm->calls_stack_size++] = frame;
                 vm->instruction_pointer = frame.function->store->code;
                 vm->stack_base = frame_stack_start;
@@ -272,25 +284,25 @@ int vm_run(virtual_machine_t* vm) {
                 break;
             case OP_RETURN:
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
-                vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack;
+                vm->stack_top = vm->calls_stack[vm->calls_stack_size].stack_top;
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
                 vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                 if(vm->calls_stack_size > 0) {
-                    vm->store = vm->calls_stack[vm->calls_stack_size].function->store;
-                    vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
+                    vm->store = vm->calls_stack[vm->calls_stack_size - 1].function->store;
                     break;
                 }
                 vm->store = vm->initial_store;
-                vm->locals_stack = vm->initial_locals_stack;
-                vm->stack_base = vm->stack;
+                //vm->locals_stack = vm->initial_locals_stack;
+                //vm->stack_base = vm->stack;
                 break;
             case OP_RETURN_VALUE:
                 value_t return_value = copy_value(vm_stack_pop(vm));
                 vm->instruction_pointer = vm->calls_stack[--vm->calls_stack_size].return_instruction;
-                vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack - 1;
+                //vm->stack_top = vm->calls_stack[vm->calls_stack_size].frame_stack - 1;
+                vm->stack_top = vm->calls_stack[vm->calls_stack_size].stack_top - 1;
                 vm->stack_base = vm->calls_stack[vm->calls_stack_size].frame_stack;
                 if(vm->calls_stack_size > 0) {
-                    vm->store = vm->calls_stack[vm->calls_stack_size].function->store;
+                    vm->store = vm->calls_stack[vm->calls_stack_size - 1].function->store;
                     vm->locals_stack = vm->calls_stack[vm->calls_stack_size].locals_stack;
                     vm_stack_push(vm, return_value);
                     break;
@@ -422,6 +434,11 @@ int vm_run(virtual_machine_t* vm) {
             case OP_SWITCH:
                 vm->instruction_pointer = vm->store->code + h_switch_tables_list_solve(vm->switch_tables_list, ADVANCE_INSTRUCTION_POINTER(), vm_stack_pop(vm));
                 break;
+            case OP_TRACE:
+                h_string_append(vm->trace, vm_stack_pop(vm).string);
+                h_string_append_cstring(vm->trace, "\n");
+                printf("%s\n", vm->trace->string);
+                break;
             default:
                 DEBUG_ERROR("Unimplemented instruction: "); 
                 disassemble_instruction(vm->store, (size_t)(vm->instruction_pointer - vm->store->code - 1), NULL);
@@ -431,6 +448,11 @@ int vm_run(virtual_machine_t* vm) {
         #if DEBUG_TRACE_VM_STACK
             for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
                 DEBUG_COLOR_SET(COLOR_CYAN);
+                if (temp == vm->stack_base) {
+                    DEBUG_COLOR_SET(COLOR_YELLOW);
+                    DEBUG_LOG(">");
+                    DEBUG_COLOR_RESET();
+                }
                 resolve_value(temp);
                 DEBUG_COLOR_RESET();
             }
@@ -484,6 +506,7 @@ static inline void resolve_value(value_t* value) {
 
 void vm_free(virtual_machine_t* vm) {
     free(vm->stack);
+    h_string_free(vm->trace);
     free(vm);
 }
 

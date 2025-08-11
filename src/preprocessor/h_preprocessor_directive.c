@@ -35,6 +35,15 @@ void print_preprocessor_directive(h_preprocessor_directive_t directive) {
         case H_DIRECTIVE_CALL:
             DEBUG_LOG("%s\n", "DIRECTIVE CALL");
             break;
+        case H_DIRECTIVE_RUN:
+            DEBUG_LOG("%s\n", "DIRECTIVE RUN");
+            break;
+        case H_DIRECTIVE_MODE:
+            DEBUG_LOG("%s\n", "DIRECTIVE MODE");
+            break;
+        case H_DIRECTIVE_TRACE:
+            DEBUG_LOG("%s\n", "DIRECTIVE TRACE");
+            break;
         case H_DIRECTIVE_UNKNOWN:
             DEBUG_LOG("%s\n", "DIRECTIVE UNKNOWN");
             break;    
@@ -75,6 +84,15 @@ void print_preprocessor_directive_no_newline(h_preprocessor_directive_t directiv
             break;
         case H_DIRECTIVE_CALL:
             DEBUG_LOG("%s", "DIRECTIVE CALL");
+            break;
+        case H_DIRECTIVE_RUN:
+            DEBUG_LOG("%s", "DIRECTIVE RUN");
+            break;
+        case H_DIRECTIVE_MODE:
+            DEBUG_LOG("%s", "DIRECTIVE MODE");
+            break;
+        case H_DIRECTIVE_TRACE:
+            DEBUG_LOG("%s", "DIRECTIVE TRACE");
             break;
         case H_DIRECTIVE_UNKNOWN:
             DEBUG_LOG("%s", "DIRECTIVE UNKNOWN");

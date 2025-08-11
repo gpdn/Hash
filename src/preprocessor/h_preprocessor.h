@@ -18,6 +18,11 @@
 #undef RELATIVE_PATH
 #undef MAKE_PATH
 
+typedef enum preprocessor_mode_t {
+    H_PREPROCESSOR_MODE_DEBUG,
+    H_PREPROCESSOR_MODE_RELEASE
+} preprocessor_mode_t;
+
 typedef struct h_preprocessor_t {
     const char* start;
     const char* current;
@@ -34,9 +39,12 @@ typedef struct h_preprocessor_t {
     int output_enabled;
     int ignore_input;
     h_std_t* std;
+    h_string_t* executable_path;
+    const char* out_file_name;
+    preprocessor_mode_t mode;
 } h_preprocessor_t;
 
-h_preprocessor_t* preprocessor_init(const char* source_path, h_std_t* std);
+h_preprocessor_t* preprocessor_init(const char* source_path, const char* out_file_name, h_std_t* std);
 int preprocessor_run(h_preprocessor_t* preprocessor);
 void preprocessor_destroy(h_preprocessor_t* preprocessor);
 

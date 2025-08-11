@@ -169,8 +169,17 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_COPY:
             return basic_instruction("OP_COPY", offset, file);
             break;
+        case OP_RUN:
+            return basic_instruction("OP_RUN", offset, file);
+            break;
+        case OP_GET:
+            return basic_instruction("OP_GET", offset, file);
+            break;
         case OP_NOT_EQUAL:
             return basic_instruction("OP_NOT_EQUAL", offset, file);
+            break;
+        case OP_NOT_EQUAL_MINUS_ONE:
+            return basic_instruction("OP_NOT_EQUAL_MINUS_ONE", offset, file);
             break;
         case OP_GREATER:
             return basic_instruction("OP_GREATER", offset, file);
@@ -292,6 +301,9 @@ size_t disassemble_instruction(bytecode_store_t* store, size_t offset, FILE* fil
         case OP_SWITCH:
             return index_instruction("OP_SWITCH", store, offset, file);
             break;
+        case OP_TRACE:
+            return basic_instruction("OP_TRACE", offset, file);
+            break;
         default:
             DEBUG_COLOR_SET(COLOR_RED);
             printf("Unknown Instruction: %d\n", instruction);
@@ -384,6 +396,11 @@ const char* resolve_token_type(token_type_t type) {
         case H_TOKEN_SWITCH: return "H_TOKEN_SWITCH";
         case H_TOKEN_SELECT: return "H_TOKEN_SELECT";
         case H_TOKEN_THEN: return "H_TOKEN_THEN";
+        case H_TOKEN_TRACE: return "H_TOKEN_TRACE";
+        case H_TOKEN_RUN: return "H_TOKEN_RUN";
+        case H_TOKEN_GET: return "H_TOKEN_GET";
+        case H_TOKEN_FWD: return "H_TOKEN_FWD";
+        case H_TOKEN_ALIAS: return "H_TOKEN_ALIAS";
         case H_TOKEN_LAST: return "H_TOKEN_LAST";
         default:
             return "Add type";

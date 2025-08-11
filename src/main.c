@@ -152,7 +152,24 @@ int main(int argc, char** argv) {
     #endif
     h_std_t* std = h_std_init();
 
-    h_preprocessor_t* preprocessor = preprocessor_init(source_file_path, std);
+    time_t current_time;
+    struct tm* time_info; 
+
+    char time_string[50];
+
+    time(&current_time);
+    time_info = localtime(&current_time);
+
+    strftime(time_string, 50, "%d%M%Y_%H%M%S", time_info);
+
+    const char* preprocessed_file = "z_preprocessed_files/preprocessed";
+    h_string_t* preprocessed_file_name = h_string_init_hash(preprocessed_file, strlen(preprocessed_file)); 
+    
+    h_string_append_cstring_many(preprocessed_file_name, (const char*[]){time_string}, 1);
+
+    DEBUG_LOG("File name: %s\n", preprocessed_file_name->string);
+
+    h_preprocessor_t* preprocessor = preprocessor_init(source_file_path, preprocessed_file_name->string, std);
 
     if(preprocessor_run(preprocessor) == 0) return 0;
 
@@ -162,7 +179,7 @@ int main(int argc, char** argv) {
         timer_stop_log("Preprocessor", preprocessor_timer, COLOR_CYAN);
     #endif
 
-    const char* preprocessed_file_content = read_file("preprocessed");
+    const char* preprocessed_file_content = read_file(preprocessed_file_name->string);
 
     int result = pipeline_start(preprocessed_file_content, args_flags, std);
 
@@ -170,6 +187,7 @@ int main(int argc, char** argv) {
 
     free((void*)preprocessed_file_content);
     free((void*)file_content);
+    h_string_free(preprocessed_file_name);
     return result;
 
 }

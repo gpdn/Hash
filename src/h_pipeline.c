@@ -61,8 +61,14 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         clock_t parser_timer = timer_start("Parser");
     #endif
 
-    pipeline.parser = parser_init(pipeline.tokens_array, tokens_count);
+    pipeline.counters = h_counters_init();
+
+    pipeline.parser = parser_init(pipeline.tokens_array, tokens_count, pipeline.counters);
     pipeline.ast = parser_generate_ast(pipeline.parser);
+
+    h_counters_print(pipeline.counters);
+    h_counters_resolve(pipeline.counters);
+    h_counters_print(pipeline.counters);
     
     #if DEBUG_TIMERS
         timer_stop_log("Parser", parser_timer, COLOR_CYAN);
@@ -96,14 +102,16 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         #endif 
     */
 
-    pipeline.globals_table = h_hash_table_init(200, 0.75);
+    pipeline.globals_table = h_hash_table_init(pipeline.counters->globals_count, 0.75);
     pipeline.locals_stack = h_locals_stack_init(200);
-    pipeline.labels_table = h_ht_labels_init(64, 0.75);
-    pipeline.enums_table = h_ht_enums_init(64, 0.75);
-    pipeline.types_table = h_ht_types_init(128, 0.75);
-    pipeline.switch_tables_list = h_switch_tables_list_init(200);
+    pipeline.labels_table = h_ht_labels_init(pipeline.counters->labels_count, 0.75);
+    pipeline.enums_table = h_ht_enums_init(pipeline.counters->enums_count, 0.75);
+    pipeline.types_table = h_ht_types_init(pipeline.counters->types_count, 0.75);
+    pipeline.switch_tables_list = h_switch_tables_list_init(pipeline.counters->switch_count);
+    pipeline.fwd_table = h_ht_fwd_init(pipeline.counters->fwd_count, 0.75);
 
     h_std_resolve_imports(std, pipeline.locals_stack, pipeline.enums_table, pipeline.types_table);
+    h_internal_variables_init();
 
     size_t initial_search_index = pipeline.locals_stack->size;
 
@@ -111,7 +119,16 @@ int pipeline_start(const char* file_content, uint8_t flags, h_std_t* std) {
         clock_t semantic_analyser_timer = timer_start("Semantic Analyser");
     #endif
 
-    pipeline.analyser = h_sa_init(pipeline.ast, pipeline.parser->ast_list_size, pipeline.globals_table, pipeline.locals_stack, pipeline.labels_table, pipeline.enums_table, pipeline.types_table);
+    pipeline.analyser = h_sa_init(
+        pipeline.ast, 
+        pipeline.parser->ast_list_size, 
+        pipeline.globals_table, 
+        pipeline.locals_stack, 
+        pipeline.labels_table, 
+        pipeline.enums_table, 
+        pipeline.types_table,
+        pipeline.fwd_table
+    );
     h_sa_run(pipeline.analyser);
 
     #if DEBUG_TIMERS
@@ -200,5 +217,6 @@ void pipeline_free(pipeline_t* pipeline) {
     if(pipeline->labels_table) h_ht_labels_free(pipeline->labels_table);
     if(pipeline->enums_table) h_ht_enums_free(pipeline->enums_table);
     if(pipeline->types_table) h_ht_types_free(pipeline->types_table);
+    if(pipeline->fwd_table) h_ht_fwd_free(pipeline->fwd_table);
     if(pipeline->switch_tables_list) h_switch_tables_list_free(pipeline->switch_tables_list);
 }

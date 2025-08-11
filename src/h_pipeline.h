@@ -6,10 +6,13 @@
 #include "h_file.h"
 #include "h_timer.h"
 #include "h_ht_types.h"
+#include "h_ht_fwd.h"
 #include "bytecode_store.h"
 #include "std/h_std.h"
 #include "lexer.h"
 #include "h_parser.h"
+#include "h_internal_variables.h"
+#include "h_counters_t.h"
 #include "semantic_analyser.h"
 #include "h_compiler.h"
 #include "h_icg.h"
@@ -26,7 +29,9 @@ typedef struct pipeline_t {
     h_ht_labels_t* labels_table;
     h_ht_enums_t* enums_table;
     h_ht_types_t* types_table;
+    h_ht_fwd_t* fwd_table;
     h_switch_tables_list_t* switch_tables_list;
+    h_counters_t* counters;
     semantic_analyser_t* analyser;
     h_compiler_t compiler;
     icg_t* bytecode_generator;

@@ -29,6 +29,7 @@ typedef enum opcode_t {
     OP_BITWISE_NOT,
     OP_EQUALITY,
     OP_NOT_EQUAL,
+    OP_NOT_EQUAL_MINUS_ONE,
     OP_GREATER,
     OP_LESS,
     OP_GREATER_EQUAL,
@@ -70,7 +71,10 @@ typedef enum opcode_t {
     OP_CONDITIONAL_EXPRESSION,
     OP_REWIND,
     OP_COPY,
-    OP_SWITCH
+    OP_RUN,
+    OP_GET,
+    OP_SWITCH,
+    OP_TRACE
 } opcode_t;
 
 typedef struct bytecode_store_t {

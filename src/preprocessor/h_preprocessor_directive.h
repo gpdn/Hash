@@ -16,7 +16,10 @@ typedef enum h_preprocessor_directive_t {
     H_DIRECTIVE_UNSET,
     H_DIRECTIVE_PRINT,
     H_DIRECTIVE_FN,
-    H_DIRECTIVE_CALL
+    H_DIRECTIVE_CALL,
+    H_DIRECTIVE_RUN,
+    H_DIRECTIVE_MODE,
+    H_DIRECTIVE_TRACE
 } h_preprocessor_directive_t;
 
 void print_preprocessor_directive(h_preprocessor_directive_t directive);

@@ -11,6 +11,10 @@ static size_t h_ht_hash(const char* string, size_t length) {
     return hash;
 }
 
+void h_string_hash(h_string_t* string) {
+    string->hash = h_ht_hash(string->string, string->length);
+}
+
 h_string_t* h_string_init(const char* string, size_t length) {
     h_string_t* h_string = (h_string_t*)malloc(sizeof(h_string_t));
     h_string->string = (char*)malloc(sizeof(char) * (length + 1));
@@ -42,7 +46,7 @@ h_string_t* h_string_init_hash_set(const char* string, size_t length) {
     return h_string;
 }
 
-uint8_t h_string_compare(h_string_t* string_1, h_string_t* string_2) {
+inline uint8_t h_string_compare(h_string_t* string_1, h_string_t* string_2) {
     return string_1->length == string_2->length && memcmp(string_1->string, string_2->string, string_1->length) == 0;
 }
 

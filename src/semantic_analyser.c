@@ -37,6 +37,7 @@ static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type);
 static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type);
 static inline int check_type_defined(semantic_analyser_t* analyser, h_string_t* type);
+static inline void assert_function_signature_fwd(semantic_analyser_t* analyser, h_function_t* function, h_function_t* function2);
 
 static value_type_t iterables[] = {
     [H_VALUE_UNDEFINED] = 0,
@@ -149,12 +150,72 @@ static inline void assert_ast_node_type(semantic_analyser_t* analyser, ast_node_
     if(node->type != type) emit_error(analyser, "Add error to assert_ast_node_type");
 }
 
+static inline void assert_function_signature_fwd(semantic_analyser_t* analyser, h_function_t* function, h_function_t* function2) {
+    if(function->parameters_list_size != function2->parameters_list_size) emit_error(analyser, "Parameters count not matching");
+
+    //name check is not be needed because if names don't match the function would not find the fwd in the first place
+
+    for(size_t i = 0; i < function->parameters_list_size; ++i) {
+        if(function->parameters_list_values[i].type != function2->parameters_list_values[i].type) emit_error(analyser, "Argument types not matching");
+        switch(function->parameters_list_values[i].type) {
+            case H_VALUE_ARRAY:
+                if(function->parameters_list_values[i].array->type != function2->parameters_list_values[i].array->type) {
+                    emit_error(analyser, "Invalid argument type");
+                }
+                break;
+            case H_VALUE_TYPE:
+                if(function->parameters_list_values[i].data_type->type_name->hash != function2->parameters_list_values[i].data_type->type_name->hash 
+                || function->parameters_list_values[i].data_type->type_name->length != function2->parameters_list_values[i].data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].data_type->type_name->string, function2->parameters_list_values[i].data_type->type_name->string) != 0) {
+                    emit_error(analyser, "Invalid argument type");
+                }
+                break;
+        }
+        /* if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
+            if(function->parameters_list_values[i].data_type->type_name->hash != function2->parameters_list_values[i].data_type->type_name->hash 
+                || function->parameters_list_values[i].data_type->type_name->length != function2->parameters_list_values[i].data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].data_type->type_name->string, function2->parameters_list_values[i].data_type->type_name->string) != 0) {
+                    emit_error(analyser, "Invalid argument type");
+                }
+        } */
+    }
+
+    if(function->return_type->type != function2->return_type->type) emit_error(analyser, "Return types not matching");
+    if(function->return_type->type == H_VALUE_TYPE) {
+        if(function->return_type->data_type->type_name->hash != function2->return_type->data_type->type_name->hash)
+        if(function->return_type->data_type->type_name->hash != function2->return_type->data_type->type_name->hash 
+            || function->return_type->data_type->type_name->length != function2->return_type->data_type->type_name->length 
+            || strcmp(function->return_type->data_type->type_name->string, function2->return_type->data_type->type_name->string) != 0) {
+                emit_error(analyser, "Return types not matching");
+            }
+    }
+}
+
 static inline void assert_parameters_arity(semantic_analyser_t* analyser, h_function_t* function, ast_node_t* parameters_list) {
     if(function->parameters_list_size != parameters_list->block.declarations_size) emit_error(analyser, "Invalid arguments count");
     
     for(size_t i = 0; i < function->parameters_list_size; ++i) {
         value_t parameter_value = resolve_expression(analyser, parameters_list->block.declarations[i]); 
         if(function->parameters_list_values[i].type != parameter_value.type) emit_error(analyser, "Invalid argument type");
+        switch(function->parameters_list_values[i].type) {
+            case H_VALUE_ARRAY:
+                if(function->parameters_list_values[i].array->type != parameter_value.array->type) {
+                    emit_error(analyser, "Invalid argument type");
+                }
+                break;
+            case H_VALUE_TYPE:
+                /* if(function->parameters_list_values[i].data_type->type_name->hash != function2->parameters_list_values[i].data_type->type_name->hash 
+                || function->parameters_list_values[i].data_type->type_name->length != function2->parameters_list_values[i].data_type->type_name->length 
+                || strcmp(function->parameters_list_values[i].data_type->type_name->string, function2->parameters_list_values[i].data_type->type_name->string) != 0) {
+                    emit_error(analyser, "Invalid argument type");
+                } */
+                break;
+            case H_VALUE_NUMBER:
+            case H_VALUE_STRING:
+                break;
+            default:
+                DEBUG_LOG("Add arity check for type %s\n", resolve_value_type(function->parameters_list_values[i].type));
+        }
         /* if(function->parameters_list_values[i].type == H_VALUE_TYPE) {
             if(function->parameters_list_values[i].data_type->type_name->hash != parameter_value.data_type->type_name->hash 
                 || function->parameters_list_values[i].data_type->type_name->length != parameter_value.data_type->type_name->length 
@@ -189,7 +250,7 @@ static inline void assert_return_count(semantic_analyser_t* analyser) {
     if(analyser->return_count == 0) emit_error(analyser, "Cannot use statement outside of a function");
 }
 
-semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table) {
+semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table, h_ht_fwd_t* fwd_table) {
     semantic_analyser_t* analyser = (semantic_analyser_t*)malloc(sizeof(semantic_analyser_t));
     analyser->ast_nodes_list = ast_nodes_list;
     analyser->ast_nodes_list_count = ast_nodes_list_count;
@@ -203,12 +264,14 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->labels_table = labels_table;
     analyser->enums_table = enums_table;
     analyser->types_table = types_table;
+    analyser->fwd_table = fwd_table;
     analyser->ast_nodes_post_checks_size = 0;
     analyser->ast_nodes_post_checks_capacity = H_DEFAULT_POST_CHECKS_LIST_CAPACITY;
     analyser->ast_nodes_post_checks = (ast_node_t**)malloc(sizeof(ast_node_t*) * analyser->ast_nodes_post_checks_capacity);
     analyser->returns_list.capacity = H_DEFAULT_RETURNS_LIST_CAPACITY;
     analyser->returns_list.size = 0;
     analyser->returns_list.types = (value_t*)malloc(sizeof(value_t) * analyser->returns_list.capacity);
+    h_locals_stack_print(analyser->locals);
     return analyser;
 }
 
@@ -223,6 +286,14 @@ void h_sa_run(semantic_analyser_t* analyser) {
         DEBUG_LOG("Post Check %lld - %s\n", i, analyser->ast_nodes_post_checks[i]->expression.left->value.string->string);
         h_ht_labels_get(analyser->labels_table, analyser->ast_nodes_post_checks[i]->expression.left->value.string);
     }
+    
+    for(size_t i = 0; i < analyser->fwd_table->size; ++i) {
+        //DEBUG_LOG("Post Check %lld - %s\n", i, analyser->ast_nodes_post_checks[i]->expression.left->value.string->string);
+        if(analyser->fwd_table->dense_array[i].defined == 0) {
+            DEBUG_LOG("Unresolved forward declaration for function %s\n", analyser->fwd_table->dense_array[i].name->string);
+            emit_error(analyser, "Undefined fwd\n");
+        }
+    }
 }
 
 static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
@@ -232,6 +303,13 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             if(node->value.type != rvalue_local.type) emit_error(analyser, "Invalid type assignment");
             if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_local, analyser->scope);
+            return;
+        case AST_NODE_DECLARATION_FUNCTION_PTR:
+            value_t rvalue_fn_ptr = resolve_expression(analyser, node->expression.right);
+            if(node->value.type != rvalue_fn_ptr.type) emit_error(analyser, "Invalid type assignment for function pointer");
+            assert_function_signature_fwd(analyser, node->value.function, rvalue_fn_ptr.function);
+            if(h_locals_stack_find(analyser->locals, node->value.function->name, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            h_locals_stack_push(analyser->locals, node->value.function->name, rvalue_fn_ptr, analyser->scope);
             return;
         case AST_NODE_DECLARATION_VARIABLE_ARRAY:
             value_t rvalue_array = resolve_expression(analyser, node->expression.right);
@@ -254,13 +332,47 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 value_t rvalue_data = resolve_expression_data_initialisation(analyser, node->expression.right);
                 assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
                 rvalue_data.data_type->type_name = type.name;
-                if(rvalue_data.data_type->size != type.value.data->size) emit_error(analyser, "Not all field in data populated");
+                if(rvalue_data.data_type->size != type.value.data->size) emit_error(analyser, "Not all fields in data populated");
                 for(size_t i = 0; i < rvalue_data.data_type->size; ++i) {
-                    if(type.value.data->field_values[i].type == H_VALUE_GENERIC) {
-                        assert_value_type(analyser, rvalue_data.data_type->data[i].type, generics_arguments->arguments[(int)type.value.data->field_values[i].number].type);
-                        continue;
-                    }
                     assert_value_type(analyser, rvalue_data.data_type->data[i].type, type.value.data->field_values[i].type);
+                    switch(type.value.data->field_values[i].type) {
+                        case H_VALUE_FUNCTION:
+                            assert_function_signature_fwd(
+                                analyser, 
+                                type.value.data->field_values[i].function,
+                                rvalue_data.data_type->data[i].function
+                            );
+                            continue;
+                        case H_VALUE_ARRAY:
+                            assert_value_type(
+                                analyser, 
+                                type.value.data->field_values[i].array->type, 
+                                rvalue_data.data_type->data[i].array->type
+                            );
+                            continue;
+                        case H_VALUE_GENERIC:
+                            // add semantic checking for generics
+                            DEBUG_LOG("Define generics here\n");
+                            assert_value_type(
+                                analyser, 
+                                rvalue_data.data_type->data[i].type, 
+                                generics_arguments->arguments[(int)type.value.data->field_values[i].number].type
+                            );
+                            continue;
+                        case H_VALUE_TYPE:
+                            if(!rvalue_data.data_type->data[i].data_type->type_name) {
+                                DEBUG_LOG("%s\n", "No type found");
+                                //Allow defining objects without type?
+                                //rvalue_data.data_type->data[i] - this is populated. Just need to check it matches the fields of the type defined in the data declaration and assign the same type
+                            }
+                            if(!h_string_compare(rvalue_data.data_type->data[i].data_type->type_name, type.value.data->field_values[i].string)) emit_error(analyser, "Custom types name not matching");
+                            assert_value_type(analyser, rvalue_data.data_type->data[i].type, type.value.data->field_values[i].type);
+                            break;
+                        default:
+                            assert_value_type(analyser, rvalue_data.data_type->data[i].type, type.value.data->field_values[i].type);
+                            break;
+                    }
+                    DEBUG_LOG("%s\n", resolve_value_type(rvalue_data.data_type->data[i].type));
                 }
                 //this is so that the values used for semantic analysis don't get used by VM
                 //otherwise VM would push other values, so size would be doubled
@@ -313,6 +425,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                             data->type_name = type.name; 
                             it->data_type = data;
                             break;
+                        case H_TYPE_INFO_ALIAS:
+                            *it = type.value;
+                            break;
                         case H_TYPE_INFO_UNDEFINED:
                         default:
                             emit_error(analyser, "Undefined type");
@@ -326,7 +441,6 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 value_t* it = function->return_type;
                 if(it->type == H_VALUE_TYPE) {
                     ht_type_t type = h_ht_types_get(analyser->types_table, it->string);
-                    //h_string_free(it->string);
                     if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
                     h_data_t* data = h_data_init(type.value.data->size);
                     data->type_name = type.name; 
@@ -334,12 +448,41 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 }
             }
 
-            h_locals_stack_push(analyser->locals, node->value.function->name, node->value, analyser->scope);
+            h_local_t* find_result = h_locals_stack_find_get(analyser->locals, node->value.function->name, analyser->scope);
+            if(!find_result) {
+                h_locals_stack_push(analyser->locals, node->value.function->name, node->value, analyser->scope);
+                analyser->locals = node->value.function->locals_stack;
+                resolve_block_statement(analyser, node->expression.right);
+                analyser->locals = analyser->initial_locals;
+                resolve_returns_list(analyser, node->value.function->return_type[0]);
+                --analyser->return_count;
+                return;
+            }
+
+            if(find_result->value.type != H_VALUE_FORWARD) emit_error(analyser, "Function already defined"); 
+            
+            //compare fn stored in forward with new one to check they match
+            assert_function_signature_fwd(analyser, function, find_result->value.function);
+
+            h_ht_fwd_define(analyser->fwd_table, node->value.function->name);
+            find_result->value = node->value;
+            node->type = AST_NODE_DECLARATION_FUNCTION_FWD;
             analyser->locals = node->value.function->locals_stack;
             resolve_block_statement(analyser, node->expression.right);
             analyser->locals = analyser->initial_locals;
             resolve_returns_list(analyser, node->value.function->return_type[0]);
             --analyser->return_count;
+            return;
+        case AST_NODE_DECLARATION_FWD:
+            DEBUG_LOG("FWD called\n");
+            //h_function_t* fwd_function = node->value.function;
+            if(h_locals_stack_find(analyser->locals, node->value.function->name, analyser->scope) == 1) emit_error(analyser, "Function already defined");
+            h_locals_stack_push(analyser->locals, node->value.function->name, node->value, analyser->scope);
+            h_ht_fwd_set(analyser->fwd_table, node->value.function->name);
+            h_ht_fwd_print(analyser->fwd_table);
+            return;
+        case AST_NODE_DECLARATION_FUNCTION_FWD:
+            emit_error(analyser, "Unexpected node type\n");
             return;
         case AST_NODE_DECLARATION_DATA:
             assert_type_undefined(analyser, node->expression.left->value.string);
@@ -353,6 +496,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                                 break;
                             case H_TYPE_INFO_DATA:
                                 break;
+                            case H_TYPE_INFO_ALIAS:
+                                node->value.data->field_values[i] = type.value;
+                                break;
                             case H_TYPE_INFO_UNDEFINED:
                             default:
                                 emit_error(analyser, "Type undefined");
@@ -363,6 +509,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 h_ht_types_set(analyser->types_table, node->expression.left->value.string, node->value, H_TYPE_INFO_DATA);
                 return;
             }
+            DEBUG_LOG("Generics\n");
             for(size_t i = 0; i < node->value.data->size; ++i) {
                 if(node->value.data->field_values[i].type == H_VALUE_TYPE) {
                     if(check_type_defined(analyser, node->value.data->field_values[i].string)) continue;
@@ -378,6 +525,10 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 }
             }
             h_ht_types_set(analyser->types_table, node->expression.left->value.string, node->value, H_TYPE_INFO_DATA);
+            return;
+        case AST_NODE_DECLARATION_ALIAS:
+            assert_type_undefined(analyser, node->expression.right->value.string);
+            h_ht_types_set(analyser->types_table, node->expression.right->value.string, node->expression.left->value, H_TYPE_INFO_ALIAS);
             return;
         case AST_NODE_STATEMENT_PRINT:
             if(resolve_expression(analyser, node->expression.left).type == H_VALUE_UNDEFINED) emit_error(analyser, "Undefined variable");
@@ -430,8 +581,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             return;
         case AST_NODE_STATEMENT_REPEAT:
             ++analyser->loop_count;
-            resolve_ast(analyser, node->expression.left);
-            assert_value_type(analyser, node->expression.left->value.type, H_VALUE_NUMBER);
+            //resolve_ast(analyser, node->expression.left);
+            value_t lvalue = resolve_expression(analyser, node->expression.left);
+            assert_value_type(analyser, lvalue.type, H_VALUE_NUMBER);
             h_locals_stack_push(analyser->locals, node->expression.other->value.string, NUM_VALUE(0), analyser->scope + 1);
             resolve_block_statement(analyser, node->expression.right);
             --analyser->loop_count;
@@ -466,6 +618,9 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
                 resolve_block_statement(analyser, node->expression.right->block.declarations[i]->expression.right);
             }
             if(node->expression.other) resolve_block_statement(analyser, node->expression.other);
+            return;
+        case AST_NODE_STATEMENT_TRACE:
+            assert_value_type(analyser, resolve_expression(analyser, node->expression.left).type, H_VALUE_STRING);
             return;
         default:
             resolve_expression(analyser, node);
@@ -515,11 +670,12 @@ static inline value_t resolve_return_statement(semantic_analyser_t* analyser, as
 static inline value_t resolve_expression_function_call(semantic_analyser_t* analyser, ast_node_t* node) {
     node->expression.left->type = AST_NODE_IDENTIFIER_FUNCTION;
     value_t value_left = resolve_expression(analyser, node->expression.left);
-            
+
     resolve_block_statement(analyser, node->expression.right);
     
     switch(value_left.type) {
         case H_VALUE_FUNCTION:
+        case H_VALUE_FORWARD:
             assert_parameters_arity(analyser, value_left.function, node->expression.right);
             node->value = *value_left.function->return_type;
             break;
@@ -557,6 +713,7 @@ static inline value_t resolve_expression_array_initialisation(semantic_analyser_
 static inline value_t resolve_expression_data_initialisation(semantic_analyser_t* analyser, ast_node_t* node) {
     if(node->block.declarations_size == 0) emit_error(analyser, "Empty data not allowed");
     h_data_t* data = h_data_init(node->block.declarations_size);
+    data->type_name = NULL;
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         value_t value = resolve_expression(analyser, node->block.declarations[i]);
         h_data_push(data, value);
@@ -573,7 +730,15 @@ static inline value_t resolve_expression_dot(semantic_analyser_t* analyser, ast_
 
     ht_type_t type = h_ht_types_get(analyser->types_table, lvalue.data_type->type_name);
     if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
-    int property_index = h_struct_field_get_index(type.value.data, node->expression.right->value.string);
+    int property_index = -1;
+    switch(node->expression.right->type) {
+        case AST_NODE_FUNCTION_CALL:
+            property_index = h_struct_field_get_index(type.value.data, node->expression.right->expression.left->value.string);
+            break;
+        default:
+            property_index = h_struct_field_get_index(type.value.data, node->expression.right->value.string);
+            break;
+    }
     if(property_index == -1) {
         emit_error(analyser, "Undefined property");
         return NULL_VALUE();
@@ -763,6 +928,20 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
             return resolve_expression(analyser, node->expression.left);
         case AST_NODE_COPY:
             return resolve_expression(analyser, node->expression.left);
+        case AST_NODE_RUN:
+            value_t run_value = resolve_expression(analyser, node->expression.left);
+            assert_value_type(analyser, run_value.type, H_VALUE_STRING);
+            return NUM_VALUE(0);
+        case AST_NODE_GET:
+            value_t get_value = resolve_expression(analyser, node->expression.left);
+            assert_value_type(analyser, get_value.type, H_VALUE_STRING);
+            h_internal_variable_t internal = h_internal_variables_resolve(get_value.string);
+            if (internal.tag == H_INTERNAL_LAST) {
+                emit_error(analyser, "Undefined internal variable specified after get expression\n");
+                return NULL_VALUE();
+            }
+            node->expression.left->value = NUM_VALUE(internal.tag);
+            return internal.value;
         case AST_NODE_SELECT:
             return resolve_expression_select(analyser, node);
         default:

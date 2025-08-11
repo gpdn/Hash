@@ -29,6 +29,7 @@ void h_string_append_cstring_many(h_string_t* string_1, const char** string_2, s
 char h_string_get(h_string_t* string, size_t index);
 void h_string_set(h_string_t* string, char c, size_t index);
 h_string_t* h_string_substr(h_string_t* string, size_t start, size_t offset);
+void h_string_hash(h_string_t* string);
 void h_string_free(h_string_t* string);
 
 #endif

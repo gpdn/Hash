@@ -9,6 +9,7 @@ static inline void icg_generate_declaration_data(icg_t* icg, ast_node_t* node);
 static void icg_generate_declaration_variable_global(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_declaration_label(icg_t* icg, ast_node_t* node);
 static void icg_generate_declaration_function(icg_t* icg, ast_node_t* node);
+static void icg_generate_declaration_function_fwd(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_print(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_if(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_statement_while(icg_t* icg, ast_node_t* node);
@@ -34,13 +35,15 @@ static inline void icg_generate_identifier_function(icg_t* icg, ast_node_t* node
 static inline void icg_generate_identifier_native(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_identifier_global(icg_t* icg, ast_node_t* node);
 static void icg_generate_binary(icg_t* icg, ast_node_t* node);
-static void icg_generate_ternary(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_ternary(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment(icg_t* icg, ast_node_t* node);
 static void icg_generate_assignment_compound(icg_t* icg, ast_node_t* node);
 static void icg_generate_unary(icg_t* icg, ast_node_t* node);
 static void icg_generate_post_unary(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_indexing(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_copy(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_run(icg_t* icg, ast_node_t* node);
+static inline void icg_generate_get(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_select(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_function_call(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_native_call(icg_t* icg, ast_node_t* node);
@@ -117,12 +120,16 @@ static inline void icg_decrease_scope(icg_t* icg) {
         bs_write(icg->bytecode_store, OP_REWIND);
         bs_write(icg->bytecode_store, scope_difference);
         icg->scope_index += scope_difference;
+        
+        //check this bit(fixes loop)
+        //icg->search_index -= scope_difference;
     }
 }
 
 static inline size_t icg_find(icg_t* icg, h_string_t* name) {
     size_t index = h_locals_stack_get_index(icg->locals_stack, name, icg->scope, icg->search_index);
-    return index > icg->scope_index ? index - icg->scope_index : index;
+    //return index > icg->scope_index ? index - icg->scope_index : index;
+    return index;
 }
 
 static inline size_t icg_find_initial(icg_t* icg, h_string_t* name) {
@@ -154,6 +161,20 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             break;
         case AST_NODE_DECLARATION_FUNCTION:
             icg_generate_declaration_function(icg, node);
+            break;
+        case AST_NODE_DECLARATION_FWD:
+            ++icg->search_index;
+            bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
+            bs_write(icg->bytecode_store, icg_find(icg, node->expression.left->value.string));
+            break;
+        case AST_NODE_DECLARATION_FUNCTION_FWD:
+            icg_generate_declaration_function_fwd(icg, node);
+            break;
+        case AST_NODE_DECLARATION_FUNCTION_PTR:
+            icg_generate_declaration_variable(icg, node);
+            break;
+        case AST_NODE_DECLARATION_FUNCTION_PTR_TYPE:
+        case AST_NODE_DECLARATION_ALIAS:
             break;
         case AST_NODE_FUNCTION_CALL:
             icg_generate_function_call(icg, node);
@@ -214,6 +235,10 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
             icg_generate_expression(icg, node->expression.left);
             bs_write(icg->bytecode_store, OP_STOP_VALUE);
             break;
+        case AST_NODE_STATEMENT_TRACE:
+            icg_generate_expression(icg, node->expression.left);
+            bs_write(icg->bytecode_store, OP_TRACE);
+            break;
         case AST_NODE_STATEMENT_EXPRESSION:
             icg_generate_statement_expression(icg, node);
             break;
@@ -270,6 +295,12 @@ static void icg_generate_expression(icg_t* icg, ast_node_t* node) {
         case AST_NODE_COPY:
             icg_generate_copy(icg, node);
             break;
+        case AST_NODE_RUN:
+            icg_generate_run(icg, node);
+            break;
+        case AST_NODE_GET:
+            icg_generate_get(icg, node);
+            break;
         case AST_NODE_SELECT:
             icg_generate_select(icg, node);
             break;
@@ -321,6 +352,24 @@ static void icg_generate_declaration_function(icg_t* icg, ast_node_t* node) {
     icg->scope_index = current_scope_index;
     bs_write(icg->bytecode_store, OP_DEFINE_LOCAL);
     bs_write(icg->bytecode_store, icg_find(icg, node->expression.left->value.string));
+    #if DEBUG_ALL
+    disassemble_bytecode_store(node->value.function->store, node->value.function->name->string, NULL);
+    #endif
+}
+
+static void icg_generate_declaration_function_fwd(icg_t* icg, ast_node_t* node) {
+    icg->bytecode_store = node->value.function->store;
+    icg->locals_stack = node->value.function->locals_stack;
+    size_t current_search_index = icg->search_index;
+    icg->search_index = node->value.function->parameters_list_size;
+    size_t current_scope_index = icg->scope_index;
+    icg_generate_statement_block(icg, node->expression.right);
+    bs_write(node->value.function->store, OP_RETURN);
+    icg->bytecode_store = icg->initial_bytecode_store;
+    icg->locals_stack = icg->initial_locals_stack;
+    icg->search_index = current_search_index;
+    icg->initial_search_index = icg->search_index;
+    icg->scope_index = current_scope_index;
     #if DEBUG_ALL
     disassemble_bytecode_store(node->value.function->store, node->value.function->name->string, NULL);
     #endif
@@ -418,12 +467,12 @@ static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     icg_increase_scope(icg);
     ++icg->search_index;
     size_t temp_index = icg_find(icg, node->expression.other->value.string);
-    bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
+    bs_write_constant(icg->bytecode_store, NUM_VALUE(-1));
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_PRE_INCREMENT);
     bs_write(icg->bytecode_store, temp_index);
     icg_generate_statement_block_no_scope(icg, node->expression.right);
     icg_generate_expression(icg, node->expression.left);
-    bs_write(icg->bytecode_store, OP_NOT_EQUAL);
+    bs_write(icg->bytecode_store, OP_NOT_EQUAL_MINUS_ONE);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
     //bs_write(icg->bytecode_store, OP_POP);
@@ -690,16 +739,26 @@ static void icg_generate_post_unary(icg_t* icg, ast_node_t* node) {
     }
 }
 
-static void icg_generate_ternary(icg_t* icg, ast_node_t* node) {
+static inline void icg_generate_ternary(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.left);
     icg_generate_expression(icg, node->expression.right);
     icg_generate_expression(icg, node->expression.other);
     bs_write(icg->bytecode_store, OP_CONDITIONAL_EXPRESSION);
 }
 
-static void icg_generate_copy(icg_t* icg, ast_node_t* node) {
+static inline void icg_generate_copy(icg_t* icg, ast_node_t* node) {
     icg_generate_expression(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_COPY);
+}
+
+static inline void icg_generate_run(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->expression.left);
+    bs_write(icg->bytecode_store, OP_RUN);
+}
+
+static inline void icg_generate_get(icg_t* icg, ast_node_t* node) {
+    icg_generate_expression(icg, node->expression.left);
+    bs_write(icg->bytecode_store, OP_GET);
 }
 
 static void icg_generate_binary(icg_t* icg, ast_node_t* node) {
@@ -782,8 +841,10 @@ static void icg_generate_assignment(icg_t* icg, ast_node_t* node) {
             ++count;
         }
 
+        size_t index = icg_find(icg, left_child->value.string);
+
         if(count == 1) {
-            if(left_child->value.type == H_VALUE_STRING) {
+            if(icg->locals_stack->locals_array[index].value.type == H_VALUE_STRING) {
                 bs_write(icg->bytecode_store, OP_SET_LOCAL_INDEX_STRING);
                 bs_write(icg->bytecode_store, icg_find(icg, left_child->value.string));
                 return;

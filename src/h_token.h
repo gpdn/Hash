@@ -86,6 +86,11 @@ typedef enum token_type_t {
     H_TOKEN_SWITCH,
     H_TOKEN_SELECT,
     H_TOKEN_THEN,
+    H_TOKEN_TRACE,
+    H_TOKEN_RUN,
+    H_TOKEN_GET,
+    H_TOKEN_FWD,
+    H_TOKEN_ALIAS,
     H_TOKEN_LAST
 } token_type_t;
 
