@@ -259,6 +259,7 @@ semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_lis
     analyser->scope = 0;
     analyser->loop_count = 0;
     analyser->return_count = 0;
+    analyser->current_scope_start = 0;
     analyser->locals = locals_stack;
     analyser->initial_locals = locals_stack;
     analyser->labels_table = labels_table;
@@ -301,25 +302,33 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
         case AST_NODE_DECLARATION_VARIABLE:
             value_t rvalue_local = resolve_expression(analyser, node->expression.right);
             if(node->value.type != rvalue_local.type) emit_error(analyser, "Invalid type assignment");
-            if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            //if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            if(h_locals_stack_check_defined(analyser->locals, node->expression.left->value.string, analyser->scope, analyser->current_scope_start) == 1) emit_error(analyser, "Variable already defined");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_local, analyser->scope);
             return;
         case AST_NODE_DECLARATION_FUNCTION_PTR:
             value_t rvalue_fn_ptr = resolve_expression(analyser, node->expression.right);
             if(node->value.type != rvalue_fn_ptr.type) emit_error(analyser, "Invalid type assignment for function pointer");
             assert_function_signature_fwd(analyser, node->value.function, rvalue_fn_ptr.function);
-            if(h_locals_stack_find(analyser->locals, node->value.function->name, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            if(h_locals_stack_check_defined(analyser->locals, node->value.function->name, analyser->scope, analyser->current_scope_start) == 1) emit_error(analyser, "Variable already defined");
+            //if(h_locals_stack_find(analyser->locals, node->value.function->name, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
             h_locals_stack_push(analyser->locals, node->value.function->name, rvalue_fn_ptr, analyser->scope);
             return;
         case AST_NODE_DECLARATION_VARIABLE_ARRAY:
             value_t rvalue_array = resolve_expression(analyser, node->expression.right);
+            if(h_locals_stack_check_defined(analyser->locals, node->expression.left->value.string, analyser->scope, analyser->current_scope_start) == 1) emit_error(analyser, "Variable already defined");
+            //if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
             if(node->expression.right->type == AST_NODE_ARRAY_INITIALISATION) {
-                rvalue_array.array->type = node->value.type; 
+                if(node->expression.right->block.declarations_size == 0) {
+                    rvalue_array.array->type = node->value.type; 
+                    h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_array, analyser->scope);
+                    return;
+                } 
+                assert_value_type(analyser, node->value.type, rvalue_array.array->type);
                 h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_array, analyser->scope);
                 return;
             }
             assert_value_type(analyser, node->value.type, rvalue_array.array->type);
-            if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
             h_locals_stack_push(analyser->locals, node->expression.left->value.string, rvalue_array, analyser->scope);
             return;
         case AST_NODE_DECLARATION_VARIABLE_TYPE:
@@ -327,7 +336,8 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             ht_type_t type = h_ht_types_get(analyser->types_table, node->value.string);
             h_generic_arguments_list_t* generics_arguments = (h_generic_arguments_list_t*)node->expression.other;
             if(type.type == H_TYPE_INFO_UNDEFINED) emit_error(analyser, "Undefined type");
-            if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            //if(h_locals_stack_find(analyser->locals, node->expression.left->value.string, analyser->scope) == 1) emit_error(analyser, "Variable already defined");
+            if(h_locals_stack_check_defined(analyser->locals, node->expression.left->value.string, analyser->scope, analyser->current_scope_start) == 1) emit_error(analyser, "Variable already defined");            
             if(node->expression.right->type == AST_NODE_DATA_INITIALISATION) {
                 value_t rvalue_data = resolve_expression_data_initialisation(analyser, node->expression.right);
                 assert_value_type(analyser, rvalue_data.type, H_VALUE_TYPE);
@@ -953,9 +963,12 @@ static value_t resolve_expression(semantic_analyser_t* analyser, ast_node_t* nod
 
 static inline void resolve_block_statement(semantic_analyser_t* analyser, ast_node_t* node) {
     ++analyser->scope;
+    size_t previous_scope_start = analyser->current_scope_start;
+    analyser->current_scope_start = analyser->locals->size;
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         resolve_ast(analyser, node->block.declarations[i]);
     }
+    analyser->current_scope_start = previous_scope_start; 
     --analyser->scope;
 }
 

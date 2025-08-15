@@ -35,6 +35,7 @@ typedef struct semantic_analyser_t {
     size_t scope;
     size_t loop_count;
     size_t return_count;
+    size_t current_scope_start;
     returns_list_t returns_list;
 } semantic_analyser_t;
 

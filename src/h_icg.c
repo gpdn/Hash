@@ -120,22 +120,20 @@ static inline void icg_decrease_scope(icg_t* icg) {
         bs_write(icg->bytecode_store, OP_REWIND);
         bs_write(icg->bytecode_store, scope_difference);
         icg->scope_index += scope_difference;
-        
-        //check this bit(fixes loop)
-        //icg->search_index -= scope_difference;
+        //icg->search_index -= scope_difference - 1;
     }
 }
 
 static inline size_t icg_find(icg_t* icg, h_string_t* name) {
     size_t index = h_locals_stack_get_index(icg->locals_stack, name, icg->scope, icg->search_index);
-    //return index > icg->scope_index ? index - icg->scope_index : index;
+    //return index > icg->previous_scope_index ? index - icg->scope_index : index;
     return index;
 }
 
 static inline size_t icg_find_initial(icg_t* icg, h_string_t* name) {
     DEBUG_LOG("Initial Search Index: %lld\n", icg->initial_search_index);
     size_t index = h_locals_stack_get_index(icg->initial_locals_stack, name, icg->scope, icg->initial_search_index);
-    //return index > icg->scope_index ? index - icg->scope_index : index;
+    //return index > icg->previous_scope_index ? index - icg->scope_index : index;
     return index;
 }
 
