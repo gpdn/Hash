@@ -2,6 +2,29 @@
 
 #define H_SWITCH_TABLE_DEFAULT_CAPACITY 64
 
+//size_t previous_scope_index = icg->scope_index;
+//instead of these maybe wrap scope code in a macro
+#define ICG_INCREASE_SCOPE() \
+    size_t previous_scope_index = icg->search_index;\
+    size_t scope_difference = 0;\
+    ++icg->scope;
+
+#define ICG_REWIND() \
+    scope_difference = icg->search_index - previous_scope_index;\
+    if(scope_difference > 0) {\
+        bs_write(icg->bytecode_store, OP_REWIND);\
+        bs_write(icg->bytecode_store, scope_difference);\
+    }
+
+#define ICG_DECREASE_SCOPE() \
+    --icg->scope;\
+    scope_difference = icg->search_index - previous_scope_index;\
+    if(scope_difference > 0) {\
+        bs_write(icg->bytecode_store, OP_REWIND);\
+        bs_write(icg->bytecode_store, scope_difference);\
+        icg->scope_index += scope_difference;\
+    }
+
 static void emit_error(icg_t* icg);
 static void icg_generate_declaration_variable(icg_t* icg, ast_node_t* node);
 static inline void icg_generate_declaration_variable_array(icg_t* icg, ast_node_t* node);
@@ -441,42 +464,58 @@ static inline void icg_generate_statement_for(icg_t* icg, ast_node_t* node) {
     size_t current_break_index = icg->breaks_list.size;
     size_t current_skip_index = icg->skips_list.size;
     ast_node_t* condition = node->expression.left;
-    icg_increase_scope(icg);
+    ++icg->scope;
     if(condition->expression.left) icg_generate_expression(icg, condition->expression.left);
+    size_t previous_scope_index = icg->search_index;
     size_t current_instruction = icg->bytecode_store->size;
     icg_generate_expression(icg, condition->expression.other);
     bs_write(icg->bytecode_store, OP_JUMP_IF_FALSE);
     size_t jump_placeholder = bs_write_get(icg->bytecode_store, OP_JUMP_PLACEHOLDER);
     icg_generate_statement_block_no_scope(icg, node->expression.right);
+    size_t scope_difference = icg->search_index - previous_scope_index;
+    if(scope_difference > 0) {
+        bs_write(icg->bytecode_store, OP_REWIND);
+        bs_write(icg->bytecode_store, scope_difference);
+    }
     icg_resolve_skips(icg, icg->bytecode_store->size, current_skip_index);
     icg_generate_expression(icg, condition->expression.right);
     bs_write(icg->bytecode_store, OP_POP);
     bs_write(icg->bytecode_store, OP_JUMP);
     bs_write(icg->bytecode_store, current_instruction);
     icg->bytecode_store->code[jump_placeholder] = icg->bytecode_store->size;
-    //if(condition->expression.left) bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg, current_break_index);
-    icg_decrease_scope(icg);
+    --icg->scope;
+    if (condition->expression.left) bs_write(icg->bytecode_store, OP_POP);
 }
 
 static inline void icg_generate_statement_repeat(icg_t* icg, ast_node_t* node) {
     size_t current_break_index = icg->breaks_list.size;
     size_t current_skip_index = icg->skips_list.size;
-    icg_increase_scope(icg);
+
+    ++icg->scope;
     ++icg->search_index;
     size_t temp_index = icg_find(icg, node->expression.other->value.string);
     bs_write_constant(icg->bytecode_store, NUM_VALUE(-1));
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_PRE_INCREMENT);
+    size_t previous_search_index = icg->search_index;
     bs_write(icg->bytecode_store, temp_index);
     icg_generate_statement_block_no_scope(icg, node->expression.right);
+    size_t rewind_index = icg->search_index - previous_search_index;
+    if(rewind_index > 0) {
+        bs_write(icg->bytecode_store, OP_REWIND);
+        bs_write(icg->bytecode_store, rewind_index);
+    }
     icg_generate_expression(icg, node->expression.left);
     bs_write(icg->bytecode_store, OP_NOT_EQUAL_MINUS_ONE);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
-    //bs_write(icg->bytecode_store, OP_POP);
+    
+    //this should remove the _
+    bs_write(icg->bytecode_store, OP_POP);
+    
     icg_resolve_breaks(icg, current_break_index);
     icg_resolve_skips(icg, jump_index, current_skip_index);
-    icg_decrease_scope(icg);
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_switch(icg_t* icg, ast_node_t* node) {
@@ -514,7 +553,11 @@ static inline void icg_generate_select(icg_t* icg, ast_node_t* node) {
 static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     size_t current_break_index = icg->breaks_list.size;
     size_t current_skip_index = icg->skips_list.size;
-    icg_increase_scope(icg);
+
+    size_t previous_search_index = icg->search_index;
+    size_t rewind_index = 0;
+    ++icg->scope;
+
     icg->search_index += 2;
     size_t temp_index = icg_find(icg, node->expression.other->expression.left->value.string);
     size_t count_index = icg_find(icg, node->expression.other->expression.right->value.string);
@@ -523,6 +566,7 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     if(node->value.type == H_VALUE_STRING) {
         bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
         bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
+        previous_search_index = icg->search_index;
         size_t jump_index = bs_write_get(icg->bytecode_store, OP_GET_LOCAL);
         bs_write_get(icg->bytecode_store, count_index);
         bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX_STRING);
@@ -530,6 +574,11 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
         bs_write(icg->bytecode_store, OP_SET_LOCAL);
         bs_write(icg->bytecode_store, temp_index);
         icg_generate_statement_block_no_scope(icg, node->expression.right);
+        rewind_index = (icg->search_index - previous_search_index) + 1;
+        if(rewind_index > 0) {
+            bs_write(icg->bytecode_store, OP_REWIND);
+            bs_write(icg->bytecode_store, rewind_index);
+        }
         bs_write(icg->bytecode_store, OP_POP);
         bs_write(icg->bytecode_store, OP_GET_LOCAL_SIZE_STRING);
         bs_write(icg->bytecode_store, array_index);
@@ -542,12 +591,22 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
         //bs_write(icg->bytecode_store, OP_POP);
         icg_resolve_breaks(icg, current_break_index);
         icg_resolve_skips(icg, jump_index, current_skip_index);
-        icg_decrease_scope(icg);
+        
+        --icg->scope;
+        rewind_index = icg->search_index - previous_search_index;
+        if(rewind_index > 0) {
+            bs_write(icg->bytecode_store, OP_REWIND);
+            bs_write(icg->bytecode_store, rewind_index);
+        }
+
         return;        
     }
     
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
     bs_write_constant(icg->bytecode_store, NUM_VALUE(0));
+    
+    previous_search_index = icg->search_index;
+
     size_t jump_index = bs_write_get(icg->bytecode_store, OP_GET_LOCAL);
     bs_write_get(icg->bytecode_store, count_index);
     bs_write(icg->bytecode_store, OP_GET_LOCAL_INDEX);
@@ -555,7 +614,15 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_SET_LOCAL);
     bs_write(icg->bytecode_store, temp_index);
     icg_generate_statement_block_no_scope(icg, node->expression.right);
-    bs_write(icg->bytecode_store, OP_POP);
+    
+    //OP_SET_LOCAL doesn't do a pop for now, that's the reason for the + 1
+    //maybe create another instruction which sets and pops
+    rewind_index = (icg->search_index - previous_search_index) + 1;
+    if(rewind_index > 0) {
+        bs_write(icg->bytecode_store, OP_REWIND);
+        bs_write(icg->bytecode_store, rewind_index);
+    }
+    //bs_write(icg->bytecode_store, OP_POP);
     bs_write(icg->bytecode_store, OP_GET_LOCAL_SIZE);
     bs_write(icg->bytecode_store, array_index);
     bs_write(icg->bytecode_store, OP_POST_INCREMENT);
@@ -563,19 +630,31 @@ static inline void icg_generate_statement_loop(icg_t* icg, ast_node_t* node) {
     bs_write(icg->bytecode_store, OP_NOT_EQUAL);
     bs_write(icg->bytecode_store, OP_JUMP_IF_TRUE);
     bs_write(icg->bytecode_store, jump_index);
+
+    //remove _ and __
+    bs_write(icg->bytecode_store, OP_REWIND);
+    bs_write(icg->bytecode_store, 2);
+
     //bs_write(icg->bytecode_store, OP_POP);
     //bs_write(icg->bytecode_store, OP_POP);
     icg_resolve_breaks(icg, current_break_index);
     icg_resolve_skips(icg, jump_index, current_skip_index);
-    icg_decrease_scope(icg);
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_block(icg_t* icg, ast_node_t* node) {
-    icg_increase_scope(icg);
+    size_t previous_search_index = icg->search_index;
+    size_t rewind_index = 0;
+    ++icg->scope;
     for(size_t i = 0; i < node->block.declarations_size; ++i) {
         icg_generate_expression(icg, node->block.declarations[i]);
     }
-    icg_decrease_scope(icg);
+    rewind_index = icg->search_index - previous_search_index;
+    if(rewind_index > 0) {
+        bs_write(icg->bytecode_store, OP_REWIND);
+        bs_write(icg->bytecode_store, rewind_index);
+    }
+    --icg->scope;
 }
 
 static inline void icg_generate_statement_block_no_scope(icg_t* icg, ast_node_t* node) {
@@ -991,3 +1070,5 @@ bytecode_store_t* icg_generate_bytecode(icg_t* icg) {
 }
 
 #undef H_SWITCH_TABLE_DEFAULT_CAPACITY
+#undef ICG_INCREASE_SCOPE
+#undef ICG_DECREASE_SCOPE

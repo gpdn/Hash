@@ -447,6 +447,8 @@ int vm_run(virtual_machine_t* vm) {
 
         #if DEBUG_TRACE_VM_STACK
             for(value_t* temp = vm->stack; temp < vm->stack_top; ++temp) {
+                DEBUG_COLOR_SET(COLOR_YELLOW);
+                DEBUG_LOG("[%lld] ", temp - vm->stack);
                 DEBUG_COLOR_SET(COLOR_CYAN);
                 if (temp == vm->stack_base) {
                     DEBUG_COLOR_SET(COLOR_YELLOW);

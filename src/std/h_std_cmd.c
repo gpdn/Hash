@@ -41,6 +41,10 @@ value_t h_std_cmd_read_line(struct value_t* parameters, size_t args_count) {
 value_t h_std_cmd_confirm(struct value_t* parameters, size_t args_count) {
     printf("%s%s", H_NFI_STR_TO_CSTRING(parameters[0]), "[y/n]\n\r");
     char c = (char)fgetchar();
+    char f; 
+    do {
+        f = (char)fgetchar(); 
+    } while(f != '\n' && f != EOF);
     double result = (c == 'y');
     return NUM_VALUE(result);
 }

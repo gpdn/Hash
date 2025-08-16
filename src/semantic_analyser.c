@@ -36,6 +36,7 @@ static inline void assert_returns_type(semantic_analyser_t* analyser, value_t ty
 static inline void assert_returns_undefined(semantic_analyser_t* analyser);
 static inline void assert_type_undefined(semantic_analyser_t* analyser, h_string_t* type);
 static inline void assert_type_defined(semantic_analyser_t* analyser, h_string_t* type);
+static inline void assert_global_scope(semantic_analyser_t* analyser);
 static inline int check_type_defined(semantic_analyser_t* analyser, h_string_t* type);
 static inline void assert_function_signature_fwd(semantic_analyser_t* analyser, h_function_t* function, h_function_t* function2);
 
@@ -250,6 +251,10 @@ static inline void assert_return_count(semantic_analyser_t* analyser) {
     if(analyser->return_count == 0) emit_error(analyser, "Cannot use statement outside of a function");
 }
 
+static inline void assert_global_scope(semantic_analyser_t* analyser) {
+    if(analyser->scope != 0) emit_error(analyser, "Cannot use statement outside of global scope");
+}
+
 semantic_analyser_t* h_sa_init(ast_node_t** ast_nodes_list, size_t ast_nodes_list_count, h_hash_table_t* globals_table, h_locals_stack_t* locals_stack, h_ht_labels_t* labels_table, h_ht_enums_t* enums_table, h_ht_types_t* types_table, h_ht_fwd_t* fwd_table) {
     semantic_analyser_t* analyser = (semantic_analyser_t*)malloc(sizeof(semantic_analyser_t));
     analyser->ast_nodes_list = ast_nodes_list;
@@ -419,6 +424,7 @@ static void resolve_ast(semantic_analyser_t* analyser, ast_node_t* node) {
             h_ht_types_set(analyser->types_table, values->name, NUM_VALUE(0), H_TYPE_INFO_ENUM);
             return;
         case AST_NODE_DECLARATION_FUNCTION:
+            assert_global_scope(analyser);
             ++analyser->return_count;
             h_function_t* function = node->value.function;
 

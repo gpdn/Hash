@@ -74,8 +74,8 @@ h_local_t* h_locals_stack_find_get(h_locals_stack_t* locals_stack, h_string_t* n
     #if DEBUG_TRACE_LOCALS_STACK
         DEBUG_LOG("Find: %s - %lld\n", name->string, it->scope);
     #endif
-    for(; it->scope == scope && it != locals_stack->locals_array - 1; --it) {
-        if(it->name->hash == name->hash && it->name->length == name->length && memcmp(it->name->string, name->string, name->length) == 0) return it;
+    for(;it != locals_stack->locals_array - 1; --it) {
+        if(it->scope == scope && it->name->hash == name->hash && it->name->length == name->length && memcmp(it->name->string, name->string, name->length) == 0) return it;
     }
     return NULL;
 }
